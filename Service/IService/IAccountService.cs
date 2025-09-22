@@ -18,7 +18,6 @@ namespace Service.IService
         Task<BaseResponse<LoginResponse>> Login(LoginRequest request);
         Task<BaseResponse<string>> Confirmation(string email, int code);
         Task<BaseResponse<ApiResponse>> RenewToken(TokenModel model);
-        Task<BaseResponse<AccountResetPasswordResponse>> ResetPassword([FromBody] ResetToken resetToken);
         Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword);
         Task<Account> GetByStringId(string id);
         Task<List<NewUserDto>> GetAllAccountsAsync();

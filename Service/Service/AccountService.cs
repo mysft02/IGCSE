@@ -302,51 +302,5 @@ namespace Service.Service
 
             return accountInfoList;
         }
-
-
-        public async Task<BaseResponse<AccountResetPasswordResponse>> ResetPassword([FromBody] ResetToken resetToken)
-        {
-            var user = await _userManager.FindByEmailAsync(resetToken.Email);
-            if (user == null)
-            {
-                return new BaseResponse<AccountResetPasswordResponse>("UserName is wrong, Please check again!", StatusCodeEnum.BadRequest_400, null);
-            }
-
-            user = await _userManager.FindByNameAsync(resetToken.Username);
-            if (user == null)
-            {
-                return new BaseResponse<AccountResetPasswordResponse>("Cannot find Email, Please check again!", StatusCodeEnum.BadRequest_400, null);
-            }
-
-            if (string.Compare(resetToken.Password, resetToken.ConfirmPassword) != 0)
-            {
-                return new BaseResponse<AccountResetPasswordResponse>("Password and ConfirmPassword doesnot match! ", StatusCodeEnum.BadRequest_400, null);
-            }
-            if (string.IsNullOrEmpty(resetToken.Token))
-            {
-                return new BaseResponse<AccountResetPasswordResponse>("Invalid Token! ", StatusCodeEnum.BadRequest_400, null);
-            }
-            var result = await _userManager.ResetPasswordAsync(user, resetToken.Token, resetToken.Password);
-            if (!result.Succeeded)
-            {
-                var errors = new List<string>();
-                foreach (var error in result.Errors)
-                {
-                    errors.Add(error.Description);
-                }
-                return new BaseResponse<AccountResetPasswordResponse>($"I{result.Errors}", StatusCodeEnum.InternalServerError_500, null);
-            }
-
-            var response = new AccountResetPasswordResponse
-            {
-                Email = resetToken.Email,
-                Username = resetToken.Username,
-                Password = resetToken.Password,
-                ConfirmPassword = resetToken.ConfirmPassword,
-                Token = resetToken.Token
-            };
-            return new BaseResponse<AccountResetPasswordResponse>($"I{result.Errors}", StatusCodeEnum.OK_200, response);
-
-        }
     }
 }
