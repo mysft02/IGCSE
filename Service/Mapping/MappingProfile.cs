@@ -8,9 +8,9 @@ namespace Service.Mapping
     {
         public MappingProfile() 
         {
-            CreateMap<Account, GetCustomerUser>().ReverseMap();
-            CreateMap<Account, GetStaffUser>().ReverseMap();
-            CreateMap<Account, GetAccount>().ReverseMap();
+            //CreateMap<Account, GetCustomerUser>().ReverseMap();
+            //CreateMap<Account, GetStaffUser>().ReverseMap();
+            //CreateMap<Account, GetAccount>().ReverseMap();
 
         }
     }
