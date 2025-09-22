@@ -1,4 +1,4 @@
-﻿using BusinessObject.IdentityModel;
+using BusinessObject.IdentityModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Service.IService;
@@ -20,6 +20,17 @@ namespace IGCSE.Controller
         }
 
         
+        [HttpGet("profile/{userId}")]
+        public async Task<IActionResult> GetProfile(string userId)
+        {
+            var userProfile = await _accountService.GetProfileAsync(userId);
+            if (userProfile == null)
+            {
+                return NotFound(new { Message = "User not found" });
+            }
+            return Ok(userProfile);
+        }
+
         [HttpGet]
         [Route("GetAllAccounts")]
         public async Task<List<NewUserDto>> GetAllAccountsAsync()

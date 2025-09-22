@@ -1,4 +1,4 @@
-﻿using BusinessObject.IdentityModel;
+using BusinessObject.IdentityModel;
 using BusinessObject.Model;
 using Microsoft.AspNetCore.Mvc;
 using Service.RequestAndResponse.BaseResponse;
@@ -21,5 +21,6 @@ namespace Service.IService
         Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword);
         Task<Account> GetByStringId(string id);
         Task<List<NewUserDto>> GetAllAccountsAsync();
+        Task<NewUserDto> GetProfileAsync(string userId);
     }
 }

@@ -277,6 +277,31 @@ namespace Service.Service
             return account;
         }
 
+        public async Task<NewUserDto> GetProfileAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return null; // Or throw an exception, depending on desired behavior
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var userProfile = new NewUserDto
+            {
+                UserID = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                Name = user.Name,
+                Address = user.Address,
+                Phone = user.Phone,
+                isActive = user.Status,
+                Roles = roles.ToList()
+            };
+
+            return userProfile;
+        }
+
         public async Task<List<NewUserDto>> GetAllAccountsAsync()
         {
             var allAccounts = await _userManager.Users.ToListAsync();
