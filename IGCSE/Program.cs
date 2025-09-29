@@ -4,10 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using Service;
-using Repository;
 using System.Text.Json.Serialization;
 using IGCSE.Middleware;
+using Repository.IRepositories;
+using Repository.Repositories;
+using Service.IService;
+using Service.Mapping;
+using Service.Service;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,11 +30,15 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection"),
         sqlOptions => sqlOptions.MigrationsAssembly("Repository")));
 
-// Configure Services
-builder.Services.ConfigureRepositoryService(builder.Configuration);
-builder.Services.ConfigureServiceService(builder.Configuration);
+// Configure Repository Services
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 
+// Configure Application Services
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<Service.Mapping.MappingProfile>());
+builder.Services.AddScoped<IAccountService, AccountService>();
 
+// Add Infrastructure Services
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 
