@@ -1,20 +1,18 @@
-﻿using BusinessObject.Model;
+using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DataAccessObject
+namespace Repository
 {
     public class IGCSEContext : IdentityDbContext<Account>
     {
-        public IGCSEContext() : base()
-        { }
         public IGCSEContext(DbContextOptions<IGCSEContext> options)
             : base(options)
         { }
@@ -29,21 +27,17 @@ namespace DataAccessObject
                 .HasForeignKey<UserProfile>(s => s.AccountID);
         }
 
-        public DbSet<Account> Accounts { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
-
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                if (!optionsBuilder.IsConfigured)
-                {
-                    optionsBuilder.UseSqlServer(GetConnectionString());
-                }
+                optionsBuilder.UseSqlServer(GetConnectionString());
             }
         }
+
         private string GetConnectionString()
         {
             IConfiguration config = new ConfigurationBuilder()
@@ -51,7 +45,6 @@ namespace DataAccessObject
                  .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                  .Build();
             var strConn = config["ConnectionStrings:DbConnection"];
-
             return strConn;
         }
     }

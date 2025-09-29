@@ -1,6 +1,6 @@
-﻿using BusinessObject.Model;
-using DataAccessObject;
+using BusinessObject.Model;
 using MailKit.Net.Smtp;
+using Microsoft.AspNetCore.Identity;
 using MimeKit;
 using Repository.BaseRepository;
 using Repository.IRepositories;
@@ -14,51 +14,43 @@ namespace Repository.Repositories
 {
     public class AccountRepository : BaseRepository<Account>, IAccountRepository
     {
-        private readonly AccountDAO _accountDao;
+        private readonly IGCSEContext _context;
+        private readonly UserManager<Account> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AccountRepository(AccountDAO accountDao) : base(accountDao)
+        public AccountRepository(IGCSEContext context, UserManager<Account> userManager, RoleManager<IdentityRole> roleManager) : base(context)
         {
-            _accountDao = accountDao;
+            _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
-        public async Task<IEnumerable<Account>> GetAllAsync()
+        public async Task<(int totalAccount, int studentsAccount, int parentsAccount, int teachersAccount, int adminAccount)> GetTotalAccount()
         {
-            return await _accountDao.GetAllAsync();
-        }
+            var studentRole = await _roleManager.FindByNameAsync("Student");
+            var studentsCount = await _userManager.GetUsersInRoleAsync(studentRole.Name);
 
-        public async Task<Account> GetByIdAsync(int id)
-        {
-            return await _accountDao.GetByIdAsync(id);
-        }
+            var parentRole = await _roleManager.FindByNameAsync("Parent");
+            var parentsCount = await _userManager.GetUsersInRoleAsync(parentRole.Name);
 
-        public async Task<Account> GetByStringIdAsync(string id)
-        {
-            return await _accountDao.GetByStringIdAsync(id);
-        }
+            var teacherRole = await _roleManager.FindByNameAsync("Teacher");
+            var teachersCount = await _userManager.GetUsersInRoleAsync(teacherRole.Name);
 
-        public async Task<Account> AddAsync(Account entity)
-        {
-            return await _accountDao.AddAsync(entity);
-        }
+            var adminRole = await _roleManager.FindByNameAsync("Admin");
+            var adminsCount = await _userManager.GetUsersInRoleAsync(adminRole.Name);
 
-        public async Task<Account> UpdateAsync(Account entity)
-        {
-            return await _accountDao.UpdateAsync(entity);
-        }
+            int totalAccountsCount = studentsCount.Count + parentsCount.Count + teachersCount.Count + adminsCount.Count;
+            int studentsAccount = studentsCount.Count;
+            int parentsAccount = parentsCount.Count;
+            int teachersAccount = teachersCount.Count;
+            int adminsAccount = adminsCount.Count;
 
-        public async Task<Account> DeleteAsync(Account entity)
-        {
-            return await _accountDao.DeleteAsync(entity);
-        }
-
-        public async Task<(int totalAccount, int managersAccount, int customersAccount, int staffsAccount, int consultantAccount)> GetTotalAccount()
-        {
-            return await _accountDao.GetTotalAccount();
+            return (totalAccountsCount, studentsAccount, parentsAccount, teachersAccount, adminsAccount);
         }
 
         public async Task<Account> GetByAccountIdAsync(string accountId)
         {
-            return await _accountDao.GetByStringIdAsync(accountId);
+            return await base.GetByStringId(accountId);
         }
 
         public string SendEmail(string recipientEmail, string subject, string htmlBody)
@@ -77,6 +69,5 @@ namespace Repository.Repositories
 
             return "Email sent successfully";
         }
-
     }
 }

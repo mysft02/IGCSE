@@ -1,5 +1,4 @@
-﻿
-using DataAccessObject;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Repository.BaseRepository;
@@ -26,7 +25,6 @@ namespace Repository
             services.AddScoped<ITokenRepository, TokenRepository>();
             
 
-            services.AddScoped<AccountDAO>();
             
             return services;
         }

@@ -1,4 +1,3 @@
-using DataAccessObject;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +7,7 @@ using System.Text;
 using Service;
 using Repository;
 using System.Text.Json.Serialization;
+using IGCSE.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,7 +25,7 @@ builder.Services.AddCors(options =>
 // Connect Database
 builder.Services.AddDbContext<IGCSEContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection"),
-        sqlOptions => sqlOptions.MigrationsAssembly("DataAccessObject")));
+        sqlOptions => sqlOptions.MigrationsAssembly("Repository")));
 
 // Configure Services
 builder.Services.ConfigureRepositoryService(builder.Configuration);
@@ -134,9 +134,10 @@ builder.Services.AddControllersWithViews()
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
