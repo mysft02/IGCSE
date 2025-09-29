@@ -185,7 +185,7 @@ namespace Service.Service
             emailMessage.Append("<p>If you did not request this, please ignore this email</p>");
             emailMessage.Append("<br>");
             emailMessage.Append("<p>Best regards,</p>");
-            emailMessage.Append("<p><strong>GHSMSystem</strong></o>");
+            emailMessage.Append("<p><strong>IGCSE</strong></o>");
             emailMessage.Append("</body>");
             emailMessage.Append("</html>");
 
