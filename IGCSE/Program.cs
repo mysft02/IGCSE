@@ -11,6 +11,9 @@ using Repository.Repositories;
 using Service.IService;
 using Service.Mapping;
 using Service.Service;
+using Repository.BaseRepository;
+using Repository.IBaseRepository;
+using Repository;
 
 
 var builder = WebApplication.CreateBuilder(args);
