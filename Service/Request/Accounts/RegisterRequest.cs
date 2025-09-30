@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Service.RequestAndResponse.Request.Accounts
+namespace Service.Request.Accounts
 {
     public class RegisterRequest
     {

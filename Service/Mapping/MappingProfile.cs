@@ -1,6 +1,4 @@
 ﻿using AutoMapper;
-using BusinessObject.Model;
-using Service.RequestAndResponse.Response.Accounts;
 
 namespace Service.Mapping
 {

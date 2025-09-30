@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Service.RequestAndResponse.Response.Accounts
+namespace Service.Response.Accounts
 {
-    public class AccountResponse
+    public class LoginResponse
     {
         public string UserID { get; set; }
         public string UserName { get; set; }

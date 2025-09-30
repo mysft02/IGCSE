@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Response\UserProfiles\**" />
+    <EmbeddedResource Remove="Response\UserProfiles\**" />
+    <None Remove="Response\UserProfiles\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
@@ -15,10 +21,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Repository\Repository.csproj" />
     <ProjectReference Include="..\BusinessObject\BusinessObject.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="RequestAndResponse\Response\UserProfiles\" />
   </ItemGroup>
 
 </Project>

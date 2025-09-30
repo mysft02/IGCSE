@@ -1,10 +1,9 @@
 using BusinessObject.IdentityModel;
-using Microsoft.AspNetCore.Http;
+using Common.Constants;
 using Microsoft.AspNetCore.Mvc;
-using Service.IService;
-using Service.RequestAndResponse.BaseResponse;
-using Service.RequestAndResponse.Request.Accounts;
-using Service.RequestAndResponse.Response.Accounts;
+using Service.Request.Accounts;
+using Service.Response.Accounts;
+using Service.Service;
 
 namespace IGCSE.Controller
 {
@@ -12,9 +11,9 @@ namespace IGCSE.Controller
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private readonly IAccountService _accountService;
+        private readonly AccountService _accountService;
 
-        public AccountController(IAccountService accountService)
+        public AccountController(AccountService accountService)
         {
             _accountService = accountService;
         }
@@ -32,7 +31,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet]
-        [Route("GetAllAccounts")]
+        [Route("get-all-account")]
         public async Task<List<NewUserDto>> GetAllAccountsAsync()
         {
             return await _accountService.GetAllAccountsAsync();
@@ -44,7 +43,7 @@ namespace IGCSE.Controller
             return await _accountService.Login(request);
         }
 
-        [HttpPost("Register")]
+        [HttpPost("register")]
         public async Task<ActionResult<BaseResponse<RegisterResponse>>> Register(RegisterRequest request)
         {
             if (!ModelState.IsValid)
@@ -64,7 +63,7 @@ namespace IGCSE.Controller
         }
 
 
-        [HttpPost("Change-Password")]
+        [HttpPost("change-password")]
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             return await _accountService.ChangePassword(changePassword);

@@ -8,16 +8,14 @@ using Microsoft.EntityFrameworkCore;
 using MimeKit;
 using Repository.IBaseRepository;
 using Repository.IRepositories;
-using Service.IService;
-using Service.RequestAndResponse.BaseResponse;
-using Service.RequestAndResponse.Enums;
-using Service.RequestAndResponse.Request.Accounts;
-using Service.RequestAndResponse.Response.Accounts;
+using Common.Constants;
 using System.Text;
+using Service.Request.Accounts;
+using Service.Response.Accounts;
 
 namespace Service.Service
 {
-    public class AccountService : IAccountService
+    public class AccountService
     {
         private readonly IMapper _mapper;
         private readonly IAccountRepository _accountRepository;
@@ -83,7 +81,7 @@ namespace Service.Service
                 RefreshToken = token.RefreshToken
             };
 
-            return new BaseResponse<LoginResponse>("Register successfully", StatusCodeEnum.OK_200, loginResponse);
+            return new BaseResponse<LoginResponse>("Login successfully", StatusCodeEnum.OK_200, loginResponse);
         }
 
         public async Task<BaseResponse<RegisterResponse>> Register(RegisterRequest request)
@@ -225,13 +223,6 @@ namespace Service.Service
                 return new BaseResponse<string>("Email confirm successfully, you can proceed to login", StatusCodeEnum.OK_200, null);
             }
         }
-
-        public async Task<BaseResponse<ApiResponse>> RenewToken(TokenModel model)
-        {
-            var result = await _tokenRepository.renewToken(model);
-            return new BaseResponse<ApiResponse>("Renew Token Successfully", StatusCodeEnum.OK_200, result);
-        }
-
 
 
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)

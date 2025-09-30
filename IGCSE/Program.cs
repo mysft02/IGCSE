@@ -8,7 +8,6 @@ using System.Text.Json.Serialization;
 using IGCSE.Middleware;
 using Repository.IRepositories;
 using Repository.Repositories;
-using Service.IService;
 using Service.Mapping;
 using Service.Service;
 using Repository.BaseRepository;
@@ -39,7 +38,7 @@ builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<Service.Mapping.MappingProfile>());
-builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<AccountService>();
 
 // Add Infrastructure Services
 builder.Services.AddMemoryCache();

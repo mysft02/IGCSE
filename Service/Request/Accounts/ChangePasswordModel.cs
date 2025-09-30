@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BusinessObject.IdentityModel
+namespace Service.Request.Accounts
 {
     public class ChangePasswordModel
     {

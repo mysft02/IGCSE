@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Service.RequestAndResponse.Enums
+namespace Common.Constants
 {
     public enum StatusCodeEnum
     {

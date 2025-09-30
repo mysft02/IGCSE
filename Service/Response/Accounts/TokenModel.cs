@@ -1,4 +1,4 @@
-﻿namespace BusinessObject.IdentityModel
+﻿namespace Service.Response.Accounts
 {
     public class TokenModel
     {
