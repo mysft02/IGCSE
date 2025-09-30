@@ -7,7 +7,6 @@ namespace Repository.IBaseRepository
     public interface ITokenRepository
     {
         public Task<TokenModel> createToken(Account application);
-        public Task<ApiResponse> renewToken(TokenModel model);
 
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using BusinessObject.IdentityModel;
+using Service.Response.Accounts;
 
 namespace IGCSE.Middleware
 {
