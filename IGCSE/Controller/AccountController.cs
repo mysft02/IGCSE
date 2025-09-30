@@ -56,11 +56,11 @@ namespace IGCSE.Controller
             return await _accountService.Register(request);
         }
 
-        [HttpPost("confirmation/{email}/{code:int}")]
-        public async Task<BaseResponse<string>> Confirmation(string email, int code)
-        {
-            return await _accountService.Confirmation(email, code);
-        }
+        //[HttpPost("confirmation/{email}/{code:int}")]
+        //public async Task<BaseResponse<string>> Confirmation(string email, int code)
+        //{
+        //    return await _accountService.Confirmation(email, code);
+        //}
 
 
         [HttpPost("change-password")]

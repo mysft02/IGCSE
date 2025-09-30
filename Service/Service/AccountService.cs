@@ -47,11 +47,11 @@ namespace Service.Service
             if (user == null) 
             return new BaseResponse<LoginResponse>("Invalid username!", StatusCodeEnum.Unauthorized_401, null);
 
-            var userEmail = await GetUser(user.Email);
-            bool isEmailConfirmed = await _userManager.IsEmailConfirmedAsync(userEmail);
+            //var userEmail = await GetUser(user.Email);
+            //bool isEmailConfirmed = await _userManager.IsEmailConfirmedAsync(userEmail);
 
-            if (!isEmailConfirmed) 
-            return new BaseResponse<LoginResponse>("You need to confirm email before login", StatusCodeEnum.BadRequest_400, null);
+            //if (!isEmailConfirmed) 
+            //return new BaseResponse<LoginResponse>("You need to confirm email before login", StatusCodeEnum.BadRequest_400, null);
 
             if (user.Status == false)
             {
@@ -120,13 +120,13 @@ namespace Service.Service
                             return new BaseResponse<RegisterResponse>("Failed to generate confirmation token. Please try again.", StatusCodeEnum.InternalServerError_500, null);
                         }
 
-                        string sendEmail = SendEmail(_user!.Email!, emailCode);
+                        //string sendEmail = SendEmail(_user!.Email!, emailCode);
 
-                        if (string.IsNullOrEmpty(sendEmail)) // Nếu gửi thất bại
-                        {
-                            await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
-                            return new BaseResponse<RegisterResponse>("Failed to send email. Please try again.", StatusCodeEnum.InternalServerError_500, null);
-                        }
+                        //if (string.IsNullOrEmpty(sendEmail)) // Nếu gửi thất bại
+                        //{
+                        //    await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
+                        //    return new BaseResponse<RegisterResponse>("Failed to send email. Please try again.", StatusCodeEnum.InternalServerError_500, null);
+                        //}
 
                         var userRoles = await _userManager.GetRolesAsync(accountApp);
                         var customerResponse = new RegisterResponse
@@ -171,58 +171,27 @@ namespace Service.Service
         private async Task<Account> GetUser(string email)
         => await _userManager.FindByEmailAsync(email);
 
-        private string SendEmail(string email, string emailCode)
-        {
-            StringBuilder emailMessage = new StringBuilder();
-            emailMessage.Append("<html>");
-            emailMessage.Append("<body>");
-            emailMessage.Append($"<p>Dear {email},</p>");
-            emailMessage.Append("<p>Thank you for your registering with us. To verifiy your email address, please use the following verification code: </p>");
-            emailMessage.Append($"<h2>Verification Code: {emailCode}</h2>");
-            emailMessage.Append("<p>Please enter this code on our website to complete your registration.</p>");
-            emailMessage.Append("<p>If you did not request this, please ignore this email</p>");
-            emailMessage.Append("<br>");
-            emailMessage.Append("<p>Best regards,</p>");
-            emailMessage.Append("<p><strong>IGCSE</strong></o>");
-            emailMessage.Append("</body>");
-            emailMessage.Append("</html>");
-
-            string message = emailMessage.ToString();
-            var _email = new MimeMessage();
-            _email.To.Add(MailboxAddress.Parse(email));
-            _email.From.Add(MailboxAddress.Parse("huydqse173363@fpt.edu.vn"));
-            _email.Subject = "Email Confirmation";
-            _email.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = message };
-
-            using var smtp = new SmtpClient();
-            smtp.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
-            smtp.Authenticate("huydqse173363@fpt.edu.vn", "hmkf wdjs epwx ibfg");
-            smtp.Send(_email);
-            smtp.Disconnect(true);
-            return "Thank you for your registration, kindly check your email for confirmation code";
-        }
-
-        public async Task<BaseResponse<string>> Confirmation(string email, int code)
-        {
-            if (string.IsNullOrEmpty(email) || code <= 0)
-            {
-                return new BaseResponse<string>("Invalid Code Provided", StatusCodeEnum.BadRequest_400, null);
-            }
-            var user = await GetUser(email);
-            if (user == null)
-            {
-                return new BaseResponse<string>("Invalid Indentity Provided", StatusCodeEnum.BadRequest_400, null);
-            }
-            var result = await _userManager.ConfirmEmailAsync(user, code.ToString());
-            if (!result.Succeeded)
-            {
-                return new BaseResponse<string>("Invalid Code Provided", StatusCodeEnum.BadRequest_400, null);
-            }
-            else
-            {
-                return new BaseResponse<string>("Email confirm successfully, you can proceed to login", StatusCodeEnum.OK_200, null);
-            }
-        }
+        //public async Task<BaseResponse<string>> Confirmation(string email, int code)
+        //{
+        //    if (string.IsNullOrEmpty(email) || code <= 0)
+        //    {
+        //        return new BaseResponse<string>("Invalid Code Provided", StatusCodeEnum.BadRequest_400, null);
+        //    }
+        //    var user = await GetUser(email);
+        //    if (user == null)
+        //    {
+        //        return new BaseResponse<string>("Invalid Indentity Provided", StatusCodeEnum.BadRequest_400, null);
+        //    }
+        //    var result = await _userManager.ConfirmEmailAsync(user, code.ToString());
+        //    if (!result.Succeeded)
+        //    {
+        //        return new BaseResponse<string>("Invalid Code Provided", StatusCodeEnum.BadRequest_400, null);
+        //    }
+        //    else
+        //    {
+        //        return new BaseResponse<string>("Email confirm successfully, you can proceed to login", StatusCodeEnum.OK_200, null);
+        //    }
+        //}
 
 
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
