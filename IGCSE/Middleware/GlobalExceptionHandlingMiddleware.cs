@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using BusinessObject.IdentityModel;
-using Service.Response.Accounts;
+using DTOs.Response.Accounts;
 
 namespace IGCSE.Middleware
 {
@@ -46,7 +46,7 @@ namespace IGCSE.Middleware
                 {
                     Success = false,
                     Message = exception.Message,
-                    Data = exception.StackTrace?.ToString()
+                    Data = null,
                 }
                 : new ApiResponse
                 {

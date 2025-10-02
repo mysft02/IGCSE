@@ -9,11 +9,10 @@ using MimeKit;
 using Repository.IBaseRepository;
 using Repository.IRepositories;
 using Common.Constants;
-using System.Text;
-using Service.Request.Accounts;
-using Service.Response.Accounts;
+using DTOs.Request.Accounts;
+using DTOs.Response.Accounts;
 
-namespace Service.Service
+namespace Service
 {
     public class AccountService
     {
@@ -33,7 +32,7 @@ namespace Service.Service
         {
             _mapper = mapper;
             _accountRepository = accountRepository;
-            
+
             _userManager = userManager;
             _roleManager = roleManager;
             _tokenRepository = tokenRepository;
@@ -44,8 +43,12 @@ namespace Service.Service
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == request.Username.ToLower());
 
-            if (user == null) 
-            return new BaseResponse<LoginResponse>("Invalid username!", StatusCodeEnum.Unauthorized_401, null);
+            if (user == null)
+            {
+                throw new Exception("Invalid username!");
+            }
+            //return new BaseResponse<LoginResponse>("Invalid username!", StatusCodeEnum.Unauthorized_401, null);
+
 
             //var userEmail = await GetUser(user.Email);
             //bool isEmailConfirmed = await _userManager.IsEmailConfirmedAsync(userEmail);
@@ -55,14 +58,18 @@ namespace Service.Service
 
             if (user.Status == false)
             {
-                return new BaseResponse<LoginResponse>("Cannot login with this account anymore!", StatusCodeEnum.Unauthorized_401, null);
+                //return new BaseResponse<LoginResponse>("Cannot login with this account anymore!", StatusCodeEnum.Unauthorized_401, null);
+                throw new Exception("Cannot login with this account anymore");
             }
 
 
             var result = await _signinManager.CheckPasswordSignInAsync(user, request.Password, false);
 
-            if (!result.Succeeded) 
-            return new BaseResponse<LoginResponse>("Username not found and/or password incorrect", StatusCodeEnum.Unauthorized_401, null);
+            if (!result.Succeeded)
+            {
+                //return new BaseResponse<LoginResponse>("Username not found and/or password incorrect", StatusCodeEnum.Unauthorized_401, null);
+                throw new Exception("Username not found and/or password incorrect");
+            }
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -242,7 +249,7 @@ namespace Service.Service
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return null; // Or throw an exception, depending on desired behavior
+                return null;
             }
 
             var roles = await _userManager.GetRolesAsync(user);
