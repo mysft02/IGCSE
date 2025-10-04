@@ -1,0 +1,63 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: dung-nt
+      changes:
+        - createTable:
+            tableName: course
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(1000)
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: VARCHAR(255)
+              - column:
+                  name: createdat
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updatedat
+                  type: DATETIME
+              - column:
+                  name: createdby
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updatedby
+                  type: VARCHAR(255)
+
+        - addForeignKeyConstraint:
+            baseTableName: course
+            baseColumnNames: createdby
+            constraintName: fk_course_createdby
+            referencedTableName: aspnetusers
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: course
+            baseColumnNames: updatedby
+            constraintName: fk_course_updatedby
+            referencedTableName: aspnetusers
+            referencedColumnNames: id
+            onDelete: SET NULL
