@@ -38,5 +38,7 @@ namespace Service.Request.Accounts
 
         [Required(ErrorMessage = "Ngày sinh là bắt buộc")]
         public DateTime DateOfBirth { get; set; }
+
+        public string Role { get; set; }
     }
 }

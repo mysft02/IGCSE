@@ -127,7 +127,7 @@ namespace Service.Service
                         //    await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
                         //    return new BaseResponse<RegisterResponse>("Failed to send email. Please try again.", StatusCodeEnum.InternalServerError_500, null);
                         //}
-
+                        await _userManager.AddToRoleAsync(accountApp, request.Role.ToLower());
                         var userRoles = await _userManager.GetRolesAsync(accountApp);
                         var customerResponse = new RegisterResponse
                         {
