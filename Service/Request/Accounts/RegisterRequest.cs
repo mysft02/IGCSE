@@ -16,7 +16,7 @@ namespace Service.Request.Accounts
 
         [Required(ErrorMessage = "Tên là bắt buộc")]
         [StringLength(100, ErrorMessage = "Tên tối đa 100 ký tự")]
-        public string Name { get; set; }
+        public string FullName { get; set; }
 
         [Required(ErrorMessage = "Email là bắt buộc")]
         [EmailAddress(ErrorMessage = "Email không hợp lệ")]

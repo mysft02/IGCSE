@@ -93,7 +93,7 @@ namespace Service.Service
                 var accountApp = new Account
                 {
                     UserName = request.Username,
-                    Name = request.Name,
+                    Name = request.FullName,
                     Email = request.Email,
                     Address = request.Address,
                     Phone = request.Phone,

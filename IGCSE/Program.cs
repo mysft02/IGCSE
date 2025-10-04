@@ -12,7 +12,6 @@ using Service.Mapping;
 using Service.Service;
 using Repository.BaseRepository;
 using Repository.IBaseRepository;
-using Repository;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,11 +25,13 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
-
+var connectionString = builder.Configuration.GetConnectionString("DbConnection");
 // Connect Database
 builder.Services.AddDbContext<IGCSEContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection"),
-        sqlOptions => sqlOptions.MigrationsAssembly("Repository")));
+    options.UseMySql(
+        connectionString,
+        new MySqlServerVersion(new Version(8, 0, 34)) // version MySQL b?n ?ang dùng
+    ));
 
 // Configure Repository Services
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
