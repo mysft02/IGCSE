@@ -1,5 +1,3 @@
-using BusinessObject.IdentityModel;
-using Common.Constants;
 using DTOs.Request.Accounts;
 using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
@@ -55,13 +53,6 @@ namespace IGCSE.Controller
             }
             return await _accountService.Register(request);
         }
-
-        //[HttpPost("confirmation/{email}/{code:int}")]
-        //public async Task<BaseResponse<string>> Confirmation(string email, int code)
-        //{
-        //    return await _accountService.Confirmation(email, code);
-        //}
-
 
         [HttpPost("change-password")]
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)

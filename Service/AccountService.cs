@@ -1,11 +1,8 @@
 using AutoMapper;
-using BusinessObject.IdentityModel;
 using BusinessObject.Model;
-using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MimeKit;
 using Repository.IBaseRepository;
 using Repository.IRepositories;
 using Common.Constants;
@@ -47,19 +44,10 @@ namespace Service
             {
                 throw new Exception("Invalid username!");
             }
-            //return new BaseResponse<LoginResponse>("Invalid username!", StatusCodeEnum.Unauthorized_401, null);
-
-
-            //var userEmail = await GetUser(user.Email);
-            //bool isEmailConfirmed = await _userManager.IsEmailConfirmedAsync(userEmail);
-
-            //if (!isEmailConfirmed) 
-            //return new BaseResponse<LoginResponse>("You need to confirm email before login", StatusCodeEnum.BadRequest_400, null);
 
             if (user.Status == false)
             {
-                //return new BaseResponse<LoginResponse>("Cannot login with this account anymore!", StatusCodeEnum.Unauthorized_401, null);
-                throw new Exception("Cannot login with this account anymore");
+              throw new Exception("Cannot login with this account anymore");
             }
 
 
@@ -67,7 +55,6 @@ namespace Service
 
             if (!result.Succeeded)
             {
-                //return new BaseResponse<LoginResponse>("Username not found and/or password incorrect", StatusCodeEnum.Unauthorized_401, null);
                 throw new Exception("Username not found and/or password incorrect");
             }
 
@@ -127,14 +114,6 @@ namespace Service
                             throw new Exception("Failed to generate confirmation token. Please try again.");
                         }
 
-                        //string sendEmail = SendEmail(_user!.Email!, emailCode);
-
-                        //if (string.IsNullOrEmpty(sendEmail)) // Nếu gửi thất bại
-                        //{
-                        //    await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
-                        //    return new BaseResponse<RegisterResponse>("Failed to send email. Please try again.", StatusCodeEnum.InternalServerError_500, null);
-                        //}
-
                         var userRoles = await _userManager.GetRolesAsync(accountApp);
                         var customerResponse = new RegisterResponse
                         {
@@ -177,30 +156,7 @@ namespace Service
 
         private async Task<Account> GetUser(string email)
         => await _userManager.FindByEmailAsync(email);
-
-        //public async Task<BaseResponse<string>> Confirmation(string email, int code)
-        //{
-        //    if (string.IsNullOrEmpty(email) || code <= 0)
-        //    {
-        //        return new BaseResponse<string>("Invalid Code Provided", StatusCodeEnum.BadRequest_400, null);
-        //    }
-        //    var user = await GetUser(email);
-        //    if (user == null)
-        //    {
-        //        return new BaseResponse<string>("Invalid Indentity Provided", StatusCodeEnum.BadRequest_400, null);
-        //    }
-        //    var result = await _userManager.ConfirmEmailAsync(user, code.ToString());
-        //    if (!result.Succeeded)
-        //    {
-        //        return new BaseResponse<string>("Invalid Code Provided", StatusCodeEnum.BadRequest_400, null);
-        //    }
-        //    else
-        //    {
-        //        return new BaseResponse<string>("Email confirm successfully, you can proceed to login", StatusCodeEnum.OK_200, null);
-        //    }
-        //}
-
-
+        
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             var user = await _userManager.FindByNameAsync(changePassword.UserName);
@@ -222,7 +178,6 @@ namespace Service
                 }
                 // Join the errors into a single string
                 string errorMessage = string.Join(" | ", errors);
-                //return new BaseResponse<AccountChangePasswordResponse>(errorMessage, StatusCodeEnum.BadRequest_400, null);
                 throw new Exception(errorMessage);
             }
 
@@ -292,7 +247,6 @@ namespace Service
                     Roles = roles.ToList()
                 });
             }
-
             return accountInfoList;
         }
     }

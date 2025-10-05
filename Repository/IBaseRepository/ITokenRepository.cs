@@ -1,5 +1,4 @@
-﻿
-using BusinessObject.IdentityModel;
+﻿using BusinessObject.IdentityModel;
 using BusinessObject.Model;
 
 namespace Repository.IBaseRepository
