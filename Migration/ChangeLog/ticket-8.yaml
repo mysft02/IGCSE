@@ -1,6 +1,6 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: 1
+      id: 8
       author: dung-nt
       changes:
         - createTable:
@@ -60,3 +60,7 @@
                     foreignKeyName: fk_course_updatedby
                     references: aspnetusers(id)
                     onDelete: SET NULL
+
+      rollback:
+        - dropTable:
+            tableName: course
