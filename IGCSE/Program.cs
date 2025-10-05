@@ -34,10 +34,14 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
 // Configure Repository Services
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<CategoryService>();
 
 // Add Infrastructure Services
 builder.Services.AddMemoryCache();
