@@ -1,0 +1,24 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/BusinessObject/bin/Debug/net8.0
+/BusinessObject/obj/Debug/net8.0
+/BusinessObject/obj
+/DataAccessObject/bin/Debug/net8.0
+/DataAccessObject/obj
+/IGCSE/.vs
+/IGCSE/bin/Debug/net8.0
+/IGCSE/obj/Debug/net8.0/refint
+/IGCSE/obj/Debug/net8.0/ref
+/IGCSE/obj/Debug/net8.0/EndpointInfo
+/Repository/bin/Debug/net8.0
+/Repository/obj
+/Service/bin/Debug/net8.0
+/Service/obj
+/IGCSE/obj/Debug/net8.0
+/IGCSE/obj
+/Common/bin/Debug/net8.0
+/Common/obj/Debug/net8.0
+/Common/obj
