@@ -110,7 +110,7 @@ namespace Service
                 var existUser = await _userManager.FindByEmailAsync(request.Email);
                 if (existUser != null)
                 {
-                    return new BaseResponse<RegisterResponse>("Email already exists!", StatusCodeEnum.Conflict_409, null);
+                    throw new Exception("Email already exists!");
                 }
                 else
                 {
@@ -124,7 +124,7 @@ namespace Service
                         if (string.IsNullOrEmpty(emailCode))
                         {
                             await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
-                            return new BaseResponse<RegisterResponse>("Failed to generate confirmation token. Please try again.", StatusCodeEnum.InternalServerError_500, null);
+                            throw new Exception("Failed to generate confirmation token. Please try again.");
                         }
 
                         //string sendEmail = SendEmail(_user!.Email!, emailCode);
@@ -152,7 +152,7 @@ namespace Service
                     }
                     else
                     {
-                        return new BaseResponse<RegisterResponse>($"{createdUser.Errors}", StatusCodeEnum.InternalServerError_500, null);
+                        throw new Exception($"{createdUser.Errors}");
                     }
                 }
             }
@@ -171,7 +171,7 @@ namespace Service
                         errorMessage += " | InnerInnerException: " + e.InnerException.InnerException.Message;
                     }
                 }
-                return new BaseResponse<RegisterResponse>($"{errorMessage}", StatusCodeEnum.InternalServerError_500, null);
+                throw new Exception($"{errorMessage}");
             }
         }
 
@@ -206,11 +206,11 @@ namespace Service
             var user = await _userManager.FindByNameAsync(changePassword.UserName);
             if (user == null)
             {
-                return new BaseResponse<AccountChangePasswordResponse>("User Not Exist", StatusCodeEnum.BadRequest_400, null);
+                throw new Exception("User Not Exist");
             }
             if (string.Compare(changePassword.NewPassword, changePassword.ConfirmNewPassword) != 0)
             {
-                return new BaseResponse<AccountChangePasswordResponse>("Password and ConfirmPassword doesnot match! ", StatusCodeEnum.BadRequest_400, null);
+                throw new Exception("Password and ConfirmPassword doesnot match! ");
             }
             var result = await _userManager.ChangePasswordAsync(user, changePassword.CurrentPassword, changePassword.NewPassword);
             if (!result.Succeeded)
@@ -222,7 +222,8 @@ namespace Service
                 }
                 // Join the errors into a single string
                 string errorMessage = string.Join(" | ", errors);
-                return new BaseResponse<AccountChangePasswordResponse>(errorMessage, StatusCodeEnum.BadRequest_400, null);
+                //return new BaseResponse<AccountChangePasswordResponse>(errorMessage, StatusCodeEnum.BadRequest_400, null);
+                throw new Exception(errorMessage);
             }
 
             var response = new AccountChangePasswordResponse
