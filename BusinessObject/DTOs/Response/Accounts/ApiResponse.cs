@@ -1,4 +1,4 @@
-﻿namespace Service.Response.Accounts
+﻿namespace DTOs.Response.Accounts
 {
     public class ApiResponse
     {

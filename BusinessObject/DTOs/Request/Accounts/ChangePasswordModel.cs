@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Service.Request.Accounts
+namespace DTOs.Request.Accounts
 {
     public class ChangePasswordModel
     {

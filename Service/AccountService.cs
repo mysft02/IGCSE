@@ -9,11 +9,10 @@ using MimeKit;
 using Repository.IBaseRepository;
 using Repository.IRepositories;
 using Common.Constants;
-using System.Text;
-using Service.Request.Accounts;
-using Service.Response.Accounts;
+using DTOs.Request.Accounts;
+using DTOs.Response.Accounts;
 
-namespace Service.Service
+namespace Service
 {
     public class AccountService
     {
@@ -33,7 +32,7 @@ namespace Service.Service
         {
             _mapper = mapper;
             _accountRepository = accountRepository;
-            
+
             _userManager = userManager;
             _roleManager = roleManager;
             _tokenRepository = tokenRepository;
@@ -44,8 +43,12 @@ namespace Service.Service
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == request.Username.ToLower());
 
-            if (user == null) 
-            return new BaseResponse<LoginResponse>("Invalid username!", StatusCodeEnum.Unauthorized_401, null);
+            if (user == null)
+            {
+                throw new Exception("Invalid username!");
+            }
+            //return new BaseResponse<LoginResponse>("Invalid username!", StatusCodeEnum.Unauthorized_401, null);
+
 
             //var userEmail = await GetUser(user.Email);
             //bool isEmailConfirmed = await _userManager.IsEmailConfirmedAsync(userEmail);
@@ -55,14 +58,18 @@ namespace Service.Service
 
             if (user.Status == false)
             {
-                return new BaseResponse<LoginResponse>("Cannot login with this account anymore!", StatusCodeEnum.Unauthorized_401, null);
+                //return new BaseResponse<LoginResponse>("Cannot login with this account anymore!", StatusCodeEnum.Unauthorized_401, null);
+                throw new Exception("Cannot login with this account anymore");
             }
 
 
             var result = await _signinManager.CheckPasswordSignInAsync(user, request.Password, false);
 
-            if (!result.Succeeded) 
-            return new BaseResponse<LoginResponse>("Username not found and/or password incorrect", StatusCodeEnum.Unauthorized_401, null);
+            if (!result.Succeeded)
+            {
+                //return new BaseResponse<LoginResponse>("Username not found and/or password incorrect", StatusCodeEnum.Unauthorized_401, null);
+                throw new Exception("Username not found and/or password incorrect");
+            }
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -103,7 +110,7 @@ namespace Service.Service
                 var existUser = await _userManager.FindByEmailAsync(request.Email);
                 if (existUser != null)
                 {
-                    return new BaseResponse<RegisterResponse>("Email already exists!", StatusCodeEnum.Conflict_409, null);
+                    throw new Exception("Email already exists!");
                 }
                 else
                 {
@@ -117,7 +124,7 @@ namespace Service.Service
                         if (string.IsNullOrEmpty(emailCode))
                         {
                             await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
-                            return new BaseResponse<RegisterResponse>("Failed to generate confirmation token. Please try again.", StatusCodeEnum.InternalServerError_500, null);
+                            throw new Exception("Failed to generate confirmation token. Please try again.");
                         }
 
                         //string sendEmail = SendEmail(_user!.Email!, emailCode);
@@ -145,7 +152,7 @@ namespace Service.Service
                     }
                     else
                     {
-                        return new BaseResponse<RegisterResponse>($"{createdUser.Errors}", StatusCodeEnum.InternalServerError_500, null);
+                        throw new Exception($"{createdUser.Errors}");
                     }
                 }
             }
@@ -164,7 +171,7 @@ namespace Service.Service
                         errorMessage += " | InnerInnerException: " + e.InnerException.InnerException.Message;
                     }
                 }
-                return new BaseResponse<RegisterResponse>($"{errorMessage}", StatusCodeEnum.InternalServerError_500, null);
+                throw new Exception($"{errorMessage}");
             }
         }
 
@@ -199,11 +206,11 @@ namespace Service.Service
             var user = await _userManager.FindByNameAsync(changePassword.UserName);
             if (user == null)
             {
-                return new BaseResponse<AccountChangePasswordResponse>("User Not Exist", StatusCodeEnum.BadRequest_400, null);
+                throw new Exception("User Not Exist");
             }
             if (string.Compare(changePassword.NewPassword, changePassword.ConfirmNewPassword) != 0)
             {
-                return new BaseResponse<AccountChangePasswordResponse>("Password and ConfirmPassword doesnot match! ", StatusCodeEnum.BadRequest_400, null);
+                throw new Exception("Password and ConfirmPassword doesnot match! ");
             }
             var result = await _userManager.ChangePasswordAsync(user, changePassword.CurrentPassword, changePassword.NewPassword);
             if (!result.Succeeded)
@@ -215,7 +222,8 @@ namespace Service.Service
                 }
                 // Join the errors into a single string
                 string errorMessage = string.Join(" | ", errors);
-                return new BaseResponse<AccountChangePasswordResponse>(errorMessage, StatusCodeEnum.BadRequest_400, null);
+                //return new BaseResponse<AccountChangePasswordResponse>(errorMessage, StatusCodeEnum.BadRequest_400, null);
+                throw new Exception(errorMessage);
             }
 
             var response = new AccountChangePasswordResponse
@@ -242,7 +250,7 @@ namespace Service.Service
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return null; // Or throw an exception, depending on desired behavior
+                return null;
             }
 
             var roles = await _userManager.GetRolesAsync(user);

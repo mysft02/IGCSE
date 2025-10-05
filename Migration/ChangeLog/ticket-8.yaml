@@ -37,8 +37,6 @@
               - column:
                   name: createdat
                   type: DATETIME
-                  constraints:
-                    nullable: false
 
               - column:
                   name: updatedat

@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Common.Constants;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Common.Constants
+namespace DTOs.Response.Accounts
 {
     public class BaseResponse<T>
     {
