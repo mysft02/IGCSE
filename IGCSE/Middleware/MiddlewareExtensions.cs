@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Builder;
-
 namespace IGCSE.Middleware
 {
     public static class MiddlewareExtensions
