@@ -11,6 +11,7 @@ using Repository.BaseRepository;
 using Repository.IBaseRepository;
 using Repository;
 using Service;
+using Service.Trello;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +30,7 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 builder.Services.AddDbContext<IGCSEContext>(options =>
     options.UseMySql(
         connectionString,
-        new MySqlServerVersion(new Version(8, 0, 34)) // version MySQL b?n ?ang dùng
+        new MySqlServerVersion(new Version(8, 0, 34)) // version MySQL b?n ?ang dï¿½ng
     ));
 
 // Configure Repository Services
@@ -39,6 +40,8 @@ builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<TrelloApiService>();
+builder.Services.AddHttpClient<ApiService>();
 
 // Add Infrastructure Services
 builder.Services.AddMemoryCache();
