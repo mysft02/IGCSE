@@ -11,7 +11,7 @@ namespace DTOs.Request.Accounts
 
         [Required(ErrorMessage = "Tên là bắt buộc")]
         [StringLength(100, ErrorMessage = "Tên tối đa 100 ký tự")]
-        public string Name { get; set; }
+        public string FullName { get; set; }
 
         [Required(ErrorMessage = "Email là bắt buộc")]
         [EmailAddress(ErrorMessage = "Email không hợp lệ")]
@@ -33,5 +33,7 @@ namespace DTOs.Request.Accounts
 
         [Required(ErrorMessage = "Ngày sinh là bắt buộc")]
         public DateTime DateOfBirth { get; set; }
+
+        public string Role { get; set; }
     }
 }

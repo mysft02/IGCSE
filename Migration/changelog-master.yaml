@@ -1,0 +1,3 @@
+﻿databaseChangeLog:
+  - include:
+      file: ./ChangeLog/ticket-8.yaml

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
-namespace Repository
+namespace Repository.BaseRepository
 {
     public class IGCSEContext : IdentityDbContext<Account>
     {
