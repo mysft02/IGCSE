@@ -37,8 +37,6 @@
               - column:
                   name: createdat
                   type: DATETIME
-                  constraints:
-                    nullable: false
 
               - column:
                   name: updatedat
@@ -47,19 +45,10 @@
               - column:
                   name: createdby
                   type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-                    foreignKeyName: fk_course_createdby
-                    references: aspnetusers(id)
-                    onDelete: CASCADE
 
               - column:
                   name: updatedby
                   type: VARCHAR(255)
-                  constraints:
-                    foreignKeyName: fk_course_updatedby
-                    references: aspnetusers(id)
-                    onDelete: SET NULL
 
       rollback:
         - dropTable:
