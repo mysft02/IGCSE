@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 
-namespace Service.Mapping
+namespace BusinessObject.Mapping
 {
     public class MappingProfile : Profile
     {

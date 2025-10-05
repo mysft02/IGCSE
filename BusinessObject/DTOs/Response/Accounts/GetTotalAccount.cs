@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Service.Response.Accounts
+namespace DTOs.Response.Accounts
 {
     public class GetTotalAccount
     {

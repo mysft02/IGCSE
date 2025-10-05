@@ -1,9 +1,9 @@
 using BusinessObject.IdentityModel;
 using Common.Constants;
+using DTOs.Request.Accounts;
+using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
-using Service.Request.Accounts;
-using Service.Response.Accounts;
-using Service.Service;
+using Service;
 
 namespace IGCSE.Controller
 {
