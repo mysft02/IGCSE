@@ -12,6 +12,7 @@ using Repository.IBaseRepository;
 using Repository;
 using Service;
 using Service.Trello;
+using Repository.IRepositories;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +37,7 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
 // Configure Repository Services
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
