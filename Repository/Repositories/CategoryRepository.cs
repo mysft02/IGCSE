@@ -1,8 +1,10 @@
 using BusinessObject.Model;
+using BusinessObject;
 using Microsoft.EntityFrameworkCore;
-using Repository;
 using Repository.BaseRepository;
 using Repository.IRepositories;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Repository.Repositories
 {
@@ -18,14 +20,13 @@ namespace Repository.Repositories
         public async Task<Category?> GetByCategoryIdAsync(int categoryId)
         {
             return await _context.Set<Category>()
-                .Include(c => c.Courses)
-                .FirstOrDefaultAsync(c => c.CategoryID == categoryId);
+                .FirstOrDefaultAsync(c => c.CategoryId == categoryId);
         }
 
         public async Task<IEnumerable<Category>> GetActiveCategoriesAsync()
         {
             return await _context.Set<Category>()
-                .Where(c => c.IsActive)
+                .Where(c => c.IsActive == true)
                 .OrderBy(c => c.CategoryName)
                 .ToListAsync();
         }
@@ -33,8 +34,7 @@ namespace Repository.Repositories
         public async Task<IEnumerable<Category>> GetCategoriesWithCoursesAsync()
         {
             return await _context.Set<Category>()
-                .Include(c => c.Courses)
-                .Where(c => c.IsActive)
+                .Where(c => c.IsActive == true)
                 .OrderBy(c => c.CategoryName)
                 .ToListAsync();
         }

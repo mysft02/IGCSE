@@ -1,0 +1,288 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: feat_7
+      author: dung-nt
+      changes:
+        # ===== COURSE =====
+        - createTable:
+            tableName: course
+            columns:
+              - column:
+                  name: CourseID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: Status
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Category
+                  type: VARCHAR(255)
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+              - column:
+                  name: CreatedBy
+                  type: VARCHAR(255)
+
+              - column:
+                  name: UpdatedBy
+                  type: VARCHAR(255)
+
+        # ===== COURSE SECTION =====
+        - createTable:
+            tableName: coursesection
+            columns:
+              - column:
+                  name: CourseSectionID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: Order
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: IsActive
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== LESSON =====
+        - createTable:
+            tableName: lesson
+            columns:
+              - column:
+                  name: LessonID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseSectionID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: Order
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: IsActive
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== LESSON ITEM =====
+        - createTable:
+            tableName: lessonitem
+            columns:
+              - column:
+                  name: LessonItemID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== COURSE KEY =====
+        - createTable:
+            tableName: coursekey
+            columns:
+              - column:
+                  name: CourseKeyID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: StudentID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedBy
+                  type: VARCHAR(255)
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== PROCESS =====
+        - createTable:
+            tableName: process
+            columns:
+              - column:
+                  name: ProcessID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseKeyID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: LessonID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== PROCESS ITEM =====
+        - createTable:
+            tableName: processitem
+            columns:
+              - column:
+                  name: ProcessItemID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: LessonItemID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+      rollback:
+        - dropTable:
+            tableName: processitem
+        - dropTable:
+            tableName: process
+        - dropTable:
+            tableName: coursekey
+        - dropTable:
+            tableName: lessonitem
+        - dropTable:
+            tableName: lesson
+        - dropTable:
+            tableName: coursesection
+        - dropTable:
+            tableName: course

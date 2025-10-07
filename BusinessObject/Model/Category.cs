@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace BusinessObject.Model
+namespace BusinessObject.Model;
+
+public partial class Category
 {
-    public class Category
-    {
-        public int CategoryID { get; set; }
-        public string CategoryName { get; set; }
-        public string Description { get; set; }
-        public bool IsActive { get; set; }
-        public ICollection<Course> Courses { get; set; } = new List<Course>();
-    }
+    public int CategoryId { get; set; }
+
+    public string CategoryName { get; set; } = null!;
+
+    public string? Description { get; set; }
+
+    public bool? IsActive { get; set; }
 }

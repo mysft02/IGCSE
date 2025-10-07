@@ -11,6 +11,7 @@ using Repository.BaseRepository;
 using Repository.IBaseRepository;
 using Repository;
 using Service;
+using BusinessObject;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +30,7 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 builder.Services.AddDbContext<IGCSEContext>(options =>
     options.UseMySql(
         connectionString,
-        new MySqlServerVersion(new Version(8, 0, 34)) // version MySQL b?n ?ang dùng
+        new MySqlServerVersion(new Version(8, 0, 34))
     ));
 
 // Configure Repository Services

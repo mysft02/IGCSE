@@ -73,12 +73,6 @@ namespace Service
 
                 // Check if new category name already exists (excluding current category)
                 var existingCategories = await _categoryRepository.GetAllAsync();
-                var nameExists = existingCategories.Any(c => c.CategoryName.ToLower() == request.CategoryName.ToLower()
-                                                           && c.CategoryID != categoryId);
-                if (nameExists)
-                {
-                    throw new Exception("Category name already exists");
-                }
 
                 // Update category properties
                 existingCategory.CategoryName = request.CategoryName;
@@ -113,7 +107,7 @@ namespace Service
 
                 var categoryResponse = _mapper.Map<CategoryResponse>(category);
 
-                return new BaseResponse<CategoryResponse>(
+                return new DTOs.Response.Accounts.BaseResponse<CategoryResponse>(
                     "Category retrieved successfully",
                     StatusCodeEnum.OK_200,
                     categoryResponse

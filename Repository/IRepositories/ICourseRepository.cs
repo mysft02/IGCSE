@@ -7,6 +7,5 @@ namespace Repository.IRepositories
     {
         Task<Course?> GetByCourseIdAsync(int courseId);
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId);
-        Task<IEnumerable<Course>> GetCoursesByStatusAsync(CourseStatus status);
     }
 }

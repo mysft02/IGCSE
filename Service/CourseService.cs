@@ -1,14 +1,15 @@
+using Repository.IRepositories;
 using AutoMapper;
-using BusinessObject.Model;
 using Common.Constants;
 using DTOs.Request.Courses;
 using DTOs.Response.Courses;
-using Repository.IRepositories;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using BusinessObject.Model;
+using DTOs.Response.Accounts;
 
 namespace Service
 {
@@ -16,7 +17,6 @@ namespace Service
     {
         private readonly IMapper _mapper;
         private readonly ICourseRepository _courseRepository;
-
         public CourseService(IMapper mapper, ICourseRepository courseRepository)
         {
             _mapper = mapper;
@@ -27,23 +27,14 @@ namespace Service
         {
             try
             {
-                // Validate Category exists
-                var categoryExists = await _courseRepository.GetAllAsync()
-                    .ContinueWith(t => t.Result.Any(c => c.CategoryID == request.CategoryID));
-                if (!categoryExists)
-                {
-                    throw new Exception("Category not found or inactive");
-                }
-
                 // Create new course
                 var course = new Course
                 {
                     CourseName = request.CourseName,
                     Description = request.Description,
-                    Status = request.Status,
                     Price = request.Price,
                     ImageUrl = request.ImageUrl,
-                    CategoryID = request.CategoryID,
+                    CategoryId = request.CategoryId,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -64,7 +55,7 @@ namespace Service
             }
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<CourseResponse>> UpdateCourseAsync(int courseId, CourseRequest request)
+        public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(int courseId, CourseRequest request)
         {
             try
             {
@@ -75,11 +66,11 @@ namespace Service
                     throw new Exception("Course not found");
                 }
 
-                // Validate Category exists if CategoryID is being updated
-                if (request.CategoryID != existingCourse.CategoryID)
+                // Validate Category exists if CategoryId is being updated
+                if (request.CategoryId != existingCourse.CategoryId)
                 {
-                    var categoryExists = await _courseRepository.GetAllAsync()
-                        .ContinueWith(t => t.Result.Any(c => c.CategoryID == request.CategoryID));
+                    var courses = await _courseRepository.GetAllAsync();
+                    var categoryExists = courses.Any(c => c.CategoryId == request.CategoryId);
                     if (!categoryExists)
                     {
                         throw new Exception("Category not found or inactive");
@@ -89,16 +80,15 @@ namespace Service
                 // Update course properties
                 existingCourse.CourseName = request.CourseName;
                 existingCourse.Description = request.Description;
-                existingCourse.Status = request.Status;
+                existingCourse.Status = request.Status == 1;
                 existingCourse.Price = request.Price;
                 existingCourse.ImageUrl = request.ImageUrl;
-                existingCourse.CategoryID = request.CategoryID;
+                existingCourse.CategoryId = request.CategoryId;
                 existingCourse.UpdatedAt = DateTime.UtcNow;
 
                 var updatedCourse = await _courseRepository.UpdateAsync(existingCourse);
 
                 var courseResponse = _mapper.Map<CourseResponse>(updatedCourse);
-                courseResponse.CategoryName = updatedCourse.Category?.CategoryName ?? "";
 
                 return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
                     "Course updated successfully",
@@ -112,7 +102,7 @@ namespace Service
             }
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<CourseResponse>> GetCourseByIdAsync(int courseId)
+        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(int courseId)
         {
             try
             {
@@ -123,7 +113,6 @@ namespace Service
                 }
 
                 var courseResponse = _mapper.Map<CourseResponse>(course);
-                courseResponse.CategoryName = course.Category?.CategoryName ?? "";
 
                 return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
                     "Course retrieved successfully",
@@ -147,7 +136,6 @@ namespace Service
                 foreach (var course in courses)
                 {
                     var courseResponse = _mapper.Map<CourseResponse>(course);
-                    courseResponse.CategoryName = course.Category?.CategoryName ?? "";
                     courseResponses.Add(courseResponse);
                 }
 

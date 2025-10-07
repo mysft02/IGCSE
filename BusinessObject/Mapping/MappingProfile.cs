@@ -1,10 +1,9 @@
 using AutoMapper;
 using BusinessObject.Model;
-using DTOs.Request.Courses;
-using DTOs.Response.Courses;
 using DTOs.Request.Categories;
+using DTOs.Request.Courses;
 using DTOs.Response.Categories;
-
+using DTOs.Response.Courses;
 namespace BusinessObject.Mapping
 {
     public class MappingProfile : Profile
