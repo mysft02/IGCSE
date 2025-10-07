@@ -3,6 +3,8 @@ using AutoMapper;
 using Common.Constants;
 using DTOs.Request.Courses;
 using DTOs.Response.Courses;
+using DTOs.Request.CourseContent;
+using DTOs.Response.CourseContent;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
@@ -17,24 +19,37 @@ namespace Service
     {
         private readonly IMapper _mapper;
         private readonly ICourseRepository _courseRepository;
-        public CourseService(IMapper mapper, ICourseRepository courseRepository)
+        private readonly ICoursesectionRepository _coursesectionRepository;
+        private readonly ILessonRepository _lessonRepository;
+        private readonly ILessonitemRepository _lessonitemRepository;
+
+        public CourseService(
+            IMapper mapper,
+            ICourseRepository courseRepository,
+            ICoursesectionRepository coursesectionRepository,
+            ILessonRepository lessonRepository,
+            ILessonitemRepository lessonitemRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
+            _coursesectionRepository = coursesectionRepository;
+            _lessonRepository = lessonRepository;
+            _lessonitemRepository = lessonitemRepository;
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
+        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
         {
             try
             {
                 // Create new course
                 var course = new Course
                 {
-                    CourseName = request.CourseName,
+                    Name = request.Name,
                     Description = request.Description,
                     Price = request.Price,
                     ImageUrl = request.ImageUrl,
                     CategoryId = request.CategoryId,
+                    Status = request.Status,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -78,9 +93,9 @@ namespace Service
                 }
 
                 // Update course properties
-                existingCourse.CourseName = request.CourseName;
+                existingCourse.Name = request.Name;
                 existingCourse.Description = request.Description;
-                existingCourse.Status = request.Status == 1;
+                existingCourse.Status = request.Status;
                 existingCourse.Price = request.Price;
                 existingCourse.ImageUrl = request.ImageUrl;
                 existingCourse.CategoryId = request.CategoryId;
@@ -148,6 +163,156 @@ namespace Service
             catch (Exception ex)
             {
                 throw new Exception($"Failed to get courses: {ex.Message}");
+            }
+        }
+
+        // Course Content Management Methods
+
+        public async Task<BaseResponse<CourseSectionResponse>> CreateCourseSectionAsync(CourseSectionRequest request)
+        {
+            try
+            {
+                var courseSection = new Coursesection
+                {
+                    CourseId = request.CourseId,
+                    Name = request.Name,
+                    Description = request.Description,
+                    Order = request.Order,
+                    IsActive = request.IsActive,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var createdSection = await _coursesectionRepository.AddAsync(courseSection);
+                var response = _mapper.Map<CourseSectionResponse>(createdSection);
+
+                return new BaseResponse<CourseSectionResponse>(
+                    "Course section created successfully",
+                    StatusCodeEnum.Created_201,
+                    response
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create course section: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<LessonResponse>> CreateLessonAsync(LessonRequest request)
+        {
+            try
+            {
+                var lesson = new Lesson
+                {
+                    CourseSectionId = request.CourseSectionId,
+                    Name = request.Name,
+                    Description = request.Description,
+                    Order = request.Order,
+                    IsActive = request.IsActive,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var createdLesson = await _lessonRepository.AddAsync(lesson);
+                var response = _mapper.Map<LessonResponse>(createdLesson);
+
+                return new BaseResponse<LessonResponse>(
+                    "Lesson created successfully",
+                    StatusCodeEnum.Created_201,
+                    response
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create lesson: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<LessonItemResponse>> CreateLessonItemAsync(LessonItemRequest request)
+        {
+            try
+            {
+                var lessonItem = new Lessonitem
+                {
+                    LessonId = request.LessonId,
+                    Name = request.Name,
+                    Description = request.Description,
+                    Content = request.Content,
+                    ItemType = request.ItemType,
+                    Order = request.Order,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                var createdLessonItem = await _lessonitemRepository.AddAsync(lessonItem);
+                var response = _mapper.Map<LessonItemResponse>(createdLessonItem);
+
+                return new BaseResponse<LessonItemResponse>(
+                    "Lesson item created successfully",
+                    StatusCodeEnum.Created_201,
+                    response
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to create lesson item: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<IEnumerable<CourseSectionResponse>>> GetCourseSectionsAsync(long courseId)
+        {
+            try
+            {
+                var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
+                var responses = new List<CourseSectionResponse>();
+
+                foreach (var section in sections)
+                {
+                    var response = _mapper.Map<CourseSectionResponse>(section);
+                    response.Lessons = new List<LessonResponse>();
+
+                    var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync(section.CourseSectionId);
+                    foreach (var lesson in lessons)
+                    {
+                        response.Lessons.Add(_mapper.Map<LessonResponse>(lesson));
+                    }
+
+                    responses.Add(response);
+                }
+
+                return new BaseResponse<IEnumerable<CourseSectionResponse>>(
+                    "Course sections retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    responses
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get course sections: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<IEnumerable<LessonItemResponse>>> GetLessonItemsAsync(long lessonId)
+        {
+            try
+            {
+                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonId);
+                var responses = new List<LessonItemResponse>();
+
+                foreach (var item in lessonItems)
+                {
+                    responses.Add(_mapper.Map<LessonItemResponse>(item));
+                }
+
+                return new BaseResponse<IEnumerable<LessonItemResponse>>(
+                    "Lesson items retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    responses
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get lesson items: {ex.Message}");
             }
         }
     }

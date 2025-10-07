@@ -1,7 +1,7 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: feat_7
-      author: dung-nt
+      id: 7
+      author: quanghuy
       changes:
         # ===== COURSE =====
         - createTable:
@@ -32,8 +32,22 @@
                     nullable: false
 
               - column:
-                  name: Category
-                  type: VARCHAR(255)
+                  name: Price
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: ImageUrl
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: CategoryId
+                  type: BIGINT
+                  constraints:
+                    nullable: true
 
               - column:
                   name: CreatedAt
@@ -160,6 +174,12 @@
                     nullable: false
 
               - column:
+                  name: LessonID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
                   name: Name
                   type: VARCHAR(255)
                   constraints:
@@ -168,6 +188,22 @@
               - column:
                   name: Description
                   type: VARCHAR(1000)
+
+              - column:
+                  name: Content
+                  type: TEXT
+
+              - column:
+                  name: ItemType
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Order
+                  type: INT
+                  constraints:
+                    nullable: false
 
               - column:
                   name: CreatedAt
@@ -255,6 +291,12 @@
                   autoIncrement: true
                   constraints:
                     primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: ProcessID
+                  type: BIGINT
+                  constraints:
                     nullable: false
 
               - column:

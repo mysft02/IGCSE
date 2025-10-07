@@ -38,12 +38,19 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICoursekeyRepository, CoursekeyRepository>();
+builder.Services.AddScoped<ICoursesectionRepository, CoursesectionRepository>();
+builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+builder.Services.AddScoped<ILessonitemRepository, LessonitemRepository>();
+builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
+builder.Services.AddScoped<IProcessitemRepository, ProcessitemRepository>();
 
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<CourseRegistrationService>();
 
 // Add Infrastructure Services
 builder.Services.AddMemoryCache();

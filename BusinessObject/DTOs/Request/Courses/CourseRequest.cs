@@ -6,7 +6,7 @@ namespace DTOs.Request.Courses
     {
         [Required]
         [StringLength(200)]
-        public string CourseName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
 
         [StringLength(1000)]
         public string Description { get; set; } = string.Empty;
@@ -20,6 +20,6 @@ namespace DTOs.Request.Courses
         public int CategoryId { get; set; }
 
         [Required]
-        public sbyte Status { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }
