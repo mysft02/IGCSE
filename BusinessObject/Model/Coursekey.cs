@@ -5,11 +5,9 @@ namespace BusinessObject.Model;
 
 public partial class Coursekey
 {
-    public long CourseKeyId { get; set; }
+    public int CourseKeyId { get; set; }
 
-    public virtual Course Course { get; set; } = null!;
-
-    public long CourseId { get; set; }
+    public int CourseId { get; set; }
 
     public string StudentId { get; set; } = null!;
 
@@ -18,4 +16,6 @@ public partial class Coursekey
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public virtual Course Course { get; set; } = null!;
 }

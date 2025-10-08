@@ -1,6 +1,6 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: fe
+      id: feat-7-fix-course-schema
       author: quanghuy
       changes:
         # ===== COURSE =====
@@ -9,7 +9,7 @@
             columns:
               - column:
                   name: CourseID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -45,7 +45,7 @@
 
               - column:
                   name: CategoryId
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: true
 
@@ -96,7 +96,7 @@
             columns:
               - column:
                   name: CourseSectionID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -104,7 +104,7 @@
 
               - column:
                   name: CourseID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
@@ -144,7 +144,7 @@
             columns:
               - column:
                   name: LessonID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -152,7 +152,7 @@
 
               - column:
                   name: CourseSectionID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
@@ -192,7 +192,7 @@
             columns:
               - column:
                   name: LessonItemID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -200,7 +200,7 @@
 
               - column:
                   name: LessonID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
@@ -244,7 +244,7 @@
             columns:
               - column:
                   name: CourseKeyID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -252,7 +252,7 @@
 
               - column:
                   name: CourseID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
@@ -281,7 +281,7 @@
             columns:
               - column:
                   name: ProcessID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -289,13 +289,13 @@
 
               - column:
                   name: CourseKeyID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
               - column:
                   name: LessonID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
@@ -313,7 +313,7 @@
             columns:
               - column:
                   name: ProcessItemID
-                  type: BIGINT
+                  type: INT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
@@ -321,13 +321,13 @@
 
               - column:
                   name: ProcessID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
               - column:
                   name: LessonItemID
-                  type: BIGINT
+                  type: INT
                   constraints:
                     nullable: false
 
@@ -354,3 +354,5 @@
             tableName: coursesection
         - dropTable:
             tableName: course
+        - dropTable:
+            tableName: category

@@ -206,7 +206,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("complete-lesson-item")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<bool>>> CompleteLessonItem([FromQuery] long courseKeyId, [FromQuery] long lessonItemId)
+        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
         {
             try
             {

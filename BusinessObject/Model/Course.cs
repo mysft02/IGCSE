@@ -5,7 +5,7 @@ namespace BusinessObject.Model;
 
 public partial class Course
 {
-    public long CourseId { get; set; }
+    public int CourseId { get; set; }
 
     public string Name { get; set; } = null!;
 
@@ -17,9 +17,7 @@ public partial class Course
 
     public string? ImageUrl { get; set; }
 
-    public virtual Category? Category { get; set; }
-
-    public long? CategoryId { get; set; }
+    public int? CategoryId { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
@@ -28,4 +26,6 @@ public partial class Course
     public string? CreatedBy { get; set; }
 
     public string? UpdatedBy { get; set; }
+
+    public virtual Category? Category { get; set; }
 }

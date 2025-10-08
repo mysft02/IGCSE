@@ -49,7 +49,7 @@ namespace Service
             try
             {
                 // Check if course exists
-                var course = await _courseRepository.GetByCourseIdWithCategoryAsync((long)request.CourseId);
+                var course = await _courseRepository.GetByCourseIdWithCategoryAsync(request.CourseId);
                 if (course == null)
                 {
                     throw new Exception("Course not found");
@@ -289,7 +289,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<bool>> CompleteLessonItemAsync(long courseKeyId, long lessonItemId)
+        public async Task<BaseResponse<bool>> CompleteLessonItemAsync(int courseKeyId, int lessonItemId)
         {
             try
             {
@@ -353,7 +353,7 @@ namespace Service
             }
         }
 
-        private async Task InitializeCourseProgressAsync(long courseKeyId)
+        private async Task InitializeCourseProgressAsync(int courseKeyId)
         {
             try
             {

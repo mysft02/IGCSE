@@ -12,7 +12,7 @@ namespace DTOs.Request.CourseContent
         public string? Description { get; set; }
 
         [Required]
-        public long CourseId { get; set; }
+        public int CourseId { get; set; }
 
         [Required]
         public int Order { get; set; }
@@ -31,7 +31,7 @@ namespace DTOs.Request.CourseContent
         public string? Description { get; set; }
 
         [Required]
-        public long CourseSectionId { get; set; }
+        public int CourseSectionId { get; set; }
 
         [Required]
         public int Order { get; set; }
@@ -57,7 +57,7 @@ namespace DTOs.Request.CourseContent
         public string ItemType { get; set; } = string.Empty; // video, text, quiz, assignment, etc.
 
         [Required]
-        public long LessonId { get; set; }
+        public int LessonId { get; set; }
 
         [Required]
         public int Order { get; set; }
