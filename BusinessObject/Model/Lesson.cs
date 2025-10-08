@@ -7,6 +7,8 @@ public partial class Lesson
 {
     public long LessonId { get; set; }
 
+    public virtual Coursesection CourseSection { get; set; } = null!;
+
     public long CourseSectionId { get; set; }
 
     public string Name { get; set; } = null!;
@@ -20,9 +22,4 @@ public partial class Lesson
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
-
-    // Navigation properties
-    public virtual Coursesection CourseSection { get; set; } = null!;
-
-    public virtual ICollection<Process> Processes { get; set; } = new List<Process>();
 }

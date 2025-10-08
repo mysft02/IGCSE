@@ -70,7 +70,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(int courseId, CourseRequest request)
+        public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(long courseId, CourseRequest request)
         {
             try
             {
@@ -117,7 +117,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(int courseId)
+        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(long courseId)
         {
             try
             {

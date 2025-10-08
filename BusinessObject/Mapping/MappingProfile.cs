@@ -34,6 +34,7 @@ namespace BusinessObject.Mapping
             // Course Registration mappings
             CreateMap<Coursekey, CourseRegistrationResponse>()
                 .ForMember(dest => dest.CourseName, opt => opt.MapFrom(src => src.Course.Name))
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Course.Category.CategoryName))
                 .ForMember(dest => dest.CourseKey, opt => opt.MapFrom(src => $"{src.CourseId}-{src.StudentId}-{src.CreatedAt.Value.Ticks}"));
 
             // Course Content mappings

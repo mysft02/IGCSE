@@ -1,6 +1,6 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: 7
+      id: fe
       author: quanghuy
       changes:
         # ===== COURSE =====
@@ -64,6 +64,31 @@
               - column:
                   name: UpdatedBy
                   type: VARCHAR(255)
+
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: CategoryID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CategoryName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
 
         # ===== COURSE SECTION =====
         - createTable:
@@ -233,9 +258,10 @@
 
               - column:
                   name: StudentID
-                  type: BIGINT
+                  type: VARCHAR(255)
                   constraints:
                     nullable: false
+
 
               - column:
                   name: CreatedBy

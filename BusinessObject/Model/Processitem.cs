@@ -9,14 +9,13 @@ public partial class Processitem
 
     public long ProcessId { get; set; }
 
+    public virtual Process Process { get; set; } = null!;
+
+    public virtual Lessonitem LessonItem { get; set; } = null!;
+
     public long LessonItemId { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
-
-    // Navigation properties
-    public virtual Lessonitem LessonItem { get; set; } = null!;
-
-    public virtual Process Process { get; set; } = null!;
 }

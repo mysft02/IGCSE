@@ -38,6 +38,7 @@ namespace DTOs.Response.CourseContent
         public long CourseKeyId { get; set; }
         public long CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
         public List<LessonProgressResponse> LessonProgress { get; set; } = new List<LessonProgressResponse>();
         public double OverallProgress { get; set; }

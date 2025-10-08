@@ -49,27 +49,27 @@ namespace Service
             try
             {
                 // Check if course exists
-                var course = await _courseRepository.GetByCourseIdAsync((int)request.CourseId);
+                var course = await _courseRepository.GetByCourseIdWithCategoryAsync((long)request.CourseId);
                 if (course == null)
                 {
                     throw new Exception("Course not found");
                 }
 
                 // Check if student is already registered for this course
-                var existingRegistration = await _coursekeyRepository.GetByCourseAndStudentAsync(request.CourseId, long.Parse(request.StudentId));
+                var existingRegistration = await _coursekeyRepository.GetByCourseAndStudentAsync(request.CourseId, request.StudentId);
                 if (existingRegistration != null)
                 {
                     throw new Exception("Student is already registered for this course");
                 }
 
                 // Generate unique course key
-                var courseKey = await _coursekeyRepository.GenerateUniqueCourseKeyAsync(request.CourseId, long.Parse(request.StudentId));
+                var courseKey = await _coursekeyRepository.GenerateUniqueCourseKeyAsync(request.CourseId, request.StudentId);
 
                 // Create course registration
                 var coursekey = new Coursekey
                 {
                     CourseId = request.CourseId,
-                    StudentId = long.Parse(request.StudentId),
+                    StudentId = request.StudentId,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     CreatedBy = request.StudentId
@@ -85,6 +85,7 @@ namespace Service
                     CourseKeyId = createdCoursekey.CourseKeyId,
                     CourseId = createdCoursekey.CourseId,
                     CourseName = course.Name,
+                    CategoryName = course.Category?.CategoryName ?? "Unknown",
                     StudentId = request.StudentId,
                     StudentName = "", // Will be populated from Account service
                     CourseKey = courseKey,
@@ -108,12 +109,12 @@ namespace Service
         {
             try
             {
-                var registrations = await _coursekeyRepository.GetByStudentIdAsync(long.Parse(studentId));
+                var registrations = await _coursekeyRepository.GetByStudentIdAsync(studentId);
 
                 var responses = new List<CourseRegistrationResponse>();
                 foreach (var reg in registrations)
                 {
-                    var course = await _courseRepository.GetByCourseIdAsync((int)reg.CourseId);
+                    var course = await _courseRepository.GetByCourseIdWithCategoryAsync(reg.CourseId);
                     if (course != null)
                     {
                         responses.Add(new CourseRegistrationResponse
@@ -121,6 +122,7 @@ namespace Service
                             CourseKeyId = reg.CourseKeyId,
                             CourseId = reg.CourseId,
                             CourseName = course.Name,
+                            CategoryName = course.Category?.CategoryName ?? "Unknown",
                             StudentId = studentId,
                             StudentName = "", // Will be populated from Account service
                             CourseKey = $"{reg.CourseId}-{reg.StudentId}-{reg.CreatedAt?.Ticks}",
@@ -207,7 +209,7 @@ namespace Service
                     throw new Exception("Invalid course key");
                 }
 
-                var course = await _courseRepository.GetByCourseIdAsync((int)courseKey.CourseId);
+                var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseKey.CourseId);
                 if (course == null)
                 {
                     throw new Exception("Course not found");
@@ -221,7 +223,8 @@ namespace Service
                     CourseKeyId = courseKeyId,
                     CourseId = courseKey.CourseId,
                     CourseName = course.Name,
-                    StudentName = "", // Will be populated from Account service
+                    CategoryName = course.Category?.CategoryName ?? "Unknown",
+                    StudentName = "",
                     LessonProgress = new List<LessonProgressResponse>(),
                     OverallProgress = 0
                 };

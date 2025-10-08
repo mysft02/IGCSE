@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BusinessObject.Model;
@@ -16,6 +16,8 @@ public partial class Course
     public decimal? Price { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public virtual Category? Category { get; set; }
 
     public long? CategoryId { get; set; }
 

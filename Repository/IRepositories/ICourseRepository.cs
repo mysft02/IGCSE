@@ -5,7 +5,8 @@ namespace Repository.IRepositories
 {
     public interface ICourseRepository : IBaseRepository<Course>
     {
-        Task<Course?> GetByCourseIdAsync(int courseId);
-        Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId);
+        Task<Course?> GetByCourseIdAsync(long courseId);
+        Task<Course?> GetByCourseIdWithCategoryAsync(long courseId);
+        Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId);
     }
 }

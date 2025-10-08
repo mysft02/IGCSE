@@ -17,13 +17,20 @@ namespace Repository.Repositories
             _context = context;
         }
 
-        public async Task<Course?> GetByCourseIdAsync(int courseId)
+        public async Task<Course?> GetByCourseIdAsync(long courseId)
         {
             return await _context.Set<Course>()
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId)
+        public async Task<Course?> GetByCourseIdWithCategoryAsync(long courseId)
+        {
+            return await _context.Set<Course>()
+                .Include(c => c.Category)
+                .FirstOrDefaultAsync(c => c.CourseId == courseId);
+        }
+
+        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId)
         {
             return await _context.Set<Course>()
                 .Where(c => c.CategoryId == categoryId)

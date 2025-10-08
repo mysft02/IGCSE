@@ -17,11 +17,10 @@ namespace Repository.Repositories
             _context = context;
         }
 
-        public async Task<Coursekey?> GetByCourseAndStudentAsync(long courseId, long studentId)
+        public async Task<Coursekey?> GetByCourseAndStudentAsync(long courseId, string studentId)
         {
             return await _context.Set<Coursekey>()
                 .Include(c => c.Course)
-                .Include(c => c.Student)
                 .FirstOrDefaultAsync(c => c.CourseId == courseId && c.StudentId == studentId);
         }
 
@@ -29,11 +28,10 @@ namespace Repository.Repositories
         {
             return await _context.Set<Coursekey>()
                 .Include(c => c.Course)
-                .Include(c => c.Student)
                 .FirstOrDefaultAsync(c => c.CourseKeyId == courseKeyId);
         }
 
-        public async Task<IEnumerable<Coursekey>> GetByStudentIdAsync(long studentId)
+        public async Task<IEnumerable<Coursekey>> GetByStudentIdAsync(string studentId)
         {
             return await _context.Set<Coursekey>()
                 .Include(c => c.Course)
@@ -48,7 +46,7 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<string> GenerateUniqueCourseKeyAsync(long courseId, long studentId)
+        public async Task<string> GenerateUniqueCourseKeyAsync(long courseId, string studentId)
         {
             // Generate a unique course key based on course and student
             var courseKey = $"{courseId}-{studentId}-{DateTime.UtcNow.Ticks}";

@@ -174,6 +174,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Enable static files
 app.UseAuthentication();
 app.UseAuthorization();
 
