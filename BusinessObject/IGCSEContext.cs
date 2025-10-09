@@ -1,4 +1,4 @@
-﻿using BusinessObject.Model;
+using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -49,7 +49,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {
-            entity.ToTable("refreshtoken");
+            entity.ToTable("RefreshTokens");
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity.Property(e => e.Id)
