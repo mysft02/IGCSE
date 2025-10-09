@@ -1,4 +1,5 @@
 using DTOs.Request.Categories;
+using DTOs.Response.Accounts;
 using DTOs.Response.Categories;
 using Microsoft.AspNetCore.Mvc;
 using Service;
@@ -17,14 +18,14 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CategoryResponse>>> CreateCategory([FromBody] CategoryRequest request)
+        public async Task<ActionResult<BaseResponse<CategoryResponse>>> CreateCategory([FromBody] CategoryRequest request)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -38,7 +39,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -47,14 +48,14 @@ namespace IGCSE.Controller
         }
 
         [HttpPut("update/{id}")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CategoryResponse>>> UpdateCategory(int id, [FromBody] CategoryRequest request)
+        public async Task<ActionResult<BaseResponse<CategoryResponse>>> UpdateCategory(int id, [FromBody] CategoryRequest request)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -68,7 +69,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -77,7 +78,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CategoryResponse>>> GetCategory(int id)
+        public async Task<ActionResult<BaseResponse<CategoryResponse>>> GetCategory(int id)
         {
             try
             {
@@ -86,7 +87,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return NotFound(new DTOs.Response.Accounts.BaseResponse<string>(
+                return NotFound(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.NotFound_404,
                     null
@@ -95,7 +96,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<IEnumerable<CategoryResponse>>>> GetAllCategories()
+        public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetAllCategories()
         {
             try
             {
@@ -104,7 +105,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -113,7 +114,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("active")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<IEnumerable<CategoryResponse>>>> GetActiveCategories()
+        public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetActiveCategories()
         {
             try
             {
@@ -122,7 +123,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null

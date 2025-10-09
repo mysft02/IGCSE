@@ -35,7 +35,7 @@ namespace IGCSE.Controller
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -55,7 +55,7 @@ namespace IGCSE.Controller
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -63,46 +63,16 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpPut("update/{id}")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CourseResponse>>> UpdateCourse(int id, [FromBody] CourseRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
-                ));
-            }
-
-            try
-            {
-                var result = await _courseService.UpdateCourseAsync(id, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new DTOs.Response.Accounts.BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.NotFound_404,
                     null
                 ));
             }
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseResponse>>>> GetAllCourses()
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllCourses()
         {
             try
             {
@@ -111,7 +81,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -121,14 +91,14 @@ namespace IGCSE.Controller
 
         // Course Registration endpoints
         [HttpPost("register")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CourseRegistrationResponse>>> RegisterForCourse([FromBody] CourseRegistrationRequest request)
+        public async Task<ActionResult<BaseResponse<CourseRegistrationResponse>>> RegisterForCourse([FromBody] CourseRegistrationRequest request)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -142,7 +112,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -151,7 +121,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("registrations/{studentId}")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetStudentRegistrations(string studentId)
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetStudentRegistrations(string studentId)
         {
             try
             {
@@ -160,7 +130,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -169,7 +139,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("content/{courseKeyId}/section/{courseSectionId}")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CourseSectionResponse>>> GetCourseContent(long courseKeyId, long courseSectionId)
+        public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> GetCourseContent(long courseKeyId, long courseSectionId)
         {
             try
             {
@@ -178,7 +148,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return NotFound(new DTOs.Response.Accounts.BaseResponse<string>(
+                return NotFound(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.NotFound_404,
                     null
@@ -187,7 +157,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("progress/{courseKeyId}")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<StudentProgressResponse>>> GetStudentProgress(long courseKeyId)
+        public async Task<ActionResult<BaseResponse<StudentProgressResponse>>> GetStudentProgress(long courseKeyId)
         {
             try
             {
@@ -196,7 +166,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return NotFound(new DTOs.Response.Accounts.BaseResponse<string>(
+                return NotFound(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.NotFound_404,
                     null
@@ -205,7 +175,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("complete-lesson-item")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
+        public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
         {
             try
             {
@@ -214,7 +184,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -224,14 +194,14 @@ namespace IGCSE.Controller
 
         // Course Content Management endpoints
         [HttpPost("section/create")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<CourseSectionResponse>>> CreateCourseSection([FromBody] CourseSectionRequest request)
+        public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> CreateCourseSection([FromBody] CourseSectionRequest request)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -245,7 +215,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -254,14 +224,14 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("lesson/create")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<LessonResponse>>> CreateLesson([FromBody] LessonRequest request)
+        public async Task<ActionResult<BaseResponse<LessonResponse>>> CreateLesson([FromBody] LessonRequest request)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -275,7 +245,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -284,14 +254,14 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("lesson-item/create")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<LessonItemResponse>>> CreateLessonItem([FromBody] LessonItemRequest request)
+        public async Task<ActionResult<BaseResponse<LessonItemResponse>>> CreateLessonItem([FromBody] LessonItemRequest request)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                               .Select(e => e.ErrorMessage)
                                               .ToList();
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
@@ -305,7 +275,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -314,7 +284,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("{courseId}/sections")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
         {
             try
             {
@@ -323,7 +293,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
@@ -332,7 +302,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("lesson/{lessonId}/items")]
-        public async Task<ActionResult<DTOs.Response.Accounts.BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
+        public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
         {
             try
             {
@@ -341,7 +311,7 @@ namespace IGCSE.Controller
             }
             catch (Exception ex)
             {
-                return BadRequest(new DTOs.Response.Accounts.BaseResponse<string>(
+                return BadRequest(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
