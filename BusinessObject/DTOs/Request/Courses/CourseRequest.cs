@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
 namespace DTOs.Request.Courses
@@ -21,5 +22,7 @@ namespace DTOs.Request.Courses
 
         [Required]
         public string Status { get; set; } = string.Empty;
+
+        public IFormFile? ImageFile { get; set; }
     }
 }

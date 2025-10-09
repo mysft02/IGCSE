@@ -12,6 +12,7 @@ using Repository.IBaseRepository;
 using Repository;
 using Service;
 using BusinessObject;
+using BusinessObject.Model;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -95,7 +96,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // SetUp Specification for password
-builder.Services.AddIdentity<BusinessObject.Model.Account, IdentityRole>(options =>
+builder.Services.AddIdentity<Account, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
