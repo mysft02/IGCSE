@@ -9,13 +9,18 @@ using Repository.IRepositories;
 using Repository.Repositories;
 using Repository.BaseRepository;
 using Repository.IBaseRepository;
-using Repository;
 using Service;
+using Service.Trello;
+using DotNetEnv;
+using Service.OpenAI;
+using Service.VnPay;
 using BusinessObject;
 using BusinessObject.Model;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+Env.Load("ApiKey.env");
 
 builder.Services.AddCors(options =>
 {
@@ -52,6 +57,12 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CourseRegistrationService>();
+builder.Services.AddScoped<TrelloApiService>();
+builder.Services.AddHttpClient<ApiService>();
+builder.Services.AddScoped<VnPayApiService>();
+builder.Services.AddScoped<OpenAIApiService>();
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<TestService>();
 
 // Add Infrastructure Services
 builder.Services.AddMemoryCache();

@@ -40,10 +40,10 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
-            }
+        }
 
             try
-            {
+        {
                 if (request.ImageFile != null && FileUploadHelper.IsValidImageFile(request.ImageFile))
                 {
                     var imageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, _webHostEnvironment.WebRootPath);
@@ -165,14 +165,14 @@ namespace IGCSE.Controller
                 return Ok(result);
             }
             catch (Exception ex)
-            {
+                {
                 return NotFound(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.NotFound_404,
                     null
                 ));
             }
-        }
+                }
 
         [HttpPost("complete-lesson-item")]
         public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
@@ -221,7 +221,7 @@ namespace IGCSE.Controller
                     null
                 ));
             }
-        }
+            }
 
         [HttpPost("lesson/create")]
         public async Task<ActionResult<BaseResponse<LessonResponse>>> CreateLesson([FromBody] LessonRequest request)
@@ -236,10 +236,10 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
-            }
+        }
 
             try
-            {
+        {
                 var result = await _courseService.CreateLessonAsync(request);
                 return Created("lesson", result);
             }
@@ -272,7 +272,7 @@ namespace IGCSE.Controller
             {
                 var result = await _courseService.CreateLessonItemAsync(request);
                 return Created("lesson item", result);
-            }
+        }
             catch (Exception ex)
             {
                 return BadRequest(new BaseResponse<string>(
@@ -280,8 +280,8 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
                 ));
-            }
-        }
+    }
+}
 
         [HttpGet("{courseId}/sections")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
