@@ -1,3 +1,4 @@
+using Common.Utils;
 using System;
 using System.Collections.Generic;
 
@@ -6,7 +7,7 @@ namespace BusinessObject.Payload.Request;
 public class TrelloApiRequest
 {
     // Default Trello API key (can be overridden via TrelloApiKey)
-    public static string ApiKey = "f3e1b910789ea4d87b5eb58c76a686ab";
+    public static string ApiKey = CommonUtils.GetApiKey("TRELLO_API_KEY");
 
     public enum ResponseType
     {
