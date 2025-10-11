@@ -50,6 +50,7 @@ builder.Services.AddHttpClient<ApiService>();
 builder.Services.AddScoped<VnPayApiService>();
 builder.Services.AddScoped<OpenAIApiService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<OpenAIEmbeddingsApiService>();
 builder.Services.AddScoped<TestService>();
 
 // Add Infrastructure Services

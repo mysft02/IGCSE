@@ -6,6 +6,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace Common.Utils
 {
@@ -188,6 +189,18 @@ namespace Common.Utils
             {
                 return "Api Key not found:" + ex.Message;
             }
+        }
+
+        public static string ObjectToString<T>(T obj)
+        {
+            if (obj == null) return string.Empty;
+            return JsonSerializer.Serialize(obj);
+        }
+
+        public static T StringToObject<T>(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return default(T);
+            return JsonSerializer.Deserialize<T>(json);
         }
     }
 }

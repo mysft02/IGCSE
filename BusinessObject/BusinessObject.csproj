@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <Folder Include="Payload\Request\OpenApi\" />
-    <Folder Include="Payload\Response\OpenApi\" />
   </ItemGroup>
 
 </Project>
