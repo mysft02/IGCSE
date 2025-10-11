@@ -1,6 +1,11 @@
 ﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using System.Net.Sockets;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace Common.Utils
 {
@@ -103,6 +108,85 @@ namespace Common.Utils
                 }
 
                 return options;
+            }
+        }
+
+        public static string HmacSHA512(string key, string inputData)
+        {
+            var hash = new StringBuilder();
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            var inputBytes = Encoding.UTF8.GetBytes(inputData);
+            using (var hmac = new HMACSHA512(keyBytes))
+            {
+                var hashValue = hmac.ComputeHash(inputBytes);
+                foreach (var theByte in hashValue)
+                {
+                    hash.Append(theByte.ToString("x2"));
+                }
+            }
+            return hash.ToString();
+        }
+
+        public static string GetIpAddress(HttpContext context)
+        {
+            var ipAddress = string.Empty;
+            try
+            {
+                var remoteIpAddress = context.Connection.RemoteIpAddress;
+
+                if (remoteIpAddress != null)
+                {
+                    if (remoteIpAddress.AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        remoteIpAddress = Dns.GetHostEntry(remoteIpAddress).AddressList
+                            .FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork);
+                    }
+
+                    if (remoteIpAddress != null) ipAddress = remoteIpAddress.ToString();
+
+                    return ipAddress;
+                }
+            }
+            catch (Exception ex)
+            {
+                return "Invalid IP:" + ex.Message;
+            }
+
+            return "127.0.0.1";
+        }
+
+        public static string GetApiKey(string ApiName)
+        {
+            try
+            {
+                // Đường dẫn đến file ApiKey.env trong thư mục IGCSE
+                var envFilePath = Path.Combine(Directory.GetCurrentDirectory(), "ApiKey.env");
+
+                // Kiểm tra file có tồn tại không
+                if (!File.Exists(envFilePath))
+                {
+                    return "Api Key file not found: " + envFilePath;
+                }
+
+                // Đọc file và tìm key tương ứng
+                var lines = File.ReadAllLines(envFilePath);
+                foreach (var line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length == 2 && parts[0].Trim().Equals(ApiName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return parts[1].Trim();
+                    }
+                }
+
+                return "Api Key not found: " + ApiName;
+            }
+            catch (Exception ex)
+            {
+                return "Api Key not found:" + ex.Message;
             }
         }
     }
