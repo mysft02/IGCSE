@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using BusinessObject.Payload.Request;
 using Service.Trello;
+using BusinessObject.Payload.Request.OpenAI;
+using Common.Utils;
+using Service.OpenAI;
 
 namespace IGCSE.Controller;
 
@@ -9,10 +12,11 @@ namespace IGCSE.Controller;
 public class PingController : ControllerBase
 {
     private readonly TrelloApiService _trelloApiService;
-
-    public PingController(TrelloApiService trelloApiService)
+    private readonly OpenAIApiService _openApiService;
+    public PingController(TrelloApiService trelloApiService, OpenAIApiService openApiService)
     {
         _trelloApiService = trelloApiService;
+        _openApiService = openApiService;
     }
 
     [HttpGet]
@@ -33,6 +37,19 @@ public class PingController : ControllerBase
             .Build();
 
         var result = await _trelloApiService.GetAsync<object>(request);
+        return Ok(result);
+    }
+
+    [HttpGet("openai")]
+    public async Task<IActionResult> PingOpenAI()
+    {
+        var apiKey = CommonUtils.GetApiKey("OPEN_API_KEY");
+
+        var request = OpenApiRequest.Builder()
+            .CallUrl("https://api.openai.com/v1/models")
+            .Build();
+
+        var result = await _openApiService.GetAsync<object>(request);
         return Ok(result);
     }
 }
