@@ -32,19 +32,8 @@ namespace IGCSE.Controller
                 ));
             }
 
-            try
-            {
-                var result = await _categoryService.CreateCategoryAsync(request);
-                return CreatedAtAction(nameof(GetCategory), new { id = result.Data.CategoryID }, result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _categoryService.CreateCategoryAsync(request);
+            return CreatedAtAction(nameof(GetCategory), new { id = result.Data.CategoryID }, result);
         }
 
         [HttpPut("update/{id}")]
@@ -62,73 +51,29 @@ namespace IGCSE.Controller
                 ));
             }
 
-            try
-            {
-                var result = await _categoryService.UpdateCategoryAsync(id, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _categoryService.UpdateCategoryAsync(id, request);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<BaseResponse<CategoryResponse>>> GetCategory(int id)
         {
-            try
-            {
-                var result = await _categoryService.GetCategoryByIdAsync(id);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.NotFound_404,
-                    null
-                ));
-            }
+            var result = await _categoryService.GetCategoryByIdAsync(id);
+            return Ok(result);
         }
 
         [HttpGet("all")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetAllCategories()
         {
-            try
-            {
-                var result = await _categoryService.GetAllCategoriesAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _categoryService.GetAllCategoriesAsync();
+            return Ok(result);
         }
 
         [HttpGet("active")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetActiveCategories()
         {
-            try
-            {
-                var result = await _categoryService.GetActiveCategoriesAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _categoryService.GetActiveCategoriesAsync();
+            return Ok(result);
         }
     }
 }

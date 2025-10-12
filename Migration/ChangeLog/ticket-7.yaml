@@ -3,92 +3,38 @@
       id: feat-7-fix-course-schema
       author: quanghuy
       changes:
-        # ===== COURSE =====
-        - createTable:
+        - addColumn:
             tableName: course
             columns:
               - column:
-                  name: CourseID
-                  type: INT
-                  autoIncrement: true
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-
-              - column:
-                  name: Name
-                  type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-
-              - column:
-                  name: Description
-                  type: VARCHAR(1000)
-
-              - column:
-                  name: Status
-                  type: VARCHAR(50)
-                  constraints:
-                    nullable: false
-
-              - column:
-                  name: Price
-                  type: DECIMAL(18,2)
-                  constraints:
-                    nullable: true
-
-              - column:
-                  name: ImageUrl
-                  type: VARCHAR(500)
-                  constraints:
-                    nullable: true
-
-              - column:
-                  name: CategoryId
-                  type: INT
-                  constraints:
-                    nullable: true
-
-              - column:
-                  name: CreatedAt
-                  type: DATETIME
-
-              - column:
-                  name: UpdatedAt
-                  type: DATETIME
-
-              - column:
                   name: CreatedBy
                   type: VARCHAR(255)
-
+        - addColumn:
+            tableName: course
+            columns:
               - column:
                   name: UpdatedBy
                   type: VARCHAR(255)
-
-        - createTable:
-            tableName: category
-            columns:
-              - column:
-                  name: CategoryID
-                  type: INT
-                  autoIncrement: true
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: CategoryName
-                  type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: Description
-                  type: TEXT
-              - column:
-                  name: IsActive
-                  type: TINYINT(1)
-                  defaultValueNumeric: 1
-                  constraints:
-                    nullable: false
+        - renameColumn:
+            tableName: course
+            oldColumnName: CourseName
+            newColumnName: Name
+        - renameColumn:
+            tableName: course
+            oldColumnName: CategoryID
+            newColumnName: CategoryId
+        - modifyDataType:
+            tableName: course
+            columnName: Description
+            newDataType: VARCHAR(1000)
+        - modifyDataType:
+            tableName: course
+            columnName: Status
+            newDataType: VARCHAR(50)
+        - modifyDataType:
+            tableName: course
+            columnName: Price
+            newDataType: DECIMAL(18,2)
 
         # ===== COURSE SECTION =====
         - createTable:
@@ -352,7 +298,26 @@
             tableName: lesson
         - dropTable:
             tableName: coursesection
-        - dropTable:
+        # Rollback course alterations
+        - dropColumn:
             tableName: course
-        - dropTable:
-            tableName: category
+            columnName: UpdatedBy
+        - dropColumn:
+            tableName: course
+            columnName: CreatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: Name
+            newColumnName: CourseName
+        - renameColumn:
+            tableName: course
+            oldColumnName: CategoryId
+            newColumnName: CategoryID
+        - modifyDataType:
+            tableName: course
+            columnName: Description
+            newDataType: TEXT
+        - modifyDataType:
+            tableName: course
+            columnName: Status
+            newDataType: TINYINT(1)
