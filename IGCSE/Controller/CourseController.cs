@@ -1,6 +1,13 @@
-using BusinessObject.Model;
+using DTOs.Request.Courses;
+using DTOs.Response.Courses;
+using DTOs.Request.CourseRegistration;
+using DTOs.Response.CourseRegistration;
+using DTOs.Response.CourseContent;
+using DTOs.Request.CourseContent;
 using Microsoft.AspNetCore.Mvc;
-using Repository.IRepositories;
+using Service;
+using DTOs.Response.Accounts;
+using Common.Utils;
 
 namespace IGCSE.Controller
 {
@@ -8,80 +15,167 @@ namespace IGCSE.Controller
     [ApiController]
     public class CourseController : ControllerBase
     {
-        private readonly ICourseRepository _courseRepository;
+        private readonly CourseService _courseService;
+        private readonly CourseRegistrationService _courseRegistrationService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public CourseController(ICourseRepository courseRepository)
+        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment)
         {
-            _courseRepository = courseRepository;
+            _courseService = courseService;
+            _courseRegistrationService = courseRegistrationService;
+            _webHostEnvironment = webHostEnvironment;
         }
 
-        // GET: api/course
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Course>>> GetAll()
-        {
-            var courses = await _courseRepository.GetAllAsync();
-            return Ok(courses);
-        }
-
-        // GET: api/course/{id}
-        [HttpGet("{id:long}")]
-        public async Task<ActionResult<Course>> GetById(long id)
-        {
-            try
-            {
-                // BaseRepository.GetByIdAsync uses int; add overload logic here
-                var course = (await _courseRepository.GetAllAsync()).FirstOrDefault(c => c.Id == id);
-                if (course == null)
-                {
-                    return NotFound();
-                }
-                return Ok(course);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        // POST: api/course
-        [HttpPost]
-        public async Task<ActionResult<Course>> Create([FromBody] Course model)
+        // Existing course management endpoints
+        [HttpPost("create")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> CreateCourse([FromForm] CourseRequest request)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
-            }
-            model.CreatedAt = DateTime.UtcNow;
-            var created = await _courseRepository.AddAsync(model);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
         }
 
-        // PUT: api/course/{id}
-        [HttpPut("{id:long}")]
-        public async Task<ActionResult<Course>> Update(long id, [FromBody] Course model)
-        {
-            if (id != model.Id)
+            if (request.ImageFile != null && FileUploadHelper.IsValidImageFile(request.ImageFile))
             {
-                return BadRequest(new { message = "Id mismatch" });
+                request.ImageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, _webHostEnvironment.WebRootPath);
             }
-            model.UpdatedAt = DateTime.UtcNow;
-            var updated = await _courseRepository.UpdateAsync(model);
-            return Ok(updated);
+
+            var result = await _courseService.CreateCourseAsync(request);
+            return Ok(result);
         }
 
-        // DELETE: api/course/{id}
-        [HttpDelete("{id:long}")]
-        public async Task<IActionResult> Delete(long id)
+        [HttpGet("all")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllCourses()
         {
-            var existing = (await _courseRepository.GetAllAsync()).FirstOrDefault(c => c.Id == id);
-            if (existing == null)
+            var result = await _courseService.GetAllCoursesAsync();
+            return Ok(result);
+        }
+
+        // Course Registration endpoints
+        [HttpPost("register")]
+        public async Task<ActionResult<BaseResponse<CourseRegistrationResponse>>> RegisterForCourse([FromBody] CourseRegistrationRequest request)
+        {
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
             }
-            await _courseRepository.DeleteAsync(existing);
-            return NoContent();
+
+            var result = await _courseRegistrationService.RegisterForCourseAsync(request);
+            return Created("course registration", result);
+        }
+
+        [HttpGet("registrations/{studentId}")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetStudentRegistrations(string studentId)
+        {
+            var result = await _courseRegistrationService.GetStudentRegistrationsAsync(studentId);
+            return Ok(result);
+        }
+
+        [HttpGet("content/{courseKeyId}/section/{courseSectionId}")]
+        public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> GetCourseContent(long courseKeyId, long courseSectionId)
+        {
+            var result = await _courseRegistrationService.GetCourseContentAsync(courseKeyId, courseSectionId);
+            return Ok(result);
+        }
+
+        [HttpGet("progress/{courseKeyId}")]
+        public async Task<ActionResult<BaseResponse<StudentProgressResponse>>> GetStudentProgress(long courseKeyId)
+        {
+            var result = await _courseRegistrationService.GetStudentProgressAsync(courseKeyId);
+            return Ok(result);
+        }
+
+        [HttpPost("complete-lesson-item")]
+        public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
+        {
+            var result = await _courseRegistrationService.CompleteLessonItemAsync(courseKeyId, lessonItemId);
+            return Ok(result);
+        }
+
+        // Course Content Management endpoints
+        [HttpPost("section/create")]
+        public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> CreateCourseSection([FromBody] CourseSectionRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _courseService.CreateCourseSectionAsync(request);
+            return Created("course section", result);
+        }
+
+        [HttpPost("lesson/create")]
+        public async Task<ActionResult<BaseResponse<LessonResponse>>> CreateLesson([FromBody] LessonRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+        }
+
+            var result = await _courseService.CreateLessonAsync(request);
+            return Created("lesson", result);
+        }
+
+        [HttpPost("lesson-item/create")]
+        public async Task<ActionResult<BaseResponse<LessonItemResponse>>> CreateLessonItem([FromBody] LessonItemRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _courseService.CreateLessonItemAsync(request);
+            return Created("lesson item", result);
+        }
+
+        [HttpGet("{courseId}/sections")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
+        {
+            var result = await _courseService.GetCourseSectionsAsync(courseId);
+            return Ok(result);
+        }
+
+        [HttpGet("lesson/{lessonId}/items")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
+        {
+            var result = await _courseService.GetLessonItemsAsync(lessonId);
+            return Ok(result);
         }
     }
 }
-
-
