@@ -101,9 +101,27 @@ namespace Service
                 }
                 else
                 {
+                    // Ensure Student role exists
+                    if (!await _roleManager.RoleExistsAsync("Student"))
+                    {
+                        var roleResult = await _roleManager.CreateAsync(new IdentityRole("Student"));
+                        if (!roleResult.Succeeded)
+                        {
+                            throw new Exception($"Failed to create Student role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                        }
+                    }
+
                     var createdUser = await _userManager.CreateAsync(accountApp, request.Password);
                     if (createdUser.Succeeded)
                     {
+                        // Automatically assign Student role to new users
+                        var roleResult = await _userManager.AddToRoleAsync(accountApp, "Student");
+                        if (!roleResult.Succeeded)
+                        {
+                            await _userManager.DeleteAsync(accountApp); // Clean up the user if role assignment fails
+                            throw new Exception($"Failed to assign Student role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                        }
+
                         var token = await _tokenRepository.createToken(accountApp);
                         var _user = await GetUser(request.Email);
                         var emailCode = await _userManager.GenerateEmailConfirmationTokenAsync(_user!);
@@ -123,7 +141,7 @@ namespace Service
                             Address = accountApp.Address,
                             Phone = accountApp.Phone,
                             DateOfBirth = accountApp.DateOfBirth,
-                            Roles = userRoles.ToList(), // This will be an empty list now
+                            Roles = userRoles.ToList(), // Now contains "Student"
                             Token = token.AccessToken,
                             RefreshToken = token.RefreshToken
                         };

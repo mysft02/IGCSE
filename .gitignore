@@ -22,4 +22,7 @@
 /Common/bin/Debug/net8.0
 /Common/obj/Debug/net8.0
 /Common/obj
+/Migration/bin/Debug/net8.0
+/Migration/obj/Debug/net8.0
+/Migration/obj
 /IGCSE/ApiKey.env

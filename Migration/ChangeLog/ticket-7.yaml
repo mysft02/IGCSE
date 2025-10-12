@@ -1,0 +1,430 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: feat-7-fix-course-schema
+      author: quanghuy
+      changes:
+        # ===== COURSE ALTERATIONS =====
+        # Thêm các cột còn thiếu
+        - addColumn:
+            tableName: course
+            columns:
+              - column:
+                  name: Price
+                  type: DECIMAL(18,2)
+                  defaultValueNumeric: 0.00
+                  constraints:
+                    nullable: false
+        - addColumn:
+            tableName: course
+            columns:
+              - column:
+                  name: ImageUrl
+                  type: VARCHAR(500)
+        
+        # Sửa đổi các cột hiện có
+        - renameColumn:
+            tableName: course
+            oldColumnName: id
+            newColumnName: CourseID
+        - renameColumn:
+            tableName: course
+            oldColumnName: name
+            newColumnName: CourseName
+        - renameColumn:
+            tableName: course
+            oldColumnName: createdat
+            newColumnName: CreatedAt
+        - renameColumn:
+            tableName: course
+            oldColumnName: updatedat
+            newColumnName: UpdatedAt
+        - renameColumn:
+            tableName: course
+            oldColumnName: createdby
+            newColumnName: CreatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: updatedby
+            newColumnName: UpdatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: category
+            newColumnName: CategoryID
+        
+        # Thay đổi kiểu dữ liệu
+        - modifyDataType:
+            tableName: course
+            columnName: CourseID
+            newDataType: INT
+        - modifyDataType:
+            tableName: course
+            columnName: description
+            newDataType: TEXT
+        - modifyDataType:
+            tableName: course
+            columnName: status
+            newDataType: TINYINT(1)
+        - modifyDataType:
+            tableName: course
+            columnName: CategoryID
+            newDataType: INT
+        
+        # Thêm default values cho timestamp - sử dụng modifyDataType với defaultValueComputed
+        - modifyDataType:
+            tableName: course
+            columnName: CreatedAt
+            newDataType: DATETIME
+            defaultValueComputed: CURRENT_TIMESTAMP
+        - modifyDataType:
+            tableName: course
+            columnName: UpdatedAt
+            newDataType: DATETIME
+            defaultValueComputed: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+
+        # ===== COURSE SECTION =====
+        - createTable:
+            tableName: coursesection
+            columns:
+              - column:
+                  name: CourseSectionID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: Order
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: IsActive
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== LESSON =====
+        - createTable:
+            tableName: lesson
+            columns:
+              - column:
+                  name: LessonID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseSectionID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: Order
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: IsActive
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== LESSON ITEM =====
+        - createTable:
+            tableName: lessonitem
+            columns:
+              - column:
+                  name: LessonItemID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: LessonID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(1000)
+
+              - column:
+                  name: Content
+                  type: TEXT
+
+              - column:
+                  name: ItemType
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Order
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== COURSE KEY =====
+        - createTable:
+            tableName: coursekey
+            columns:
+              - column:
+                  name: CourseKeyID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: StudentID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+
+              - column:
+                  name: CreatedBy
+                  type: VARCHAR(255)
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== PROCESS =====
+        - createTable:
+            tableName: process
+            columns:
+              - column:
+                  name: ProcessID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseKeyID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: LessonID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # ===== PROCESS ITEM =====
+        - createTable:
+            tableName: processitem
+            columns:
+              - column:
+                  name: ProcessItemID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: ProcessID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: LessonItemID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: CategoryID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CategoryName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: processitem
+        - dropTable:
+            tableName: process
+        - dropTable:
+            tableName: coursekey
+        - dropTable:
+            tableName: lessonitem
+        - dropTable:
+            tableName: lesson
+        - dropTable:
+            tableName: coursesection
+        - dropTable:
+            tableName: category
+        # Rollback course alterations
+        - dropColumn:
+            tableName: course
+            columnName: Price
+        - dropColumn:
+            tableName: course
+            columnName: ImageUrl
+        - renameColumn:
+            tableName: course
+            oldColumnName: CourseID
+            newColumnName: id
+        - renameColumn:
+            tableName: course
+            oldColumnName: CourseName
+            newColumnName: name
+        - renameColumn:
+            tableName: course
+            oldColumnName: CreatedAt
+            newColumnName: createdat
+        - renameColumn:
+            tableName: course
+            oldColumnName: UpdatedAt
+            newColumnName: updatedat
+        - renameColumn:
+            tableName: course
+            oldColumnName: CreatedBy
+            newColumnName: createdby
+        - renameColumn:
+            tableName: course
+            oldColumnName: UpdatedBy
+            newColumnName: updatedby
+        - renameColumn:
+            tableName: course
+            oldColumnName: CategoryID
+            newColumnName: category
+        - modifyDataType:
+            tableName: course
+            columnName: id
+            newDataType: BIGINT
+        - modifyDataType:
+            tableName: course
+            columnName: description
+            newDataType: VARCHAR(1000)
+        - modifyDataType:
+            tableName: course
+            columnName: status
+            newDataType: VARCHAR(50)
+        - modifyDataType:
+            tableName: course
+            columnName: category
+            newDataType: VARCHAR(255)
+        - modifyDataType:
+            tableName: course
+            columnName: createdat
+            newDataType: DATETIME
+        - modifyDataType:
+            tableName: course
+            columnName: updatedat
+            newDataType: DATETIME

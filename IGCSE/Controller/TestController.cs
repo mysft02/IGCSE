@@ -32,19 +32,8 @@ namespace IGCSE.Controller
                 ));
             }
 
-            try
-            {
-                var result = await _testService.MarkTest(request.Questions);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _testService.MarkTest(request.Questions);
+            return Ok(result);
         }
     }
 }

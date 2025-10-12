@@ -1,3 +1,4 @@
+﻿
 ﻿databaseChangeLog:
   - changeSet:
       id: 8
@@ -53,3 +54,5 @@
       rollback:
         - dropTable:
             tableName: course
+        
+

@@ -13,6 +13,5 @@ namespace BusinessObject.Model
         public bool Status { get; set; }
 
         public DateOnly DateOfBirth { get; set; }
-        public UserProfile UserProfile { get; set; }
     }
 }

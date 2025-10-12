@@ -1,30 +1,26 @@
-using System.ComponentModel.DataAnnotations;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace BusinessObject.Model
-{
-    [Table("course")]
-    public class Course
-    {
-        [Key]
-        [Column("id")]
-        public long Id { get; set; }
+namespace BusinessObject.Model;
 
-        [Required]
-        [Column("name")]
-        public string Name { get; set; } = string.Empty;
+public partial class Course
+{
+    public int CourseId { get; set; }
+
+    public string Name { get; set; } = null!;
 
         [Column("description")]
         public string? Description { get; set; }
 
-        [Required]
-        [Column("status")]
-        public string Status { get; set; } = string.Empty;
+    public string Status { get; set; } = null!;
 
-        [Column("category")]
-        public string? Category { get; set; }
+    public decimal? Price { get; set; }
 
-        [Column("createdat")]
+    public string? ImageUrl { get; set; }
+
+    public int? CategoryId { get; set; }
+
         public DateTime? CreatedAt { get; set; }
 
         [Column("updatedat")]
@@ -36,7 +32,8 @@ namespace BusinessObject.Model
 
         [Column("updatedby")]
         public string? UpdatedBy { get; set; }
-    }
+
+    public virtual Category? Category { get; set; }
 }
 
 

@@ -1,4 +1,5 @@
-﻿using BusinessObject.IdentityModel;
+using BusinessObject;
+using BusinessObject.IdentityModel;
 using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
