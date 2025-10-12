@@ -3,38 +3,83 @@
       id: feat-7-fix-course-schema
       author: quanghuy
       changes:
+        # ===== COURSE ALTERATIONS =====
+        # Thêm các cột còn thiếu
         - addColumn:
             tableName: course
             columns:
               - column:
-                  name: CreatedBy
-                  type: VARCHAR(255)
+                  name: Price
+                  type: DECIMAL(18,2)
+                  defaultValueNumeric: 0.00
+                  constraints:
+                    nullable: false
         - addColumn:
             tableName: course
             columns:
               - column:
-                  name: UpdatedBy
-                  type: VARCHAR(255)
+                  name: ImageUrl
+                  type: VARCHAR(500)
+        
+        # Sửa đổi các cột hiện có
         - renameColumn:
             tableName: course
-            oldColumnName: CourseName
-            newColumnName: Name
+            oldColumnName: id
+            newColumnName: CourseID
         - renameColumn:
             tableName: course
-            oldColumnName: CategoryID
-            newColumnName: CategoryId
+            oldColumnName: name
+            newColumnName: CourseName
+        - renameColumn:
+            tableName: course
+            oldColumnName: createdat
+            newColumnName: CreatedAt
+        - renameColumn:
+            tableName: course
+            oldColumnName: updatedat
+            newColumnName: UpdatedAt
+        - renameColumn:
+            tableName: course
+            oldColumnName: createdby
+            newColumnName: CreatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: updatedby
+            newColumnName: UpdatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: category
+            newColumnName: CategoryID
+        
+        # Thay đổi kiểu dữ liệu
         - modifyDataType:
             tableName: course
-            columnName: Description
-            newDataType: VARCHAR(1000)
+            columnName: CourseID
+            newDataType: INT
         - modifyDataType:
             tableName: course
-            columnName: Status
-            newDataType: VARCHAR(50)
+            columnName: description
+            newDataType: TEXT
         - modifyDataType:
             tableName: course
-            columnName: Price
-            newDataType: DECIMAL(18,2)
+            columnName: status
+            newDataType: TINYINT(1)
+        - modifyDataType:
+            tableName: course
+            columnName: CategoryID
+            newDataType: INT
+        
+        # Thêm default values cho timestamp - sử dụng modifyDataType với defaultValueComputed
+        - modifyDataType:
+            tableName: course
+            columnName: CreatedAt
+            newDataType: DATETIME
+            defaultValueComputed: CURRENT_TIMESTAMP
+        - modifyDataType:
+            tableName: course
+            columnName: UpdatedAt
+            newDataType: DATETIME
+            defaultValueComputed: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
 
         # ===== COURSE SECTION =====
         - createTable:
@@ -284,6 +329,30 @@
               - column:
                   name: UpdatedAt
                   type: DATETIME
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: CategoryID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CategoryName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
 
       rollback:
         - dropTable:
@@ -298,26 +367,64 @@
             tableName: lesson
         - dropTable:
             tableName: coursesection
+        - dropTable:
+            tableName: category
         # Rollback course alterations
         - dropColumn:
             tableName: course
-            columnName: UpdatedBy
+            columnName: Price
         - dropColumn:
             tableName: course
-            columnName: CreatedBy
+            columnName: ImageUrl
         - renameColumn:
             tableName: course
-            oldColumnName: Name
-            newColumnName: CourseName
+            oldColumnName: CourseID
+            newColumnName: id
         - renameColumn:
             tableName: course
-            oldColumnName: CategoryId
-            newColumnName: CategoryID
+            oldColumnName: CourseName
+            newColumnName: name
+        - renameColumn:
+            tableName: course
+            oldColumnName: CreatedAt
+            newColumnName: createdat
+        - renameColumn:
+            tableName: course
+            oldColumnName: UpdatedAt
+            newColumnName: updatedat
+        - renameColumn:
+            tableName: course
+            oldColumnName: CreatedBy
+            newColumnName: createdby
+        - renameColumn:
+            tableName: course
+            oldColumnName: UpdatedBy
+            newColumnName: updatedby
+        - renameColumn:
+            tableName: course
+            oldColumnName: CategoryID
+            newColumnName: category
         - modifyDataType:
             tableName: course
-            columnName: Description
-            newDataType: TEXT
+            columnName: id
+            newDataType: BIGINT
         - modifyDataType:
             tableName: course
-            columnName: Status
-            newDataType: TINYINT(1)
+            columnName: description
+            newDataType: VARCHAR(1000)
+        - modifyDataType:
+            tableName: course
+            columnName: status
+            newDataType: VARCHAR(50)
+        - modifyDataType:
+            tableName: course
+            columnName: category
+            newDataType: VARCHAR(255)
+        - modifyDataType:
+            tableName: course
+            columnName: createdat
+            newDataType: DATETIME
+        - modifyDataType:
+            tableName: course
+            columnName: updatedat
+            newDataType: DATETIME

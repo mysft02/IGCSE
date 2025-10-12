@@ -1,89 +1,58 @@
+﻿
 ﻿databaseChangeLog:
   - changeSet:
-      id: 20251006-02
-      author: quanghuy
+      id: 8
+      author: dung-nt
       changes:
-
-        # Table: category
-        - createTable:
-            tableName: category
-            columns:
-              - column:
-                  name: CategoryID
-                  type: INT
-                  autoIncrement: true
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: CategoryName
-                  type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: Description
-                  type: TEXT
-              - column:
-                  name: IsActive
-                  type: TINYINT(1)
-                  defaultValueNumeric: 1
-                  constraints:
-                    nullable: false
-
-        # Table: course
         - createTable:
             tableName: course
             columns:
               - column:
-                  name: CourseID
-                  type: INT
+                  name: id
+                  type: BIGINT
                   autoIncrement: true
                   constraints:
                     primaryKey: true
                     nullable: false
+
               - column:
-                  name: CourseName
+                  name: name
                   type: VARCHAR(255)
                   constraints:
                     nullable: false
+
               - column:
-                  name: Description
-                  type: TEXT
+                  name: description
+                  type: VARCHAR(1000)
+
               - column:
-                  name: Status
-                  type: TINYINT(1)
-                  defaultValueNumeric: 0
+                  name: status
+                  type: VARCHAR(50)
                   constraints:
                     nullable: false
+
               - column:
-                  name: Price
-                  type: DECIMAL(18,2)
-                  defaultValueNumeric: 0.00
-                  constraints:
-                    nullable: false
+                  name: category
+                  type: VARCHAR(255)
+
               - column:
-                  name: ImageUrl
-                  type: VARCHAR(500)
-              - column:
-                  name: CreatedAt
+                  name: createdat
                   type: DATETIME
-                  defaultValueComputed: CURRENT_TIMESTAMP
-                  constraints:
-                    nullable: false
+
               - column:
-                  name: UpdatedAt
+                  name: updatedat
                   type: DATETIME
-                  defaultValueComputed: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-                  constraints:
-                    nullable: false
+
               - column:
-                  name: CategoryID
-                  type: INT
-                  constraints:
-                    nullable: false
+                  name: createdby
+                  type: VARCHAR(255)
+
+              - column:
+                  name: updatedby
+                  type: VARCHAR(255)
 
       rollback:
         - dropTable:
             tableName: course
-        - dropTable:
-            tableName: category
+        
+
