@@ -54,6 +54,49 @@ namespace IGCSE.Controller
             return await _accountService.Register(request);
         }
 
+        [HttpPost("set-role")]
+        public async Task<ActionResult<BaseResponse<SetRoleResponse>>> SetUserRole([FromBody] SetRoleRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            try
+            {
+                // Lấy user hiện tại từ claims
+                var user = HttpContext.User;
+                var currentUserId = user.FindFirst("AccountID")?.Value;
+                
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Unauthorized(new BaseResponse<string>(
+                        "Không tìm thấy thông tin người dùng",
+                        Common.Constants.StatusCodeEnum.Unauthorized_401,
+                        null
+                    ));
+                }
+
+                var result = await _accountService.SetUserRoleAsync(currentUserId, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpPost("change-password")]
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {

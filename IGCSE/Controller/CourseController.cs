@@ -318,5 +318,33 @@ namespace IGCSE.Controller
                 ));
             }
         }
+
+        [HttpPost("redeem-key")]
+        public async Task<ActionResult<BaseResponse<string>>> RedeemCourseKey([FromBody] string courseKeyValue)
+        {
+            // Lấy user hiện tại từ claims
+            var user = HttpContext.User;
+            var studentId = user.FindFirst("AccountID")?.Value;
+            var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
+            if (string.IsNullOrEmpty(studentId) || !roles.Contains("Student"))
+            {
+                return Forbid("Chỉ tài khoản học sinh mới được sử dụng mã khoá học!");
+            }
+            // Tìm mã khoá theo KeyValue
+            var courseKeys = await _courseRegistrationService.GetAllCourseKeysAsync();
+            var keyObj = courseKeys.FirstOrDefault(x => x.Status == "available" && x.StudentId == null && x.KeyValue == courseKeyValue);
+            if (keyObj == null)
+            {
+                return NotFound(new BaseResponse<string>("Mã khoá không tồn tại, đã được sử dụng, hoặc không hợp lệ.", Common.Constants.StatusCodeEnum.NotFound_404, null));
+            }
+            // Gán cho Student, đổi status
+            keyObj.StudentId = studentId;
+            keyObj.Status = "redeemed";
+            keyObj.UpdatedAt = DateTime.UtcNow;
+            await _courseRegistrationService.UpdateCourseKeyAsync(keyObj);
+            // Khởi tạo progress cho học sinh
+            await _courseRegistrationService.InitializeCourseProgressAsync(keyObj.CourseKeyId);
+            return Ok(new BaseResponse<string>("Kích hoạt khoá học thành công!", Common.Constants.StatusCodeEnum.OK_200, keyObj.KeyValue));
+        }
     }
 }

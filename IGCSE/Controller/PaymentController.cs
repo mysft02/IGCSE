@@ -46,5 +46,30 @@ namespace IGCSE.Controller
                 ));
             }
         }
+
+        [HttpPost("vnpay-callback")]
+        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback([FromForm] VnPayCallbackRequest request)
+        {
+            try
+            {
+                // TODO: Verify signature từ VnPay để đảm bảo tính bảo mật
+                // var isValidSignature = VerifyVnPaySignature(request);
+                // if (!isValidSignature)
+                // {
+                //     return BadRequest(new BaseResponse<string>("Invalid signature", Common.Constants.StatusCodeEnum.BadRequest_400, null));
+                // }
+
+                var result = await _paymentService.HandlePaymentSuccessAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
     }
 }

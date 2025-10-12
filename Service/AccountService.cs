@@ -243,6 +243,71 @@ namespace Service
             return userProfile;
         }
 
+        public async Task<BaseResponse<SetRoleResponse>> SetUserRoleAsync(string currentUserId, SetRoleRequest request)
+        {
+            try
+            {
+                // Kiểm tra quyền Admin
+                var currentUser = await _userManager.FindByIdAsync(currentUserId);
+                if (currentUser == null)
+                {
+                    throw new Exception("Không tìm thấy thông tin người dùng hiện tại");
+                }
+
+                var currentUserRoles = await _userManager.GetRolesAsync(currentUser);
+                if (!currentUserRoles.Contains("Admin"))
+                {
+                    throw new Exception("Chỉ Admin mới có quyền thay đổi role của người dùng");
+                }
+
+                // Tìm user cần thay đổi role
+                var targetUser = await _userManager.FindByIdAsync(request.UserId);
+                if (targetUser == null)
+                {
+                    throw new Exception("Không tìm thấy người dùng cần thay đổi role");
+                }
+
+                // Lấy role hiện tại
+                var currentRoles = await _userManager.GetRolesAsync(targetUser);
+                var oldRole = currentRoles.FirstOrDefault() ?? "Student";
+
+                // Xóa tất cả role hiện tại
+                if (currentRoles.Any())
+                {
+                    await _userManager.RemoveFromRolesAsync(targetUser, currentRoles);
+                }
+
+                // Thêm role mới
+                var result = await _userManager.AddToRoleAsync(targetUser, request.Role);
+                if (!result.Succeeded)
+                {
+                    throw new Exception($"Không thể thay đổi role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+
+                // Tạo response
+                var response = new SetRoleResponse
+                {
+                    UserId = targetUser.Id,
+                    UserName = targetUser.UserName,
+                    Email = targetUser.Email,
+                    Name = targetUser.Name,
+                    OldRole = oldRole,
+                    NewRole = request.Role,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                return new BaseResponse<SetRoleResponse>(
+                    $"Đã thay đổi role của {targetUser.Name} từ {oldRole} thành {request.Role}",
+                    StatusCodeEnum.OK_200,
+                    response
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to set user role: {ex.Message}");
+            }
+        }
+
         public async Task<List<NewUserDto>> GetAllAccountsAsync()
         {
             var allAccounts = await _userManager.Users.ToListAsync();
