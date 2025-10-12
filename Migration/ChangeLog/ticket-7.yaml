@@ -29,7 +29,7 @@
         - renameColumn:
             tableName: course
             oldColumnName: name
-            newColumnName: CourseName
+            newColumnName: Name
         - renameColumn:
             tableName: course
             oldColumnName: createdat
@@ -50,20 +50,24 @@
             tableName: course
             oldColumnName: category
             newColumnName: CategoryID
+        - renameColumn:
+            tableName: course
+            oldColumnName: description
+            newColumnName: Description
+        - renameColumn:
+            tableName: course
+            oldColumnName: status
+            newColumnName: Status
         
         # Thay đổi kiểu dữ liệu
         - modifyDataType:
             tableName: course
             columnName: CourseID
-            newDataType: INT
+            newDataType: INT AUTO_INCREMENT
         - modifyDataType:
             tableName: course
             columnName: description
             newDataType: TEXT
-        - modifyDataType:
-            tableName: course
-            columnName: status
-            newDataType: TINYINT(1)
         - modifyDataType:
             tableName: course
             columnName: CategoryID
