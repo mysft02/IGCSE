@@ -7,6 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Payload\Request\OpenApi\**" />
+    <Compile Remove="Payload\Response\OpenApi\**" />
+    <EmbeddedResource Remove="Payload\Request\OpenApi\**" />
+    <EmbeddedResource Remove="Payload\Response\OpenApi\**" />
+    <None Remove="Payload\Request\OpenApi\**" />
+    <None Remove="Payload\Response\OpenApi\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.20" />
@@ -27,11 +36,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Payload\Request\OpenApi\" />
-    <Folder Include="Payload\Response\OpenApi\" />
   </ItemGroup>
 
 </Project>

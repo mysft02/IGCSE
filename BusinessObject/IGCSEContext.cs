@@ -2,6 +2,7 @@ using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessObject;
 
@@ -24,7 +25,16 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148.
-        => optionsBuilder.UseMySql("server=127.0.0.1;port=3306;database=IGCSE;user=root;password=12345;allow user variables=True", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.43-mysql"));
+        => optionsBuilder.UseMySql(GetConnectionString(), ServerVersion.Parse("8.0.43-mysql"));
+
+    private string GetConnectionString()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json")
+            .Build();
+        return configuration.GetConnectionString("DbConnection");
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

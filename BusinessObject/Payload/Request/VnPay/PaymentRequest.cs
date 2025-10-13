@@ -2,7 +2,7 @@
 {
     public class PaymentRequest
     {
-        public string? UserId { get; set; }
+        public int CourseId { get; set; } // Chọn khóa học để thanh toán
         public decimal? Amount { get; set; }
     }
 }
