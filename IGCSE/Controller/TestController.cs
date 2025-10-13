@@ -36,51 +36,8 @@ namespace IGCSE.Controller
                 ));
             }
 
-            try
-            {
-                var result = await _testService.MarkTest(request.Questions);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpPost("embed")]
-        public async Task<ActionResult<BaseResponse<OpenAIEmbeddingsApiResponse>>> EmbedData([FromBody] Course course)
-        {
-            if (course == null)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu đầu vào không được để trống",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    "Input data cannot be null"
-                ));
-            }
-
-            try
-            {
-                var embeddingResult = await _openAIEmbeddingsApiService.EmbedData(course);
-
-                return Ok(new BaseResponse<OpenAIEmbeddingsApiResponse>(
-                    "Embedding được tạo thành công",
-                    Common.Constants.StatusCodeEnum.Accepted_202,
-                    embeddingResult
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _testService.MarkTest(request.Questions);
+            return Ok(result);
         }
     }
 }

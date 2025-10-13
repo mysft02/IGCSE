@@ -1,3 +1,7 @@
 ﻿databaseChangeLog:
   - include:
       file: ./ChangeLog/ticket-8.yaml
+  - include:
+      file: ./ChangeLog/ticket-7.yaml
+  - include:
+      file: ./ChangeLog/ticket-17.yaml

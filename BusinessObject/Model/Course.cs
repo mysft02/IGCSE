@@ -1,42 +1,32 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
-namespace BusinessObject.Model
+namespace BusinessObject.Model;
+
+public partial class Course
 {
-    [Table("course")]
-    public class Course
-    {
-        [Key]
-        [Column("id")]
-        public long Id { get; set; }
+    public int CourseId { get; set; }
 
-        [Required]
-        [Column("name")]
-        public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = null!;
 
-        [Column("description")]
-        public string? Description { get; set; }
+    public string? Description { get; set; }
 
-        [Required]
-        [Column("status")]
-        public string Status { get; set; } = string.Empty;
+    public string Status { get; set; } = null!;
 
-        [Column("category")]
-        public string? Category { get; set; }
+    public int? CategoryId { get; set; }
 
-        [Column("createdat")]
-        public DateTime? CreatedAt { get; set; }
+    public DateTime? CreatedAt { get; set; }
 
-        [Column("updatedat")]
-        public DateTime? UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 
-        [Column("createdby")]
-        [ForeignKey("AspNetUsers")]
-        public string? CreatedBy { get; set; }
+    public string? CreatedBy { get; set; }
 
-        [Column("updatedby")]
-        public string? UpdatedBy { get; set; }
-    }
+    public string? UpdatedBy { get; set; }
+
+    public decimal Price { get; set; }
+
+    public string? ImageUrl { get; set; }
+
+    public string EmbeddingData { get; set; }
+    public virtual Category? Category { get; set; }
 }
-
-

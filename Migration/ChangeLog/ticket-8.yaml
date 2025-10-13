@@ -1,4 +1,4 @@
-﻿databaseChangeLog:
+﻿﻿databaseChangeLog:
   - changeSet:
       id: 8
       author: dung-nt
@@ -53,3 +53,5 @@
       rollback:
         - dropTable:
             tableName: course
+        
+

@@ -14,6 +14,8 @@ using Service.Trello;
 using DotNetEnv;
 using Service.OpenAI;
 using Service.VnPay;
+using BusinessObject;
+using BusinessObject.Model;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,17 +36,27 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 builder.Services.AddDbContext<IGCSEContext>(options =>
     options.UseMySql(
         connectionString,
-        new MySqlServerVersion(new Version(8, 0, 34)) // version MySQL b?n ?ang d�ng
+        new MySqlServerVersion(new Version(8, 0, 34))
     ));
 
 // Configure Repository Services
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICoursekeyRepository, CoursekeyRepository>();
+builder.Services.AddScoped<ICoursesectionRepository, CoursesectionRepository>();
+builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+builder.Services.AddScoped<ILessonitemRepository, LessonitemRepository>();
+builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
+builder.Services.AddScoped<IProcessitemRepository, ProcessitemRepository>();
 
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<CourseRegistrationService>();
 builder.Services.AddScoped<TrelloApiService>();
 builder.Services.AddHttpClient<ApiService>();
 builder.Services.AddScoped<VnPayApiService>();
@@ -96,7 +108,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // SetUp Specification for password
-builder.Services.AddIdentity<BusinessObject.Model.Account, IdentityRole>(options =>
+builder.Services.AddIdentity<Account, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
@@ -175,6 +187,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Enable static files
 app.UseAuthentication();
 app.UseAuthorization();
 
