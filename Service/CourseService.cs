@@ -61,7 +61,7 @@ namespace Service
 
                 var courseResponse = _mapper.Map<CourseResponse>(createdCourse);
 
-                return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
+                return new BaseResponse<CourseResponse>(
                     "Course created successfully",
                     StatusCodeEnum.Created_201,
                     courseResponse
@@ -108,7 +108,7 @@ namespace Service
 
                 var courseResponse = _mapper.Map<CourseResponse>(updatedCourse);
 
-                return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
+                return new BaseResponse<CourseResponse>(
                     "Course updated successfully",
                     StatusCodeEnum.OK_200,
                     courseResponse
@@ -132,7 +132,7 @@ namespace Service
 
                 var courseResponse = _mapper.Map<CourseResponse>(course);
 
-                return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
+                return new BaseResponse<CourseResponse>(
                     "Course retrieved successfully",
                     StatusCodeEnum.OK_200,
                     courseResponse
@@ -144,7 +144,7 @@ namespace Service
             }
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseResponse>>> GetAllCoursesAsync()
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllCoursesAsync()
         {
             try
             {
@@ -157,7 +157,7 @@ namespace Service
                     courseResponses.Add(courseResponse);
                 }
 
-                return new DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseResponse>>(
+                return new BaseResponse<IEnumerable<CourseResponse>>(
                     "Courses retrieved successfully",
                     StatusCodeEnum.OK_200,
                     courseResponses
@@ -311,6 +311,31 @@ namespace Service
                     "Lesson items retrieved successfully",
                     StatusCodeEnum.OK_200,
                     responses
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get lesson items: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        {
+            try
+            {
+                var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
+
+                var courseResponses = new List<CourseResponse>();
+                foreach (var course in similarCourses)
+                {
+                    var courseResponse = _mapper.Map<CourseResponse>(course);
+                    courseResponses.Add(courseResponse);
+                }
+
+                return new BaseResponse<IEnumerable<CourseResponse>>(
+                    "Courses retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    courseResponses
                 );
             }
             catch (Exception ex)

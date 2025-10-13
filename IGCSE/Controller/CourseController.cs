@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Service;
 using DTOs.Response.Accounts;
 using Common.Utils;
+using BusinessObject.DTOs.Request.Courses;
 
 namespace IGCSE.Controller
 {
@@ -175,6 +176,25 @@ namespace IGCSE.Controller
         public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
         {
             var result = await _courseService.GetLessonItemsAsync(lessonId);
+            return Ok(result);
+        }
+
+        [HttpGet("get-all-similar-courses")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromBody] SimilarCourseRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
             return Ok(result);
         }
     }

@@ -202,5 +202,29 @@ namespace Common.Utils
             if (string.IsNullOrEmpty(json)) return default(T);
             return JsonSerializer.Deserialize<T>(json);
         }
+
+        public static decimal CosineSimilarity(List<float> v1, List<float> v2)
+        {
+            decimal dot = 0m;
+            decimal mag1 = 0m;
+            decimal mag2 = 0m;
+
+            for (int i = 0; i < v1.Count; i++)
+            {
+                decimal a = (decimal)v1[i];
+                decimal b = (decimal)v2[i];
+                dot += a * b;
+                mag1 += a * a;
+                mag2 += b * b;
+            }
+
+            decimal denominator = (decimal)(Math.Sqrt((double)mag1) * Math.Sqrt((double)mag2));
+
+            if (denominator == 0)
+                return 0m;
+
+            return dot / denominator;
+        }
+
     }
 }
