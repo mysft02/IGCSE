@@ -11,6 +11,7 @@ using Common.Utils;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Microsoft.AspNetCore.Http.Extensions;
+using BusinessObject.DTOs.Request.Courses;
 
 namespace IGCSE.Controller
 {
@@ -239,6 +240,25 @@ namespace IGCSE.Controller
                 .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
 
             var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
+            return Ok(result);
+        }
+
+        [HttpGet("get-all-similar-courses")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromBody] SimilarCourseRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
             return Ok(result);
         }
     }

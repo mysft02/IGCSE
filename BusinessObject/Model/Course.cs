@@ -27,7 +27,7 @@ public class Course
 
     public string? ImageUrl { get; set; }
 
-    public virtual Category? Category { get; set; }
-
     public string EmbeddingData { get; set; } = null!;
+
+    public virtual Category? Category { get; set; }
 }

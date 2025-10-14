@@ -8,11 +8,8 @@
 
   <ItemGroup>
     <Compile Remove="Payload\Request\OpenApi\**" />
-    <Compile Remove="Payload\Response\OpenApi\**" />
     <EmbeddedResource Remove="Payload\Request\OpenApi\**" />
-    <EmbeddedResource Remove="Payload\Response\OpenApi\**" />
     <None Remove="Payload\Request\OpenApi\**" />
-    <None Remove="Payload\Response\OpenApi\**" />
   </ItemGroup>
 
   <ItemGroup>

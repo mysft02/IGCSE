@@ -8,6 +8,7 @@ namespace Service.OpenAI
     public class TestService
     {
         private readonly OpenAIApiService _openAIApiService;
+        private readonly string OpenAIResponseApiBaseUrl = "https://api.openai.com/v1/responses";
 
         public TestService(OpenAIApiService openAIApiService)
         {

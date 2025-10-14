@@ -5,13 +5,10 @@ using DTOs.Request.Courses;
 using DTOs.Response.Courses;
 using DTOs.Request.CourseContent;
 using DTOs.Response.CourseContent;
-using System;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using BusinessObject.Model;
 using DTOs.Response.Accounts;
+using Service.OpenAI;
+using Common.Utils;
 
 namespace Service
 {
@@ -22,19 +19,22 @@ namespace Service
         private readonly ICoursesectionRepository _coursesectionRepository;
         private readonly ILessonRepository _lessonRepository;
         private readonly ILessonitemRepository _lessonitemRepository;
+        private readonly OpenAIEmbeddingsApiService _openAIEmbeddingsApiService;
 
         public CourseService(
             IMapper mapper,
             ICourseRepository courseRepository,
             ICoursesectionRepository coursesectionRepository,
             ILessonRepository lessonRepository,
-            ILessonitemRepository lessonitemRepository)
+            ILessonitemRepository lessonitemRepository,
+            OpenAIEmbeddingsApiService openAIEmbeddingsApiService)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
             _coursesectionRepository = coursesectionRepository;
             _lessonRepository = lessonRepository;
             _lessonitemRepository = lessonitemRepository;
+            _openAIEmbeddingsApiService = openAIEmbeddingsApiService;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
@@ -52,11 +52,14 @@ namespace Service
                     UpdatedAt = DateTime.UtcNow
                 };
 
+                var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
+                course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+
                 var createdCourse = await _courseRepository.AddAsync(course);
 
                 var courseResponse = _mapper.Map<CourseResponse>(createdCourse);
 
-                return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
+                return new BaseResponse<CourseResponse>(
                     "Course created successfully",
                     StatusCodeEnum.Created_201,
                     courseResponse
@@ -96,7 +99,7 @@ namespace Service
 
                 var courseResponse = _mapper.Map<CourseResponse>(updatedCourse);
 
-                return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
+                return new BaseResponse<CourseResponse>(
                     "Course updated successfully",
                     StatusCodeEnum.OK_200,
                     courseResponse
@@ -113,14 +116,14 @@ namespace Service
 
                 var courseResponse = _mapper.Map<CourseResponse>(course);
 
-                return new DTOs.Response.Accounts.BaseResponse<CourseResponse>(
+                return new BaseResponse<CourseResponse>(
                     "Course retrieved successfully",
                     StatusCodeEnum.OK_200,
                     courseResponse
                 );
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseResponse>>> GetAllCoursesAsync()
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllCoursesAsync()
         {
                 var courses = await _courseRepository.GetAllAsync();
 
@@ -131,7 +134,7 @@ namespace Service
                     courseResponses.Add(courseResponse);
                 }
 
-                return new DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseResponse>>(
+                return new BaseResponse<IEnumerable<CourseResponse>>(
                     "Courses retrieved successfully",
                     StatusCodeEnum.OK_200,
                     courseResponses
@@ -251,6 +254,31 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     responses
                 );
+        }
+
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        {
+            try
+            {
+                var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
+
+                var courseResponses = new List<CourseResponse>();
+                foreach (var course in similarCourses)
+                {
+                    var courseResponse = _mapper.Map<CourseResponse>(course);
+                    courseResponses.Add(courseResponse);
+                }
+
+                return new BaseResponse<IEnumerable<CourseResponse>>(
+                    "Courses retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    courseResponses
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get lesson items: {ex.Message}");
+            }
         }
     }
 }

@@ -123,11 +123,16 @@ public partial class IGCSEContext : IdentityDbContext<Account>
         modelBuilder.Entity<Course>(entity =>
         {
             entity.HasKey(e => e.CourseId).HasName("PRIMARY");
+
             entity.ToTable("course");
+
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
-            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Description)
+                .HasColumnType("text")
+                .HasColumnName("description");
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.Name).HasMaxLength(255);
             entity.Property(e => e.Price).HasPrecision(18, 2);
