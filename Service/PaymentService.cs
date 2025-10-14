@@ -146,11 +146,11 @@ namespace Service
             }
         }
 
-        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
+        public async Task<List<CourseKeyResponse>> GetAllCourseKeysAsync()
         {
             try
             {
-                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
+                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync();
 
                 var response = courseKeys.Select(k => new CourseKeyResponse
                 {
@@ -169,6 +169,60 @@ namespace Service
             }
         }
 
+        public async Task<List<CourseKeyResponse>> GetFilteredCourseKeysAsync(string? status = null, string? parentId = null, int? courseId = null)
+        {
+            try
+            {
+                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync(status, parentId, courseId);
+
+                var response = courseKeys.Select(k => new CourseKeyResponse
+                {
+                    KeyValue = k.KeyValue,
+                    CourseId = k.CourseId,
+                    StudentId = string.IsNullOrEmpty(k.StudentId) ? null : int.Parse(k.StudentId ?? ""),
+                    CreatedAt = k.CreatedAt,
+                    Status = k.Status
+                }).ToList();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new List<CourseKeyResponse>();
+            }
+        }
+
+        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
+        {
+            try
+            {
+                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
+
+                var response = courseKeys.Select(k =>
+                {
+                    int? studentId = null;
+                    if (!string.IsNullOrEmpty(k.StudentId) && int.TryParse(k.StudentId, out int parsedId))
+                    {
+                        studentId = parsedId;
+                    }
+
+                    return new CourseKeyResponse
+                    {
+                        KeyValue = k.KeyValue,
+                        CourseId = k.CourseId,
+                        StudentId = studentId,
+                        CreatedAt = k.CreatedAt,
+                        Status = k.Status
+                    };
+                }).ToList();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new List<CourseKeyResponse>();
+            }
+        }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
         {

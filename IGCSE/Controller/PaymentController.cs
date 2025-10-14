@@ -1,4 +1,4 @@
-﻿using BusinessObject.Payload.Request.VnPay;
+using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using DTOs.Response.Accounts;
 using DTOs.Response.Courses;
@@ -93,7 +93,53 @@ namespace IGCSE.Controller
                     return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
 
                 var keys = await _paymentService.GetCourseKeysByParentAsync(parentId);
-                
+
+                return Ok(new BaseResponse<List<CourseKeyResponse>>(
+                    $"Tìm thấy {keys.Count} khóa học",
+                    Common.Constants.StatusCodeEnum.OK_200,
+                    keys
+                ));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("all-keys")]
+        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeys([FromQuery] string? status = null, [FromQuery] string? parentId = null, [FromQuery] int? courseId = null)
+        {
+            try
+            {
+                var keys = await _paymentService.GetFilteredCourseKeysAsync(status, parentId, courseId);
+
+                return Ok(new BaseResponse<List<CourseKeyResponse>>(
+                    $"Tìm thấy {keys.Count} khóa học",
+                    Common.Constants.StatusCodeEnum.OK_200,
+                    keys
+                ));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("all-keys-simple")]
+        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeysSimple()
+        {
+            try
+            {
+                var keys = await _paymentService.GetAllCourseKeysAsync();
+
                 return Ok(new BaseResponse<List<CourseKeyResponse>>(
                     $"Tìm thấy {keys.Count} khóa học",
                     Common.Constants.StatusCodeEnum.OK_200,

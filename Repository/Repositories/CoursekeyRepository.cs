@@ -56,19 +56,41 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Coursekey>> GetAvailableCourseKeysAsync()
+        public async Task<IEnumerable<Coursekey>> GetAllCourseKeysAsync(string? status = null, string? parentId = null, long? courseId = null)
         {
-            return await _context.Set<Coursekey>()
-                .Where(c => c.Status == "available" &&
-                           c.StudentId == null &&
-                           !string.IsNullOrEmpty(c.KeyValue))
-                .ToListAsync();
+            var query = _context.Set<Coursekey>().AsQueryable();
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(c => c.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(parentId))
+            {
+                query = query.Where(c => c.CreatedBy == parentId);
+            }
+
+            if (courseId.HasValue)
+            {
+                query = query.Where(c => c.CourseId == courseId.Value);
+            }
+
+            return await query.ToListAsync();
         }
 
         public async Task<IEnumerable<Coursekey>> GetAllCourseKeysWithNullHandlingAsync()
         {
             return await _context.Set<Coursekey>()
                 .Where(c => !string.IsNullOrEmpty(c.Status) &&
+                           !string.IsNullOrEmpty(c.KeyValue))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Coursekey>> GetAvailableCourseKeysAsync()
+        {
+            return await _context.Set<Coursekey>()
+                .Where(c => c.Status == "available" &&
+                           c.StudentId == null &&
                            !string.IsNullOrEmpty(c.KeyValue))
                 .ToListAsync();
         }

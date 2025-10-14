@@ -230,9 +230,9 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Enable static files
-app.UseAuthentication(); // UNCOMMENTED - NEEDED FOR JWT TOKEN PARSING
-app.UseAuthorization(); // UNCOMMENTED - NEEDED FOR JWT TOKEN PARSING
+app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
