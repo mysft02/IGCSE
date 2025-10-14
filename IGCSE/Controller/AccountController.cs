@@ -72,21 +72,18 @@ namespace IGCSE.Controller
 
             try
             {
-                // COMMENTED FOR TESTING PAYMENT FLOW - Lấy user hiện tại từ claims
-                // var user = HttpContext.User;
-                // var currentUserId = user.FindFirst("AccountID")?.Value;
-                
-                // if (string.IsNullOrEmpty(currentUserId))
-                // {
-                //     return Unauthorized(new BaseResponse<string>(
-                //         "Không tìm thấy thông tin người dùng",
-                //         Common.Constants.StatusCodeEnum.Unauthorized_401,
-                //         null
-                //     ));
-                // }
+                // Lấy user hiện tại từ claims trong JWT token
+                var user = HttpContext.User;
+                var currentUserId = user.FindFirst("AccountID")?.Value;
 
-                // FOR TESTING: Sử dụng một userId cố định
-                var currentUserId = "test-user-id";
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Unauthorized(new BaseResponse<string>(
+                        "Không tìm thấy thông tin người dùng hiện tại",
+                        Common.Constants.StatusCodeEnum.Unauthorized_401,
+                        null
+                    ));
+                }
 
                 var result = await _accountService.SetUserRoleAsync(currentUserId, request);
                 return Ok(result);
@@ -105,65 +102,6 @@ namespace IGCSE.Controller
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             return await _accountService.ChangePassword(changePassword);
-        }
-
-        [HttpGet("debug-user-info")]
-        // [Authorize] // COMMENTED FOR TESTING PAYMENT FLOW
-        public async Task<ActionResult<BaseResponse<object>>> DebugUserInfo()
-        {
-            try
-            {
-                // COMMENTED FOR TESTING PAYMENT FLOW - Authentication logic
-                // var user = HttpContext.User;
-                // var userId = user.FindFirst("AccountID")?.Value;
-                // var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
-                // var email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-                // var username = user.FindFirst("given_name")?.Value;
-
-                // FOR TESTING: Sử dụng dữ liệu giả lập
-                var debugInfo = new
-                {
-                    UserId = "test-user-id",
-                    Email = "test@example.com",
-                    Username = "Test User",
-                    Roles = new List<string> { "Parent" },
-                    AllClaims = new List<object> { new { Type = "AccountID", Value = "test-user-id" } },
-                    IsAuthenticated = true,
-                    AuthenticationType = "JWT"
-                };
-
-                return Ok(new BaseResponse<object>(
-                    "Thông tin debug user (TEST MODE)",
-                    Common.Constants.StatusCodeEnum.OK_200,
-                    debugInfo
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpPost("create-parent-account")]
-        public async Task<ActionResult<BaseResponse<object>>> CreateParentAccount()
-        {
-            try
-            {
-                var result = await _accountService.CreateParentAccountAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
         }
     }
 }
