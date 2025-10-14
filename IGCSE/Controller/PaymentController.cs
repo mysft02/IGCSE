@@ -132,29 +132,5 @@ namespace IGCSE.Controller
                 ));
             }
         }
-
-        [HttpGet("all-keys-simple")]
-        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeysSimple()
-        {
-            try
-            {
-                var keys = await _paymentService.GetAllCourseKeysAsync();
-
-                return Ok(new BaseResponse<List<CourseKeyResponse>>(
-                    $"Tìm thấy {keys.Count} khóa học",
-                    Common.Constants.StatusCodeEnum.OK_200,
-                    keys
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
     }
 }

@@ -156,7 +156,7 @@ namespace Service
                 {
                     KeyValue = k.KeyValue,
                     CourseId = k.CourseId,
-                    StudentId = string.IsNullOrEmpty(k.StudentId) ? null : int.Parse(k.StudentId ?? ""),
+                    StudentId = k.StudentId,
                     CreatedAt = k.CreatedAt,
                     Status = k.Status
                 }).ToList();
@@ -179,7 +179,7 @@ namespace Service
                 {
                     KeyValue = k.KeyValue,
                     CourseId = k.CourseId,
-                    StudentId = string.IsNullOrEmpty(k.StudentId) ? null : int.Parse(k.StudentId ?? ""),
+                    StudentId = k.StudentId,
                     CreatedAt = k.CreatedAt,
                     Status = k.Status
                 }).ToList();
@@ -198,22 +198,13 @@ namespace Service
             {
                 var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
 
-                var response = courseKeys.Select(k =>
+                var response = courseKeys.Select(k => new CourseKeyResponse
                 {
-                    int? studentId = null;
-                    if (!string.IsNullOrEmpty(k.StudentId) && int.TryParse(k.StudentId, out int parsedId))
-                    {
-                        studentId = parsedId;
-                    }
-
-                    return new CourseKeyResponse
-                    {
-                        KeyValue = k.KeyValue,
-                        CourseId = k.CourseId,
-                        StudentId = studentId,
-                        CreatedAt = k.CreatedAt,
-                        Status = k.Status
-                    };
+                    KeyValue = k.KeyValue,
+                    CourseId = k.CourseId,
+                    StudentId = k.StudentId,
+                    CreatedAt = k.CreatedAt,
+                    Status = k.Status
                 }).ToList();
 
                 return response;
