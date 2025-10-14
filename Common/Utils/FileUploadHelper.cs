@@ -82,7 +82,6 @@ namespace Common.Utils
             catch (Exception ex)
             {
                 // Log error but don't throw exception
-                Console.WriteLine($"Error deleting image file {imageUrl}: {ex.Message}");
             }
         }
 

@@ -5,6 +5,7 @@ using DTOs.Response.CourseRegistration;
 using DTOs.Response.CourseContent;
 using DTOs.Request.CourseContent;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Service;
 using DTOs.Response.Accounts;
 using Common.Utils;
@@ -320,31 +321,62 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("redeem-key")]
+        [Authorize(Roles = "Student")]
         public async Task<ActionResult<BaseResponse<string>>> RedeemCourseKey([FromBody] string courseKeyValue)
         {
-            // Lấy user hiện tại từ claims
-            var user = HttpContext.User;
-            var studentId = user.FindFirst("AccountID")?.Value;
-            var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
-            if (string.IsNullOrEmpty(studentId) || !roles.Contains("Student"))
+            try
             {
-                return Forbid("Chỉ tài khoản học sinh mới được sử dụng mã khoá học!");
+                // Lấy thông tin student từ JWT token
+                var user = HttpContext.User;
+                var studentId = user.FindFirst("AccountID")?.Value;
+                var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
+
+                if (string.IsNullOrEmpty(studentId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản học sinh.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                if (!roles.Contains("Student"))
+                {
+                    return Forbid("Chỉ tài khoản học sinh mới được sử dụng mã khóa học!");
+                }
+
+                // Tìm mã khóa theo KeyValue và kiểm tra tính hợp lệ
+                var courseKeys = await _courseRegistrationService.GetAvailableCourseKeysAsync();
+                var keyObj = courseKeys.FirstOrDefault(x => x.KeyValue == courseKeyValue);
+
+                if (keyObj == null)
+                {
+                    return NotFound(new BaseResponse<string>("Mã khóa không tồn tại, đã được sử dụng, hoặc không hợp lệ.", Common.Constants.StatusCodeEnum.NotFound_404, null));
+                }
+
+                // Kiểm tra xem student đã có khóa học này chưa
+                var allCourseKeys = await _courseRegistrationService.GetAllCourseKeysAsync();
+                var existingKey = allCourseKeys.FirstOrDefault(x => x.StudentId == studentId && x.CourseId == keyObj.CourseId);
+                if (existingKey != null)
+                {
+                    return BadRequest(new BaseResponse<string>("Bạn đã có khóa học này rồi!", Common.Constants.StatusCodeEnum.BadRequest_400, null));
+                }
+
+                // Gán khóa học cho student và cập nhật trạng thái
+                keyObj.StudentId = studentId;
+                keyObj.Status = "redeemed";
+                keyObj.UpdatedAt = DateTime.UtcNow;
+                await _courseRegistrationService.UpdateCourseKeyAsync(keyObj);
+
+                // Khởi tạo tiến trình học tập cho student
+                await _courseRegistrationService.InitializeCourseProgressAsync(keyObj.CourseKeyId);
+
+                return Ok(new BaseResponse<string>("Kích hoạt khóa học thành công!", Common.Constants.StatusCodeEnum.OK_200, keyObj.KeyValue));
             }
-            // Tìm mã khoá theo KeyValue
-            var courseKeys = await _courseRegistrationService.GetAllCourseKeysAsync();
-            var keyObj = courseKeys.FirstOrDefault(x => x.Status == "available" && x.StudentId == null && x.KeyValue == courseKeyValue);
-            if (keyObj == null)
+            catch (Exception ex)
             {
-                return NotFound(new BaseResponse<string>("Mã khoá không tồn tại, đã được sử dụng, hoặc không hợp lệ.", Common.Constants.StatusCodeEnum.NotFound_404, null));
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi kích hoạt khóa học: {ex.Message}",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
             }
-            // Gán cho Student, đổi status
-            keyObj.StudentId = studentId;
-            keyObj.Status = "redeemed";
-            keyObj.UpdatedAt = DateTime.UtcNow;
-            await _courseRegistrationService.UpdateCourseKeyAsync(keyObj);
-            // Khởi tạo progress cho học sinh
-            await _courseRegistrationService.InitializeCourseProgressAsync(keyObj.CourseKeyId);
-            return Ok(new BaseResponse<string>("Kích hoạt khoá học thành công!", Common.Constants.StatusCodeEnum.OK_200, keyObj.KeyValue));
         }
     }
 }

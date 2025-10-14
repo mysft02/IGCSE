@@ -1,12 +1,14 @@
-﻿using BusinessObject.Payload.Request.VnPay;
+using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Common.Constants;
 using Common.Utils;
 using DTOs.Response.Accounts;
+using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Http;
 using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
+using Microsoft.AspNetCore.Identity;
 
 namespace Service
 {
@@ -16,12 +18,14 @@ namespace Service
         private readonly VnPayApiRequest _vnpApiRequest;
         private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
+        private readonly UserManager<Account> _userManager;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository)
+        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager)
         {
             _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
+            _userManager = userManager;
         }
 
         public async Task<BaseResponse<PaymentResponse>> CreatePaymentUrlAsync(HttpContext context, PaymentRequest req)
@@ -31,9 +35,25 @@ namespace Service
                 var user = context.User;
                 var parentId = user.FindFirst("AccountID")?.Value;
                 var parentRoles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
-                if (string.IsNullOrEmpty(parentId) || !parentRoles.Contains("Parent"))
+                
+                if (string.IsNullOrEmpty(parentId))
                 {
-                    throw new Exception("Phải đăng nhập bằng tài khoản phụ huynh để thanh toán khóa học!");
+                    throw new Exception("Không tìm thấy thông tin người dùng trong token!");
+                }
+
+                if (!parentRoles.Contains("Parent"))
+                {
+                    // Nếu không có role Parent, thử tạo lại token với role đúng
+                    var userAccount = await _accountRepository.GetByStringId(parentId);
+                    if (userAccount != null)
+                    {
+                        var currentRoles = await _userManager.GetRolesAsync(userAccount);
+                        if (!currentRoles.Contains("Parent"))
+                        {
+                            await _userManager.AddToRoleAsync(userAccount, "Parent");
+                        }
+                    }
+                    throw new Exception($"Phải đăng nhập bằng tài khoản phụ huynh để thanh toán khóa học! Current roles: {string.Join(", ", parentRoles)}. Vui lòng đăng nhập lại để nhận token mới.");
                 }
 
                 // Tạo transaction reference với thông tin course và parent
@@ -50,7 +70,7 @@ namespace Service
                     .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent {parentId}")
                     .AddParameter("vnp_OrderType", "other")
                     .AddParameter("vnp_Locale", "vn")
-                    .AddParameter("vnp_ReturnUrl", "https://yourdomain.com/api/payment/vnpay-callback")
+                    .AddParameter("vnp_ReturnUrl", "https://localhost:7211/api/payment/vnpay-callback")
                     .AddParameter("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"))
                     .AddParameter("vnp_IpAddr", CommonUtils.GetIpAddress(context))
                     .HashSecret(CommonUtils.GetApiKey("VNP_HASHSECRET"))
@@ -126,6 +146,30 @@ namespace Service
             }
         }
 
+        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
+        {
+            try
+            {
+                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
+
+                var response = courseKeys.Select(k => new CourseKeyResponse
+                {
+                    KeyValue = k.KeyValue,
+                    CourseId = k.CourseId,
+                    StudentId = string.IsNullOrEmpty(k.StudentId) ? null : int.Parse(k.StudentId ?? ""),
+                    CreatedAt = k.CreatedAt,
+                    Status = k.Status
+                }).ToList();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new List<CourseKeyResponse>();
+            }
+        }
+
+
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
         {
             try
@@ -139,20 +183,10 @@ namespace Service
 
                 // TODO: Implement gửi email/SMS cho Parent
                 // Hiện tại chỉ log ra console
-                Console.WriteLine($"=== THÔNG BÁO CHO PHỤ HUYNH ===");
-                Console.WriteLine($"Phụ huynh: {parent.Name} ({parent.Email})");
-                Console.WriteLine($"Khóa học ID: {courseId}");
-                Console.WriteLine($"Mã khóa học: {keyValue}");
-                Console.WriteLine($"Hướng dẫn: Đưa mã này cho học sinh để kích hoạt khóa học");
-                Console.WriteLine($"================================");
-
-                // TODO: Gửi email thực tế
-                // await _emailService.SendCourseKeyAsync(parent.Email, keyValue, courseId);
             }
             catch (Exception ex)
             {
                 // Log lỗi nhưng không throw để không ảnh hưởng đến việc tạo key
-                Console.WriteLine($"Warning: Failed to send key to parent: {ex.Message}");
             }
         }
     }

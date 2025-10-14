@@ -1,6 +1,8 @@
 ﻿using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using DTOs.Response.Accounts;
+using DTOs.Response.Courses;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 
@@ -18,6 +20,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create_vnpay_url")]
+        [Authorize] // UNCOMMENTED - REQUIRED FOR AUTHENTICATION
         public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
         {
             if (!ModelState.IsValid)
@@ -47,20 +50,55 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpPost("vnpay-callback")]
-        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback([FromForm] VnPayCallbackRequest request)
+        [HttpGet("vnpay-callback")]
+
+        public async Task<IActionResult> VnPayCallback([FromQuery] VnPayCallbackRequest request)
+        {
+            if (string.IsNullOrEmpty(request.vnp_TxnRef) || string.IsNullOrEmpty(request.vnp_ResponseCode))
+            {
+                return Content("<html><body><h2>Thanh toán thất bại</h2><p>Dữ liệu chưa đủ!</p></body></html>", "text/html");
+            }
+            
+            try
+            {
+                var result = await _paymentService.HandlePaymentSuccessAsync(request);
+                var key = result.Data;
+                return Content($@"
+                    <html>
+                        <head><title>Thanh toán thành công</title></head>
+                        <body>
+                            <h2>Thanh toán thành công!</h2>
+                            <p>Mã key kích hoạt khoá học của bạn: <b>{key}</b></p>
+                        </body>
+                    </html>", "text/html");
+            }
+            catch (Exception ex)
+            {
+                return Content($@"<html><body>
+                    <h2>Thanh toán thất bại</h2>
+                    <p>{ex.Message}</p>
+                    </body></html>", "text/html");
+            }
+        }
+
+        [HttpGet("parent-keys")]
+        [Authorize(Roles = "Parent")]
+        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetParentCourseKeys()
         {
             try
             {
-                // TODO: Verify signature từ VnPay để đảm bảo tính bảo mật
-                // var isValidSignature = VerifyVnPaySignature(request);
-                // if (!isValidSignature)
-                // {
-                //     return BadRequest(new BaseResponse<string>("Invalid signature", Common.Constants.StatusCodeEnum.BadRequest_400, null));
-                // }
+                var user = HttpContext.User;
+                var parentId = user.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(parentId))
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
 
-                var result = await _paymentService.HandlePaymentSuccessAsync(request);
-                return Ok(result);
+                var keys = await _paymentService.GetCourseKeysByParentAsync(parentId);
+                
+                return Ok(new BaseResponse<List<CourseKeyResponse>>(
+                    $"Tìm thấy {keys.Count} khóa học",
+                    Common.Constants.StatusCodeEnum.OK_200,
+                    keys
+                ));
             }
             catch (Exception ex)
             {
@@ -71,5 +109,6 @@ namespace IGCSE.Controller
                 ));
             }
         }
+
     }
 }

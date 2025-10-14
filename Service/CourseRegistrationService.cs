@@ -355,7 +355,12 @@ namespace Service
 
         public async Task<IEnumerable<Coursekey>> GetAllCourseKeysAsync()
         {
-            return await _coursekeyRepository.GetAllAsync();
+            return await _coursekeyRepository.GetAllCourseKeysWithNullHandlingAsync();
+        }
+
+        public async Task<IEnumerable<Coursekey>> GetAvailableCourseKeysAsync()
+        {
+            return await _coursekeyRepository.GetAvailableCourseKeysAsync();
         }
 
         public async Task UpdateCourseKeyAsync(Coursekey key)
@@ -393,7 +398,6 @@ namespace Service
             catch (Exception ex)
             {
                 // Log error but don't throw - initialization shouldn't fail registration
-                Console.WriteLine($"Warning: Failed to initialize course progress: {ex.Message}");
             }
         }
     }

@@ -10,6 +10,9 @@ namespace Repository.IRepositories
         Task<Coursekey?> GetByCourseKeyAsync(long courseKeyId);
         Task<IEnumerable<Coursekey>> GetByStudentIdAsync(string studentId);
         Task<IEnumerable<Coursekey>> GetByCourseIdAsync(long courseId);
+        Task<IEnumerable<Coursekey>> GetByParentIdAsync(string parentId);
+        Task<IEnumerable<Coursekey>> GetAvailableCourseKeysAsync();
+        Task<IEnumerable<Coursekey>> GetAllCourseKeysWithNullHandlingAsync();
         Task<string> GenerateUniqueCourseKeyAsync(long courseId, string studentId);
     }
 }

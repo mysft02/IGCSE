@@ -5,6 +5,7 @@ using Repository.BaseRepository;
 using Repository.IRepositories;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Repository.Repositories
 {
@@ -43,6 +44,32 @@ namespace Repository.Repositories
         {
             return await _context.Set<Coursekey>()
                 .Where(c => c.CourseId == courseId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Coursekey>> GetByParentIdAsync(string parentId)
+        {
+            return await _context.Set<Coursekey>()
+                .Where(c => c.CreatedBy == parentId &&
+                           !string.IsNullOrEmpty(c.Status) &&
+                           !string.IsNullOrEmpty(c.KeyValue))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Coursekey>> GetAvailableCourseKeysAsync()
+        {
+            return await _context.Set<Coursekey>()
+                .Where(c => c.Status == "available" &&
+                           c.StudentId == null &&
+                           !string.IsNullOrEmpty(c.KeyValue))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Coursekey>> GetAllCourseKeysWithNullHandlingAsync()
+        {
+            return await _context.Set<Coursekey>()
+                .Where(c => !string.IsNullOrEmpty(c.Status) &&
+                           !string.IsNullOrEmpty(c.KeyValue))
                 .ToListAsync();
         }
 
