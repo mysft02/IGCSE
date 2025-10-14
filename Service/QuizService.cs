@@ -1,16 +1,13 @@
 ﻿using AutoMapper;
-using BusinessObject;
 using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Request.OpenApi;
-using BusinessObject.Payload.Response.OpenAI;
 using Common.Constants;
 using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
-using System.Text.Json;
 
 namespace Service
 {
@@ -18,22 +15,24 @@ namespace Service
     {
         private readonly IMapper _mapper;
         private readonly IQuizRepository _quizRepository;
-        private readonly IGCSEContext _context;
         private readonly OpenAIApiService _openAIApiService;
+        private readonly IQuestionRepository _questionRepository;
+        private readonly IQuizResultRepository _quizResultRepository;
 
-        public QuizService(IMapper mapper, IQuizRepository quizRepository, IGCSEContext context, OpenAIApiService openAIApiService)
+        public QuizService(IMapper mapper, IQuizRepository quizRepository, OpenAIApiService openAIApiService, IQuestionRepository questionRepository, IQuizResultRepository quizResultRepository)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
-            _context = context;
             _openAIApiService = openAIApiService;
+            _questionRepository = questionRepository;
+            _quizResultRepository = quizResultRepository;
         }
 
         public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
         {
             try
             {
-                var quiz = await _quizRepository.GetQuizByIdAsync(quizId);
+                var quiz = await _quizRepository.GetByIdAsync(quizId);
                 if (quiz == null)
                 {
                     throw new Exception("Quiz not found");
@@ -77,8 +76,7 @@ namespace Service
 					{
 						continue;
 					}
-                    var questionText = _context.Questions
-                        .FirstOrDefault(q => q.QuestionId == userAnswer.QuestionId);
+                    var questionText = await _questionRepository.GetByIdAsync(userAnswer.QuestionId);
 					if (questionText == null)
 					{
 						// Bỏ qua nếu không tìm thấy câu hỏi tương ứng
@@ -211,8 +209,7 @@ namespace Service
                     quizResult.IsPassed = true;
                 }
 
-                await _context.Quizresults.AddAsync(quizResult);
-                await _context.SaveChangesAsync();
+                await _quizResultRepository.AddAsync(quizResult);
 
                 return new BaseResponse<List<QuizMarkResponse>>(
                         "Quiz marked successfully",

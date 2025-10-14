@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
+using Microsoft.VisualBasic;
 
 namespace Service
 {
@@ -15,12 +16,14 @@ namespace Service
         private readonly VnPayApiService _apiService;
         private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
+        private readonly IPaymentRepository _paymentRepository;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository)
+        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, IPaymentRepository paymentRepository)
         {
             _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
+            _paymentRepository = paymentRepository;
         }
 
         public async Task<BaseResponse<PaymentResponse>> CreatePaymentUrlAsync(HttpContext context, PaymentRequest req)
@@ -87,7 +90,9 @@ namespace Service
                 }
 
                 // Parse thông tin từ txnRef: CourseId_ParentId_Timestamp
-                var txnRefParts = request.GetValueOrDefault("vnp_TxnRef")?.Split('_');
+                var txnRef = request.GetValueOrDefault("vnp_TxnRef");
+
+                var txnRefParts = txnRef?.Split('_');
                 if (txnRefParts == null || txnRefParts.Length < 3)
                 {
                     throw new Exception("Thông tin giao dịch không hợp lệ");
@@ -95,6 +100,17 @@ namespace Service
 
                 var courseId = int.Parse(txnRefParts[0]);
                 var parentId = txnRefParts[1];
+
+                var transaction = new Transactionhistory
+                {
+                    CourseId = courseId,
+                    ParentId = parentId,
+                    Amount = int.Parse(request.GetValueOrDefault("vnp_Amount")),
+                    VnpTxnRef = txnRef,
+                    VnpTransactionDate = request.GetValueOrDefault("vnp_TransactionDate"),
+                };
+
+                await _paymentRepository.AddAsync(transaction);
 
                 // Tạo CourseKey khi thanh toán thành công
                 var uniqueKeyValue = Guid.NewGuid().ToString("N");

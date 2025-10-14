@@ -3,7 +3,8 @@ using Repository.IBaseRepository;
 
 namespace Repository.IRepositories
 {
-    public interface IQuizRepository : IBaseRepository<Quiz>
+    public interface IPaymentRepository : IBaseRepository<Transactionhistory>
     {
+
     }
 }
