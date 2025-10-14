@@ -14,7 +14,7 @@ namespace Service.OpenAI
             _openAIApiService = openAIApiService;
         }
 
-        public async Task<List<GradedQuestion>> MarkTest(List<Question> questions)
+        public async Task<List<GradedQuestion>> MarkTest(List<QuestionTest> questions)
         {
             try
             {

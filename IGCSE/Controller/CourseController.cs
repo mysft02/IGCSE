@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 using Service;
 using DTOs.Response.Accounts;
 using Common.Utils;
+using BusinessObject.Payload.Request.VnPay;
+using BusinessObject.Payload.Response.VnPay;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace IGCSE.Controller
 {
@@ -18,12 +21,14 @@ namespace IGCSE.Controller
         private readonly CourseService _courseService;
         private readonly CourseRegistrationService _courseRegistrationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly PaymentService _paymentService;
 
-        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment)
+        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment, PaymentService paymentService)
         {
             _courseService = courseService;
             _courseRegistrationService = courseRegistrationService;
             _webHostEnvironment = webHostEnvironment;
+            _paymentService = paymentService;
         }
 
         // Existing course management endpoints
@@ -204,6 +209,37 @@ namespace IGCSE.Controller
             // Khởi tạo progress cho học sinh
             await _courseRegistrationService.InitializeCourseProgressAsync(keyObj.CourseKeyId);
             return Ok(new BaseResponse<string>("Kích hoạt khoá học thành công!", Common.Constants.StatusCodeEnum.OK_200, keyObj.KeyValue));
+        }
+
+        [HttpPost("create-vnpay-url")]
+        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _paymentService.CreatePaymentUrlAsync(HttpContext, request);
+            return Ok(result);
+        }
+
+        [HttpPost("vnpay-callback")]
+        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
+        {
+            var currentUrl = Request.GetDisplayUrl();
+
+            var queryParams = Request.Query
+                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+            var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
+            return Ok(result);
         }
     }
 }

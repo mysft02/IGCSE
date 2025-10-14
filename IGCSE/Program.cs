@@ -50,6 +50,7 @@ builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILessonitemRepository, LessonitemRepository>();
 builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
 builder.Services.AddScoped<IProcessitemRepository, ProcessitemRepository>();
+builder.Services.AddScoped<IQuizRepository, QuizRepository>();
 
 // Configure Application Services
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
@@ -63,6 +64,7 @@ builder.Services.AddScoped<VnPayApiService>();
 builder.Services.AddScoped<OpenAIApiService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<TestService>();
+builder.Services.AddScoped<QuizService>();
 
 // Add Infrastructure Services
 builder.Services.AddMemoryCache();

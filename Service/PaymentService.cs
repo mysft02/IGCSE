@@ -13,7 +13,6 @@ namespace Service
     public class PaymentService
     {
         private readonly VnPayApiService _apiService;
-        private readonly VnPayApiRequest _vnpApiRequest;
         private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
 
@@ -47,7 +46,7 @@ namespace Service
                     .AddParameter("vnp_Amount", (req.Amount * 100).ToString())
                     .AddParameter("vnp_CurrCode", "VND")
                     .AddParameter("vnp_TxnRef", txnRef)
-                    .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent {parentId}")
+                    .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent: {parentId}")
                     .AddParameter("vnp_OrderType", "other")
                     .AddParameter("vnp_Locale", "vn")
                     .AddParameter("vnp_ReturnUrl", "https://yourdomain.com/api/payment/vnpay-callback")
@@ -59,7 +58,6 @@ namespace Service
                 var paymentUrl = request.BuildVnPayUrl();
                 var paymentQR = VnPayApiRequest.ToQrBase64(paymentUrl);
 
-                // CHỈ tạo URL thanh toán, KHÔNG tạo CourseKey ở đây
                 return new BaseResponse<PaymentResponse>(
                     "Tạo URL thanh toán thành công. Vui lòng thanh toán để nhận mã khóa học.",
                     StatusCodeEnum.OK_200,
@@ -67,7 +65,6 @@ namespace Service
                     {
                         PaymentUrl = paymentUrl,
                         PaymentQR = paymentQR
-                        // KHÔNG có PaymentKey ở đây
                     }
                 );
             }
@@ -77,18 +74,20 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<string>> HandlePaymentSuccessAsync(VnPayCallbackRequest callbackRequest)
+        public async Task<BaseResponse<string>> HandlePaymentSuccessAsync(Dictionary<string, string> request)
         {
             try
             {
                 // Kiểm tra response code từ VnPay
-                if (callbackRequest.vnp_ResponseCode != "00")
+                var responseCode = request.GetValueOrDefault("vnp_ResponseCode");
+
+                if (responseCode != "00")
                 {
-                    throw new Exception($"Thanh toán thất bại. Mã lỗi: {callbackRequest.vnp_ResponseCode}");
+                    throw new Exception($"Thanh toán thất bại. Mã lỗi: {responseCode}");
                 }
 
                 // Parse thông tin từ txnRef: CourseId_ParentId_Timestamp
-                var txnRefParts = callbackRequest.vnp_TxnRef?.Split('_');
+                var txnRefParts = request.GetValueOrDefault("vnp_TxnRef")?.Split('_');
                 if (txnRefParts == null || txnRefParts.Length < 3)
                 {
                     throw new Exception("Thông tin giao dịch không hợp lệ");
@@ -119,6 +118,50 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     uniqueKeyValue
                 );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to handle payment success: {ex.Message}");
+            }
+        }
+
+        public async Task<VnPayQueryApiResponse> GetVnPayTransactionDetail(VnPayQueryApiRequest request, HttpContext context)
+        {
+            try
+            {
+                var body = new VnPayQueryApiBody
+                {
+                    VnpRequestId = Guid.NewGuid().ToString(),
+                    VnpVersion = "2.1.0",
+                    VnpCommand = "querydr",
+                    VnpTmnCode = CommonUtils.GetApiKey("VNP_TMNCODE"),
+                    VnpTxnRef = request.VnpTxnRef,
+                    VnpTransactionDate = request.VnpTransactionDate,
+                    VnpCreateDate = DateTime.Now.ToString("yyyyMMddHHmmss"),
+                    VnpIpAddr = CommonUtils.GetIpAddress(context),
+                };
+
+                var data = string.Join("|", new[]
+                {
+                    body.VnpRequestId,
+                    body.VnpVersion,
+                    body.VnpCommand,
+                    body.VnpTmnCode,
+                    body.VnpTxnRef,
+                    body.VnpTransactionDate,
+                    body.VnpCreateDate,
+                    body.VnpIpAddr,
+                    body.VnpOrderInfo
+                });
+
+                body.VnpSecureHash = CommonUtils.HmacSHA512(data, CommonUtils.GetApiKey("VNP_HASHSECRET"));
+
+                var apiRequest = VnPayApiRequest.Builder()
+                    .Body(body)
+                    .Build();
+
+                var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
+                return response;
             }
             catch (Exception ex)
             {

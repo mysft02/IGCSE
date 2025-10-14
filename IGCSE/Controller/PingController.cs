@@ -4,6 +4,8 @@ using Service.Trello;
 using BusinessObject.Payload.Request.OpenAI;
 using Common.Utils;
 using Service.OpenAI;
+using System.Security.Principal;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace IGCSE.Controller;
 
@@ -23,6 +25,14 @@ public class PingController : ControllerBase
     public IActionResult Ping()
     {
         return Ok(new { message = "pong" });
+    }
+
+    [HttpGet("url")]
+    public IActionResult PingUrl()
+    {
+        var currUrl = $"{Request.GetDisplayUrl()}";
+
+        return Ok(new { message = currUrl });
     }
 
     // GET api/ping/trello?key=...&token=...

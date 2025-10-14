@@ -22,6 +22,12 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Lessonitem> Lessonitems { get; set; }
     public virtual DbSet<Process> Processes { get; set; }
     public virtual DbSet<Processitem> Processitems { get; set; }
+    public virtual DbSet<Transactionhistory> Transactionhistories { get; set; }
+    public virtual DbSet<Useranswer> Useranswers { get; set; }
+    public virtual DbSet<Question> Questions { get; set; }
+    public virtual DbSet<Quiz> Quizzes { get; set; }
+
+    public virtual DbSet<Quizresult> Quizresults { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148.
@@ -133,12 +139,75 @@ public partial class IGCSEContext : IdentityDbContext<Account>
         modelBuilder.Entity<Coursekey>(entity =>
         {
             entity.HasKey(e => e.CourseKeyId).HasName("PRIMARY");
+
             entity.ToTable("coursekey");
+
             entity.Property(e => e.CourseKeyId).HasColumnName("CourseKeyID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
-            entity.Property(e => e.StudentId).HasMaxLength(255).HasColumnName("StudentID");
+            entity.Property(e => e.KeyValue).HasMaxLength(100);
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'available'");
+            entity.Property(e => e.StudentId)
+                .HasMaxLength(255)
+                .HasColumnName("StudentID");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Question>(entity =>
+        {
+            entity.HasKey(e => e.QuestionId).HasName("PRIMARY");
+
+            entity.ToTable("question");
+
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.CorrectAnswer).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.QuestionContent).HasMaxLength(500);
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Transactionhistory>(entity =>
+        {
+            entity.HasKey(e => e.TransactionId).HasName("PRIMARY");
+
+            entity.ToTable("transactionhistory");
+
+            entity.Property(e => e.TransactionId).HasColumnName("TransactionID");
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.ParentId)
+                .HasMaxLength(255)
+                .HasColumnName("ParentID");
+            entity.Property(e => e.VnpTransactionDate).HasMaxLength(255);
+            entity.Property(e => e.VnpTxnRef).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Useranswer>(entity =>
+        {
+            entity.HasKey(e => e.UserAnswerId).HasName("PRIMARY");
+
+            entity.ToTable("useranswer");
+
+            entity.Property(e => e.UserAnswerId).HasColumnName("UserAnswerID");
+            entity.Property(e => e.Answer).HasMaxLength(500);
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+        });
+
+        modelBuilder.Entity<Quiz>(entity =>
+        {
+            entity.HasKey(e => e.QuizId).HasName("PRIMARY");
+
+            entity.ToTable("quiz");
+
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.QuizDescription).HasMaxLength(255);
+            entity.Property(e => e.QuizTitle).HasMaxLength(255);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
@@ -200,6 +269,19 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.LessonItemId).HasColumnName("LessonItemID");
             entity.Property(e => e.ProcessId).HasColumnName("ProcessID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Quizresult>(entity =>
+        {
+            entity.HasKey(e => e.QuizResultId).HasName("PRIMARY");
+
+            entity.ToTable("quizresult");
+
+            entity.Property(e => e.QuizResultId).HasColumnName("QuizResultID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy).HasMaxLength(255);
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
+            entity.Property(e => e.Score).HasPrecision(18, 2);
         });
 
         OnModelCreatingPartial(modelBuilder);
