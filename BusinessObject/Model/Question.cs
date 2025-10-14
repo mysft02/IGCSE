@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace BusinessObject.Model;
+﻿namespace BusinessObject.Model;
 
 public class Question
 {
@@ -16,5 +13,6 @@ public class Question
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
     public virtual Quiz Quiz { get; set; } = null!;
 }

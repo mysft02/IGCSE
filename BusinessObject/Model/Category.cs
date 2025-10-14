@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace BusinessObject.Model;
+﻿namespace BusinessObject.Model;
 
 public class Category
 {

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-
 namespace BusinessObject.Model;
 
 public class Quizresult
