@@ -18,6 +18,7 @@ namespace Repository.Repositories
         public async Task<Quiz?> GetQuizByIdAsync(int id)
         {
             return await _context.Quizzes
+                .Include(q => q.Questions)
                 .FirstOrDefaultAsync(q => q.QuizId == id);
         }
     }

@@ -8,6 +8,7 @@ using DTOs.Response.CourseRegistration;
 using DTOs.Response.CourseContent;
 using DTOs.Request.CourseRegistration;
 using DTOs.Request.CourseContent;
+using BusinessObject.DTOs.Response.Quizzes;
 
 namespace BusinessObject.Mapping
 {
@@ -61,6 +62,8 @@ namespace BusinessObject.Mapping
 
             CreateMap<Processitem, LessonItemProgressResponse>()
                 .ForMember(dest => dest.LessonItemName, opt => opt.MapFrom(src => src.LessonItem.Name));
+
+            CreateMap<Quiz, QuizResponse>().ReverseMap();
         }
     }
 }
