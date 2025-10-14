@@ -116,7 +116,7 @@ namespace Service
                     MaxTokens = 200
                 };
                 var apiRequest = OpenApiRequest.Builder()
-                    .CallUrl("https://api.openai.com/v1/responses")
+                    .CallUrl("/responses")
                     .Body(body)
                     .Build();
 
