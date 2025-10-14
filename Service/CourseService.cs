@@ -39,8 +39,6 @@ namespace Service
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
         {
-            try
-            {
                 // Create new course
                 var course = new Course
                 {
@@ -63,17 +61,10 @@ namespace Service
                     StatusCodeEnum.Created_201,
                     courseResponse
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to create course: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(long courseId, CourseRequest request)
         {
-            try
-            {
                 // Get existing course
                 var existingCourse = await _courseRepository.GetByCourseIdAsync(courseId);
                 if (existingCourse == null)
@@ -110,17 +101,10 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     courseResponse
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to update course: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(long courseId)
         {
-            try
-            {
                 var course = await _courseRepository.GetByCourseIdAsync(courseId);
                 if (course == null)
                 {
@@ -134,17 +118,10 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     courseResponse
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to get course: {ex.Message}");
-            }
         }
 
         public async Task<DTOs.Response.Accounts.BaseResponse<IEnumerable<CourseResponse>>> GetAllCoursesAsync()
         {
-            try
-            {
                 var courses = await _courseRepository.GetAllAsync();
 
                 var courseResponses = new List<CourseResponse>();
@@ -159,19 +136,12 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     courseResponses
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to get courses: {ex.Message}");
-            }
         }
 
         // Course Content Management Methods
 
         public async Task<BaseResponse<CourseSectionResponse>> CreateCourseSectionAsync(CourseSectionRequest request)
         {
-            try
-            {
                 var courseSection = new Coursesection
                 {
                     CourseId = request.CourseId,
@@ -191,17 +161,10 @@ namespace Service
                     StatusCodeEnum.Created_201,
                     response
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to create course section: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<LessonResponse>> CreateLessonAsync(LessonRequest request)
         {
-            try
-            {
                 var lesson = new Lesson
                 {
                     CourseSectionId = request.CourseSectionId,
@@ -221,17 +184,10 @@ namespace Service
                     StatusCodeEnum.Created_201,
                     response
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to create lesson: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<LessonItemResponse>> CreateLessonItemAsync(LessonItemRequest request)
         {
-            try
-            {
                 var lessonItem = new Lessonitem
                 {
                     LessonId = request.LessonId,
@@ -252,17 +208,10 @@ namespace Service
                     StatusCodeEnum.Created_201,
                     response
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to create lesson item: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<IEnumerable<CourseSectionResponse>>> GetCourseSectionsAsync(long courseId)
         {
-            try
-            {
                 var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
                 var responses = new List<CourseSectionResponse>();
 
@@ -285,17 +234,10 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     responses
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to get course sections: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<IEnumerable<LessonItemResponse>>> GetLessonItemsAsync(long lessonId)
         {
-            try
-            {
                 var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonId);
                 var responses = new List<LessonItemResponse>();
 
@@ -309,11 +251,6 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     responses
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to get lesson items: {ex.Message}");
-            }
         }
     }
 }

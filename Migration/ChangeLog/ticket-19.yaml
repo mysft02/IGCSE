@@ -1,6 +1,6 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: feat/#19_create_transaction_history_table
+      id: 19
       author: dung-nt
       changes:
         - createTable:

@@ -46,7 +46,7 @@ namespace Service.OpenAI
                 };
 
                 var request = OpenApiRequest.Builder()
-                    .CallUrl("https://api.openai.com/v1/responses")
+                    .CallUrl("/responses")
                     .Body(body)
                     .Build();
 

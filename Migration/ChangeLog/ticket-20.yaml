@@ -1,6 +1,6 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: feat/#20_create_quiz_table
+      id: 20
       author: dung-nt
       changes:
         - createTable:

@@ -1,12 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿using BusinessObject;
+using BusinessObject.Model;
+using Repository.BaseRepository;
+using Repository.IRepositories;
+using System;
 namespace Repository.Repositories
 {
-    internal class PaymentRepository
+    public class PaymentRepository : BaseRepository<Transactionhistory>, IPaymentRepository
     {
+        private readonly IGCSEContext _context;
+
+        public PaymentRepository(IGCSEContext context) : base(context)
+        {
+            _context = context;
+        }
     }
 }

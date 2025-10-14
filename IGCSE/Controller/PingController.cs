@@ -27,14 +27,6 @@ public class PingController : ControllerBase
         return Ok(new { message = "pong" });
     }
 
-    [HttpGet("url")]
-    public IActionResult PingUrl()
-    {
-        var currUrl = $"{Request.GetDisplayUrl()}";
-
-        return Ok(new { message = currUrl });
-    }
-
     // GET api/ping/trello?key=...&token=...
     [HttpGet("trello")]
     public async Task<IActionResult> PingTrello([FromQuery] string token)
@@ -56,8 +48,9 @@ public class PingController : ControllerBase
         var apiKey = CommonUtils.GetApiKey("OPEN_API_KEY");
 
         var request = OpenApiRequest.Builder()
-            .CallUrl("https://api.openai.com/v1/models")
+            .CallUrl("/models")
             .Build();
+        request.BuildUrl();
 
         var result = await _openApiService.GetAsync<object>(request);
         return Ok(result);

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BusinessObject.Model;
 
-public partial class Process
+public class Process
 {
     public int ProcessId { get; set; }
 

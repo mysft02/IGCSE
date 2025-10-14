@@ -30,32 +30,23 @@ namespace Service
 
         public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
         {
-            try
+            var quiz = await _quizRepository.GetByIdAsync(quizId);
+            if (quiz == null)
             {
-                var quiz = await _quizRepository.GetByIdAsync(quizId);
-                if (quiz == null)
-                {
-                    throw new Exception("Quiz not found");
-                }
-        
-                var quizResponse = _mapper.Map<QuizResponse>(quiz);
+                throw new Exception("Quiz not found");
+            }
 
-                return new BaseResponse<QuizResponse>(
-                    "Quiz retrieved successfully",
-                    StatusCodeEnum.OK_200,
-                    quizResponse
-                );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to get quiz: {ex.Message}");
-            }
+            var quizResponse = _mapper.Map<QuizResponse>(quiz);
+
+            return new BaseResponse<QuizResponse>(
+                "Quiz retrieved successfully",
+                StatusCodeEnum.OK_200,
+                quizResponse
+            );
         }
         
         public async Task<BaseResponse<List<QuizMarkResponse>>> MarkQuizAsync(QuizMarkRequest request)
         {
-            try
-            {
                 List<QuizMarkResponse> result = new List<QuizMarkResponse>();
 
                 List<QuestionMarkRequest> questions = new List<QuestionMarkRequest>();
@@ -215,11 +206,6 @@ namespace Service
                         "Quiz marked successfully",
                         StatusCodeEnum.OK_200,
                         result);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to mark quiz: {ex.Message}");
-            }
         }
     }
 }

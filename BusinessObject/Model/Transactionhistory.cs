@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BusinessObject.Model;
 
-public partial class Transactionhistory
+public class Transactionhistory
 {
     public int TransactionId { get; set; }
 

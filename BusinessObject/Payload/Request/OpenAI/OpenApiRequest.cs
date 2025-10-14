@@ -4,7 +4,6 @@ namespace BusinessObject.Payload.Request.OpenAI
 {
     public class OpenApiRequest
     {
-        private const string BaseUrl = "https://api.openai.com/v1";
 
         public Dictionary<string, string> Headers { get; set; } = DefaultHeaders();
         public string? CallUrl { get; set; }
@@ -32,7 +31,7 @@ namespace BusinessObject.Payload.Request.OpenAI
             if (CallUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 return CallUrl;
 
-            return $"{BaseUrl.TrimEnd('/')}/{CallUrl.TrimStart('/')}";
+            return $"{CallUrl}";
         }
 
         public static OpenApiRequestBuilder Builder()

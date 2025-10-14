@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BusinessObject.Model;
 
-public partial class Course
+public class Course
 {
     public int CourseId { get; set; }
 
@@ -28,5 +28,6 @@ public partial class Course
     public string? ImageUrl { get; set; }
 
     public virtual Category? Category { get; set; }
+
     public string EmbeddingData { get; set; } = null!;
 }

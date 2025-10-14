@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
-using Microsoft.VisualBasic;
 
 namespace Service
 {
@@ -28,8 +27,6 @@ namespace Service
 
         public async Task<BaseResponse<PaymentResponse>> CreatePaymentUrlAsync(HttpContext context, PaymentRequest req)
         {
-            try
-            {
                 var user = context.User;
                 var parentId = user.FindFirst("AccountID")?.Value;
                 var parentRoles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
@@ -52,7 +49,7 @@ namespace Service
                     .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent: {parentId}")
                     .AddParameter("vnp_OrderType", "other")
                     .AddParameter("vnp_Locale", "vn")
-                    .AddParameter("vnp_ReturnUrl", "https://yourdomain.com/api/payment/vnpay-callback")
+                    .AddParameter("vnp_ReturnUrl", CommonUtils.GetApiKey("VNP_RETURN_URL"))
                     .AddParameter("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"))
                     .AddParameter("vnp_IpAddr", CommonUtils.GetIpAddress(context))
                     .HashSecret(CommonUtils.GetApiKey("VNP_HASHSECRET"))
@@ -70,17 +67,10 @@ namespace Service
                         PaymentQR = paymentQR
                     }
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to create vnpay url: {ex.Message}");
-            }
         }
 
         public async Task<BaseResponse<string>> HandlePaymentSuccessAsync(Dictionary<string, string> request)
         {
-            try
-            {
                 // Kiểm tra response code từ VnPay
                 var responseCode = request.GetValueOrDefault("vnp_ResponseCode");
 
@@ -134,17 +124,10 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     uniqueKeyValue
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to handle payment success: {ex.Message}");
-            }
         }
 
         public async Task<VnPayQueryApiResponse> GetVnPayTransactionDetail(VnPayQueryApiRequest request, HttpContext context)
         {
-            try
-            {
                 var body = new VnPayQueryApiBody
                 {
                     VnpRequestId = Guid.NewGuid().ToString(),
@@ -178,41 +161,27 @@ namespace Service
 
                 var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
                 return response;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to handle payment success: {ex.Message}");
-            }
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
         {
-            try
+            var parent = await _accountRepository.GetByStringId(parentId);
+            if (parent == null)
             {
-                // Lấy thông tin Parent
-                var parent = await _accountRepository.GetByStringId(parentId);
-                if (parent == null)
-                {
-                    throw new Exception("Không tìm thấy thông tin phụ huynh");
-                }
-
-                // TODO: Implement gửi email/SMS cho Parent
-                // Hiện tại chỉ log ra console
-                Console.WriteLine($"=== THÔNG BÁO CHO PHỤ HUYNH ===");
-                Console.WriteLine($"Phụ huynh: {parent.Name} ({parent.Email})");
-                Console.WriteLine($"Khóa học ID: {courseId}");
-                Console.WriteLine($"Mã khóa học: {keyValue}");
-                Console.WriteLine($"Hướng dẫn: Đưa mã này cho học sinh để kích hoạt khóa học");
-                Console.WriteLine($"================================");
-
-                // TODO: Gửi email thực tế
-                // await _emailService.SendCourseKeyAsync(parent.Email, keyValue, courseId);
+                throw new Exception("Không tìm thấy thông tin phụ huynh");
             }
-            catch (Exception ex)
-            {
-                // Log lỗi nhưng không throw để không ảnh hưởng đến việc tạo key
-                Console.WriteLine($"Warning: Failed to send key to parent: {ex.Message}");
-            }
+
+            // TODO: Implement gửi email/SMS cho Parent
+            // Hiện tại chỉ log ra console
+            Console.WriteLine($"=== THÔNG BÁO CHO PHỤ HUYNH ===");
+            Console.WriteLine($"Phụ huynh: {parent.Name} ({parent.Email})");
+            Console.WriteLine($"Khóa học ID: {courseId}");
+            Console.WriteLine($"Mã khóa học: {keyValue}");
+            Console.WriteLine($"Hướng dẫn: Đưa mã này cho học sinh để kích hoạt khóa học");
+            Console.WriteLine($"================================");
+
+            // TODO: Gửi email thực tế
+            // await _emailService.SendCourseKeyAsync(parent.Email, keyValue, courseId);
         }
     }
 }

@@ -1,7 +1,4 @@
-﻿using BusinessObject.Payload.Request.VnPay;
-using BusinessObject.Payload.Response.VnPay;
-using DTOs.Response.Accounts;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Service;
 
 namespace IGCSE.Controller
@@ -16,7 +13,5 @@ namespace IGCSE.Controller
         {
             _paymentService = paymentService;
         }
-
-        
     }
 }
