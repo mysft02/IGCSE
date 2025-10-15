@@ -44,67 +44,6 @@ namespace Service
             _courseRepository = courseRepository;
         }
 
-        public async Task<BaseResponse<CourseRegistrationResponse>> RegisterForCourseAsync(CourseRegistrationRequest request)
-        {
-            try
-            {
-                // Check if course exists
-                var course = await _courseRepository.GetByCourseIdWithCategoryAsync(request.CourseId);
-                if (course == null)
-                {
-                    throw new Exception("Course not found");
-                }
-
-                // Check if student is already registered for this course
-                var existingRegistration = await _coursekeyRepository.GetByCourseAndStudentAsync(request.CourseId, request.StudentId);
-                if (existingRegistration != null)
-                {
-                    throw new Exception("Student is already registered for this course");
-                }
-
-                // Generate unique course key
-                var courseKey = await _coursekeyRepository.GenerateUniqueCourseKeyAsync(request.CourseId, request.StudentId);
-
-                // Create course registration
-                var coursekey = new Coursekey
-                {
-                    CourseId = request.CourseId,
-                    StudentId = request.StudentId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    CreatedBy = request.StudentId
-                };
-
-                var createdCoursekey = await _coursekeyRepository.AddAsync(coursekey);
-
-                // Initialize course progress
-                await InitializeCourseProgressAsync(createdCoursekey.CourseKeyId);
-
-                var response = new CourseRegistrationResponse
-                {
-                    CourseKeyId = createdCoursekey.CourseKeyId,
-                    CourseId = createdCoursekey.CourseId,
-                    CourseName = course.Name,
-                    CategoryName = course.Category?.CategoryName ?? "Unknown",
-                    StudentId = request.StudentId,
-                    StudentName = "", // Will be populated from Account service
-                    CourseKey = courseKey,
-                    EnrollmentDate = createdCoursekey.CreatedAt ?? DateTime.UtcNow,
-                    Status = "Active"
-                };
-
-                return new BaseResponse<CourseRegistrationResponse>(
-                    "Successfully registered for course",
-                    StatusCodeEnum.Created_201,
-                    response
-                );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to register for course: {ex.Message}");
-            }
-        }
-
         public async Task<BaseResponse<IEnumerable<CourseRegistrationResponse>>> GetStudentRegistrationsAsync(string studentId)
         {
             try

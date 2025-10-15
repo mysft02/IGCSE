@@ -118,7 +118,7 @@ namespace IGCSE.Controller
                 var keys = await _paymentService.GetFilteredCourseKeysAsync(status, parentId, courseId);
 
                 return Ok(new BaseResponse<List<CourseKeyResponse>>(
-                    $"Tìm thấy {keys.Count} khóa học",
+                    $"Tìm thấy {keys.Count} mã khóa học",
                     Common.Constants.StatusCodeEnum.OK_200,
                     keys
                 ));
