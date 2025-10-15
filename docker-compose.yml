@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: igcse-web
+    ports:
+      - "5121:5121"
+    env_file:
+      - ./IGCSE/ApiKey.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Remote MySQL connection
+      JWT__Issuer: igcse.local
+      JWT__Audience: igcse.local
+      JWT__SigningKey: super_secret_signing_key_change_me
+    volumes:
+      - ./IGCSE/wwwroot:/app/wwwroot
