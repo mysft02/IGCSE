@@ -126,23 +126,23 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpGet("progress/{courseKeyId}")]
-        public async Task<ActionResult<BaseResponse<StudentProgressResponse>>> GetStudentProgress(long courseKeyId)
+        [HttpGet("progress")]
+        public async Task<ActionResult<BaseResponse<StudentProgressResponse>>> GetStudentProgressByStudentAndCourse([FromQuery] string studentId, [FromQuery] long courseId)
         {
             try
             {
-                var result = await _courseRegistrationService.GetStudentProgressAsync(courseKeyId);
+                var result = await _courseRegistrationService.GetStudentProgressAsync(studentId, courseId);
                 return Ok(result);
             }
             catch (Exception ex)
-                {
+            {
                 return NotFound(new BaseResponse<string>(
                     ex.Message,
                     Common.Constants.StatusCodeEnum.NotFound_404,
                     null
                 ));
             }
-                }
+        }
 
         [HttpPost("complete-lesson-item")]
         public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)

@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: feat-21-unlock-progress
+      author: quanghuy
+      changes:
+        - addColumn:
+            tableName: process
+            columns:
+              - column:
+                  name: IsUnlocked
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            columnName: IsUnlocked
+            tableName: process
