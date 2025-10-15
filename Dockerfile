@@ -10,8 +10,8 @@ COPY ./Service ./Service
 COPY ./Migration ./Migration
 COPY ./IGCSE ./IGCSE
 
-# Restore
-RUN dotnet restore ./IGCSE/IGCSE.csproj
+# # Restore
+# RUN dotnet restore ./IGCSE/IGCSE.csproj
 
 # Build
 RUN dotnet publish ./IGCSE/IGCSE.csproj -c Release -o /app/publish /p:UseAppHost=false
