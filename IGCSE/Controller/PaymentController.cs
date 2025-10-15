@@ -19,7 +19,7 @@ namespace IGCSE.Controller
             _paymentService = paymentService;
         }
 
-        [HttpPost("create_vnpay_url")]
+        [HttpPost("create-vnpay-url")]
         [Authorize] // UNCOMMENTED - REQUIRED FOR AUTHENTICATION
         public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
         {
@@ -81,7 +81,7 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpGet("parent-keys")]
+        [HttpGet("parent-coursekeys")]
         [Authorize(Roles = "Parent")]
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetParentCourseKeys()
         {
@@ -110,7 +110,7 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpGet("all-keys")]
+        [HttpGet("get-all-keys")]
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeys([FromQuery] string? status = null, [FromQuery] string? parentId = null, [FromQuery] int? courseId = null)
         {
             try
