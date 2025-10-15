@@ -28,7 +28,26 @@ public partial class Program
                       .AllowAnyHeader();
             });
         });
-        var connectionString = builder.Configuration.GetConnectionString("DbConnection");
+        // Resolve DB connection string from environment variables (ApiKey.env) or fallback to appsettings
+        var envConnection = Environment.GetEnvironmentVariable("DB_CONNECTION");
+        if (string.IsNullOrWhiteSpace(envConnection))
+        {
+            var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+            var dbPort = Environment.GetEnvironmentVariable("DB_PORT");
+            var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+            var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+            var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+            if (!string.IsNullOrWhiteSpace(dbHost))
+            {
+                var portPart = string.IsNullOrWhiteSpace(dbPort) ? "3306" : dbPort;
+                envConnection = $"Server={dbHost};Port={portPart};Database={dbName};User={dbUser};Password={dbPassword};TreatTinyAsBoolean=false;AllowPublicKeyRetrieval=True;SslMode=None";
+            }
+        }
+
+        var connectionString = string.IsNullOrWhiteSpace(envConnection)
+            ? builder.Configuration.GetConnectionString("DbConnection")
+            : envConnection;
         // Connect Database
         builder.Services.AddDbContext<IGCSEContext>(options =>
             options.UseMySql(
