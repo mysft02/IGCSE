@@ -16,6 +16,7 @@ using Service.OpenAI;
 using Service.VnPay;
 using BusinessObject;
 using BusinessObject.Model;
+using IGCSE.Extensions;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,40 +40,11 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
         new MySqlServerVersion(new Version(8, 0, 34))
     ));
 
-// Configure Repository Services
-builder.Services.AddScoped<IAccountRepository, AccountRepository>();
-builder.Services.AddScoped<ITokenRepository, TokenRepository>();
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICoursekeyRepository, CoursekeyRepository>();
-builder.Services.AddScoped<ICoursesectionRepository, CoursesectionRepository>();
-builder.Services.AddScoped<ILessonRepository, LessonRepository>();
-builder.Services.AddScoped<ILessonitemRepository, LessonitemRepository>();
-builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
-builder.Services.AddScoped<IProcessitemRepository, ProcessitemRepository>();
-builder.Services.AddScoped<IQuizRepository, QuizRepository>();
-builder.Services.AddScoped<IQuizResultRepository, QuizResultRepository>();
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
-builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
-
-// Configure Application Services
-builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
-builder.Services.AddScoped<AccountService>();
-builder.Services.AddScoped<CourseService>();
-builder.Services.AddScoped<CategoryService>();
-builder.Services.AddScoped<CourseRegistrationService>();
-builder.Services.AddScoped<TrelloApiService>();
-builder.Services.AddHttpClient<ApiService>();
-builder.Services.AddScoped<VnPayApiService>();
-builder.Services.AddScoped<OpenAIApiService>();
-builder.Services.AddScoped<PaymentService>();
-builder.Services.AddScoped<OpenAIEmbeddingsApiService>();
-builder.Services.AddScoped<TestService>();
-builder.Services.AddScoped<QuizService>();
-
-// Add Infrastructure Services
-builder.Services.AddMemoryCache();
-builder.Services.AddHttpContextAccessor();
+// Đăng ký dịch vụ thông qua extension methods
+builder.Services
+    .AddRepositoryServices()
+    .AddApplicationServices()
+    .AddInfrastructureServices();
 
 builder.Services.AddControllers();
 
