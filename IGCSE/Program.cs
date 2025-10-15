@@ -11,7 +11,7 @@ using BusinessObject.Model;
 using IGCSE.Extensions;
 
 
-public class Program
+public partial class Program
 {
     public static async Task Main(string[] args)
     {
