@@ -1,6 +1,6 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: feat-7-fix-course-schema
+      id: 7
       author: quanghuy
       changes:
         # ===== COURSE ALTERATIONS =====

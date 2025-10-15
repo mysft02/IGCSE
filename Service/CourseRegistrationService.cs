@@ -353,7 +353,17 @@ namespace Service
             }
         }
 
-        private async Task InitializeCourseProgressAsync(int courseKeyId)
+        public async Task<IEnumerable<Coursekey>> GetAllCourseKeysAsync()
+        {
+            return await _coursekeyRepository.GetAllAsync();
+        }
+
+        public async Task UpdateCourseKeyAsync(Coursekey key)
+        {
+            await _coursekeyRepository.UpdateAsync(key);
+        }
+
+        public async Task InitializeCourseProgressAsync(int courseKeyId)
         {
             try
             {

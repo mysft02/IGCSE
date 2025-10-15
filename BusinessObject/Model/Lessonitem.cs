@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace BusinessObject.Model;
 
-namespace BusinessObject.Model;
-
-public partial class Lessonitem
+public class Lessonitem
 {
     public int LessonItemId { get; set; }
 

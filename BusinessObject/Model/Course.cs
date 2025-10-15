@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace BusinessObject.Model;
 
-namespace BusinessObject.Model;
-
-public partial class Course
+public class Course
 {
     public int CourseId { get; set; }
 
@@ -26,6 +23,8 @@ public partial class Course
     public decimal Price { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public string EmbeddingData { get; set; } = null!;
 
     public virtual Category? Category { get; set; }
 }

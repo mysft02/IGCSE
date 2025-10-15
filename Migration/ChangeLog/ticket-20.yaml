@@ -1,0 +1,141 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 20
+      author: dung-nt
+      changes:
+        - createTable:
+            tableName: quiz
+            columns:
+              - column:
+                  name: QuizID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: QuizTitle
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: QuizDescription
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+        - createTable:
+            tableName: question
+            columns:
+              - column:
+                  name: QuestionID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: QuizID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: QuestionContent
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CorrectAnswer
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: useranswer
+            columns:
+              - column:
+                  name: UserAnswerID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: QuestionID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Answer
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: quizresult
+            columns:
+              - column:
+                  name: QuizResultID
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: QuizID
+                  type: int
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: IsPassed
+                  type: TINYINT(1)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Score
+                  type: decimal(18,2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedBy
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+          tableName: useranswer
+        - dropTable:
+          tableName: question
+        - dropTable:
+          tableName: quiz
+        - dropTable:
+          tableName: quizresult

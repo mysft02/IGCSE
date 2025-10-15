@@ -8,13 +8,15 @@ namespace BusinessObject.Payload.Request.OpenAI
 {
     public class TestRequest
     {
-        public List<Question> Questions { get; set; }
+        public List<QuestionTest> Questions { get; set; }
     }
 
-    public class Question
+    public class QuestionTest
     {
         public string QuestionText { get; set; }
+
         public string Answer { get; set; }
+
         public string RightAnswer { get; set; }
     }
 }
