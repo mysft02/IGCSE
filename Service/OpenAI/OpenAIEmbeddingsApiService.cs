@@ -1,6 +1,5 @@
 ﻿using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
-using BusinessObject.Payload.Response.OpenAI;
 using Common.Utils;
 using System.Text.Json;
 

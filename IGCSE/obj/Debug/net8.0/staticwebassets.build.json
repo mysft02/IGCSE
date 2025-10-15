@@ -1,0 +1,19 @@
+{
+  "Version": 1,
+  "Hash": "JqQmvQxdl+GnO7ZX/IXA0XOWP1XYbZGwO5eWaXHCZGU=",
+  "Source": "IGCSE",
+  "BasePath": "_content/IGCSE",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "IGCSE/wwwroot",
+      "Source": "IGCSE",
+      "ContentRoot": "/Users/hoangviet/Documents/Project/IGCSE/IGCSE/wwwroot/",
+      "BasePath": "_content/IGCSE",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": []
+}

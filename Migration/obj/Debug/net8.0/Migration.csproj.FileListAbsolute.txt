@@ -1,0 +1,12 @@
+/Users/hoangviet/Documents/Project/IGCSE/Migration/bin/Debug/net8.0/Migration.deps.json
+/Users/hoangviet/Documents/Project/IGCSE/Migration/bin/Debug/net8.0/Migration.dll
+/Users/hoangviet/Documents/Project/IGCSE/Migration/bin/Debug/net8.0/Migration.pdb
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.GeneratedMSBuildEditorConfig.editorconfig
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.AssemblyInfoInputs.cache
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.AssemblyInfo.cs
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.csproj.CoreCompileInputs.cache
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.sourcelink.json
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.dll
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/refint/Migration.dll
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/Migration.pdb
+/Users/hoangviet/Documents/Project/IGCSE/Migration/obj/Debug/net8.0/ref/Migration.dll

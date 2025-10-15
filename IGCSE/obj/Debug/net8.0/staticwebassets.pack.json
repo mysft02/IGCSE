@@ -1,0 +1,29 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/hoangviet/Documents/Project/IGCSE/IGCSE/wwwroot/wwwroot/images/courses/a2c3c692-589d-4532-8c1d-97c49cb8c2c7.png",
+      "PackagePath": "staticwebassets/wwwroot/images/courses/a2c3c692-589d-4532-8c1d-97c49cb8c2c7.png"
+    },
+    {
+      "Id": "/Users/hoangviet/Documents/Project/IGCSE/IGCSE/wwwroot/wwwroot/images/courses/dffda8e8-9085-40a7-8aaf-ae6c14f806df.png",
+      "PackagePath": "staticwebassets/wwwroot/images/courses/dffda8e8-9085-40a7-8aaf-ae6c14f806df.png"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.IGCSE.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.IGCSE.props",
+      "PackagePath": "build\\IGCSE.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.IGCSE.props",
+      "PackagePath": "buildMultiTargeting\\IGCSE.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.IGCSE.props",
+      "PackagePath": "buildTransitive\\IGCSE.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
