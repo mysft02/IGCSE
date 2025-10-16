@@ -9,5 +9,6 @@ namespace Repository.IRepositories
         Task<Course?> GetByCourseIdAsync(long courseId);
         Task<Course?> GetByCourseIdWithCategoryAsync(long courseId);
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId);
+        Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status);
     }
 }

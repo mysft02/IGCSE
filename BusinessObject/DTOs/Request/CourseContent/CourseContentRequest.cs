@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace DTOs.Request.CourseContent
 {
@@ -61,5 +62,8 @@ namespace DTOs.Request.CourseContent
 
         [Required]
         public int Order { get; set; }
+
+        // Optional file to upload for this lesson item (pdf/video)
+        public IFormFile? File { get; set; }
     }
 }

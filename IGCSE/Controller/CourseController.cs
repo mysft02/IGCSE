@@ -73,11 +73,11 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllCourses()
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
             {
-                var result = await _courseService.GetAllCoursesAsync();
+                var result = await _courseService.GetCoursesPagedAsync(query);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -224,7 +224,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("lesson-item/create")]
-        public async Task<ActionResult<BaseResponse<LessonItemResponse>>> CreateLessonItem([FromBody] LessonItemRequest request)
+        public async Task<ActionResult<BaseResponse<LessonItemResponse>>> CreateLessonItem([FromForm] LessonItemRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -240,9 +240,35 @@ namespace IGCSE.Controller
 
             try
             {
+                // If a file is provided, upload based on ItemType and set Content to URL
+                if (request.File != null && request.File.Length > 0)
+                {
+                    string? fileUrl = null;
+
+                    if (request.ItemType.Equals("pdf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!FileUploadHelper.IsValidLessonDocument(request.File))
+                            throw new ArgumentException("Invalid PDF file");
+
+                        fileUrl = await FileUploadHelper.UploadLessonDocumentAsync(request.File, _webHostEnvironment.WebRootPath);
+                    }
+                    else if (request.ItemType.Equals("video", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!FileUploadHelper.IsValidLessonVideo(request.File))
+                            throw new ArgumentException("Invalid video file");
+
+                        fileUrl = await FileUploadHelper.UploadLessonVideoAsync(request.File, _webHostEnvironment.WebRootPath);
+                    }
+
+                    if (!string.IsNullOrEmpty(fileUrl))
+                    {
+                        request.Content = fileUrl;
+                    }
+                }
+
                 var result = await _courseService.CreateLessonItemAsync(request);
                 return Created("lesson item", result);
-        }
+            }
             catch (Exception ex)
             {
                 return BadRequest(new BaseResponse<string>(
