@@ -5,6 +5,7 @@ using Repository.BaseRepository;
 using Repository.IRepositories;
 using System.Linq;
 using System.Threading.Tasks;
+using Common.Utils;
 
 namespace Repository.Repositories
 {
@@ -35,6 +36,26 @@ namespace Repository.Repositories
             return await _context.Set<Course>()
                 .Where(c => c.CategoryId == categoryId)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        {
+            var targetCourse = await GetByCourseIdAsync(courseId);
+
+            var targetEmbeddingData = CommonUtils.StringToObject<List<float>>(targetCourse.EmbeddingData);
+
+            var courses = await _context.Set<Course>()
+                .Where(c => c.CourseId != courseId)
+                .Select(c => new
+                {
+                    c,
+                    SimilarScore = score * (CommonUtils.CosineSimilarity(targetEmbeddingData, CommonUtils.StringToObject<List<float>>(c.EmbeddingData)))
+                })
+                .OrderByDescending(c => c.SimilarScore)
+                .Take(5)
+                .Select(c => c.c)
+                .ToListAsync();
+            return courses;
         }
     }
 }

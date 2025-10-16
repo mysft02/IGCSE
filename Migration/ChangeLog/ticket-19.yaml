@@ -1,0 +1,43 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 19
+      author: dung-nt
+      changes:
+        - createTable:
+            tableName: transactionhistory
+            columns:
+              - column:
+                  name: TransactionID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ParentID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Amount
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: VnpTxnRef
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: VnpTransactionDate
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: transactionhistory

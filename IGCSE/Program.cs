@@ -16,6 +16,7 @@ using Service.OpenAI;
 using Service.VnPay;
 using BusinessObject;
 using BusinessObject.Model;
+using IGCSE.Extensions;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,34 +40,11 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
         new MySqlServerVersion(new Version(8, 0, 34))
     ));
 
-// Configure Repository Services
-builder.Services.AddScoped<IAccountRepository, AccountRepository>();
-builder.Services.AddScoped<ITokenRepository, TokenRepository>();
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ICoursekeyRepository, CoursekeyRepository>();
-builder.Services.AddScoped<ICoursesectionRepository, CoursesectionRepository>();
-builder.Services.AddScoped<ILessonRepository, LessonRepository>();
-builder.Services.AddScoped<ILessonitemRepository, LessonitemRepository>();
-builder.Services.AddScoped<IProcessRepository, ProcessRepository>();
-builder.Services.AddScoped<IProcessitemRepository, ProcessitemRepository>();
-
-// Configure Application Services
-builder.Services.AddAutoMapper(cfg => cfg.AddProfile<BusinessObject.Mapping.MappingProfile>());
-builder.Services.AddScoped<AccountService>();
-builder.Services.AddScoped<CourseService>();
-builder.Services.AddScoped<CategoryService>();
-builder.Services.AddScoped<CourseRegistrationService>();
-builder.Services.AddScoped<TrelloApiService>();
-builder.Services.AddHttpClient<ApiService>();
-builder.Services.AddScoped<VnPayApiService>();
-builder.Services.AddScoped<OpenAIApiService>();
-builder.Services.AddScoped<PaymentService>();
-builder.Services.AddScoped<TestService>();
-
-// Add Infrastructure Services
-builder.Services.AddMemoryCache();
-builder.Services.AddHttpContextAccessor();
+// Đăng ký dịch vụ thông qua extension methods
+builder.Services
+    .AddRepositoryServices()
+    .AddApplicationServices()
+    .AddInfrastructureServices();
 
 builder.Services.AddControllers();
 
@@ -166,6 +144,64 @@ builder.Services.AddControllersWithViews()
 
 
 var app = builder.Build();
+
+// Khởi tạo các role khi ứng dụng chạy
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+
+    // Danh sách các role cần tạo
+    string[] roleNames = { "Admin", "Parent", "Student", "Teacher" };
+
+    foreach (var roleName in roleNames)
+    {
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            await roleManager.CreateAsync(new IdentityRole(roleName));
+            Console.WriteLine($"Đã tạo role: {roleName}");
+        }
+    }
+
+    // Tạo tài khoản Admin mặc định nếu chưa có, hoặc cập nhật role nếu đã có
+    var adminUser = await userManager.FindByNameAsync("admin");
+    if (adminUser == null)
+    {
+        adminUser = new Account 
+        { 
+            UserName = "admin",
+            Email = "admin@example.com",
+            Name = "System Administrator",
+            Address = "Admin Address",
+            Phone = "0123456789",
+            Status = true,
+            DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddYears(-30))
+        };
+        
+        var result = await userManager.CreateAsync(adminUser, "A123456789a!");
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+            Console.WriteLine("Đã tạo tài khoản Admin mặc định");
+        }
+    }
+    else
+    {
+        // Tài khoản admin đã tồn tại, kiểm tra và cập nhật role
+        var currentRoles = await userManager.GetRolesAsync(adminUser);
+        if (!currentRoles.Contains("Admin"))
+        {
+            // Xóa tất cả role cũ
+            if (currentRoles.Any())
+            {
+                await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
+            }
+            // Thêm role Admin
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+            Console.WriteLine("Đã cập nhật role Admin cho tài khoản admin hiện có");
+        }
+    }
+}
 
 app.UseGlobalExceptionHandling();
 

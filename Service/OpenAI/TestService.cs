@@ -8,13 +8,14 @@ namespace Service.OpenAI
     public class TestService
     {
         private readonly OpenAIApiService _openAIApiService;
+        private readonly string OpenAIResponseApiBaseUrl = "https://api.openai.com/v1/responses";
 
         public TestService(OpenAIApiService openAIApiService)
         {
             _openAIApiService = openAIApiService;
         }
 
-        public async Task<List<GradedQuestion>> MarkTest(List<Question> questions)
+        public async Task<List<GradedQuestion>> MarkTest(List<QuestionTest> questions)
         {
             try
             {
@@ -46,7 +47,7 @@ namespace Service.OpenAI
                 };
 
                 var request = OpenApiRequest.Builder()
-                    .CallUrl("https://api.openai.com/v1/responses")
+                    .CallUrl("/responses")
                     .Body(body)
                     .Build();
 

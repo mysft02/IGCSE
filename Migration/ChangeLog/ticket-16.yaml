@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 16
+      author: quanghuy
+      changes:
+        - modifyDataType:
+            tableName: coursekey
+            columnName: StudentID
+            newDataType: VARCHAR(255)
+        - dropNotNullConstraint:
+           columnName: StudentID
+           tableName: coursekey
+           columnDataType: VARCHAR(255)
+        - addColumn:
+            tableName: coursekey
+            columns:
+              - column:
+                  name: Status
+                  type: VARCHAR(50)
+                  defaultValue: 'available'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: KeyValue
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropColumn:
+            columnName: Status
+            tableName: coursekey
+        - addNotNullConstraint:
+            columnName: StudentID
+            tableName: coursekey

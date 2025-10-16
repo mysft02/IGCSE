@@ -1,0 +1,19 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: feat-17-embed-data-vector
+      author: dungnt
+      changes:
+        # ===== COURSE ALTERATIONS =====
+        - addColumn:
+            tableName: course
+            columns:
+              - column:
+                  name: EmbeddingData
+                  type: LONGTEXT
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropColumn:
+             tableName: course
+             columnName: EmbeddingData
