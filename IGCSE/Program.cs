@@ -197,15 +197,15 @@ using (var scope = app.Services.CreateScope())
 
 app.UseGlobalExceptionHandling();
 
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "IGCSE V1");
         c.RoutePrefix = string.Empty;
     });
-}
+//}
 
 //app.UseCustomJwtBearer();
 app.UseCors("AllowAllOrigins");
