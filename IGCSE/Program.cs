@@ -174,7 +174,7 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
 
     // Danh sách các role cần tạo
-    string[] roleNames = { "Admin", "Parent", "Student", "Teacher" };
+    string[] roleNames = { "Admin", "Parent", "Student", "Teacher", "Manager" };
 
     foreach (var roleName in roleNames)
     {

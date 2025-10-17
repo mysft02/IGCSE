@@ -8,7 +8,7 @@ namespace DTOs.Request.Accounts
         public string UserId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Role là bắt buộc")]
-        [RegularExpression("^(Parent|Student|Teacher|Admin)$", ErrorMessage = "Role phải là Parent, Student, Teacher hoặc Admin")]
+        [RegularExpression("^(Parent|Student|Teacher|Admin|Manager)$", ErrorMessage = "Role phải là Parent, Student, Teacher, Manager hoặc Admin")]
         public string Role { get; set; } = string.Empty;
     }
 }

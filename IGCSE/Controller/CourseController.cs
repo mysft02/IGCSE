@@ -27,8 +27,8 @@ namespace IGCSE.Controller
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // Existing course management endpoints
         [HttpPost("create")]
+        [Authorize(Roles = "Teacher")]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> CreateCourse([FromForm] CourseRequest request)
         {
             if (!ModelState.IsValid)
@@ -73,11 +73,69 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
+        [Authorize(Roles = "Manager")]
         public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
             {
                 var result = await _courseService.GetCoursesPagedAsync(query);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("pending")]
+        [Authorize(Roles = "Manager")]
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchByName = null)
+        {
+            try
+            {
+                var result = await _courseService.GetPendingCoursesPagedAsync(page, pageSize, searchByName);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("{courseId}/approve")]
+        [Authorize(Roles = "Manager")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> ApproveCourse(long courseId)
+        {
+            try
+            {
+                var result = await _courseService.ApproveCourseAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("{courseId}/reject")]
+        [Authorize(Roles = "Manager")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> RejectCourse(long courseId, [FromBody] string? reason)
+        {
+            try
+            {
+                var result = await _courseService.RejectCourseAsync(courseId, reason);
                 return Ok(result);
             }
             catch (Exception ex)

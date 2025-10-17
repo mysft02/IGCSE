@@ -49,7 +49,7 @@ namespace Service
                     Price = request.Price,
                     ImageUrl = request.ImageUrl,
                     CategoryId = request.CategoryId,
-                    Status = request.Status,
+                    Status = "Open",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -68,6 +68,67 @@ namespace Service
             {
                 throw new Exception($"Failed to create course: {ex.Message}");
             }
+        }
+
+        public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(long courseId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            course.Status = "Approved";
+            course.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                "Course approved successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<CourseResponse>> RejectCourseAsync(long courseId, string? reason)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            course.Status = "Rejected";
+            course.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                string.IsNullOrWhiteSpace(reason) ? "Course rejected" : $"Course rejected: {reason}",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<PagedResponse<CourseResponse>>> GetPendingCoursesPagedAsync(int page, int pageSize, string? searchByName)
+        {
+            var (items, total) = await _courseRepository.SearchAsync(page <= 0 ? 1 : page, pageSize <= 0 ? 10 : pageSize, searchByName, null, "Pending");
+            var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
+            var totalPages = (int)Math.Ceiling(total / (double)(pageSize <= 0 ? 10 : pageSize));
+            var paged = new PagedResponse<CourseResponse>
+            {
+                CurrentPage = page <= 0 ? 1 : page,
+                PageSize = pageSize <= 0 ? 10 : pageSize,
+                TotalPages = totalPages,
+                TotalRecords = total,
+                Data = courseResponses
+            };
+
+            return new BaseResponse<PagedResponse<CourseResponse>>(
+                "Pending courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                paged
+            );
         }
 
         public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(long courseId, CourseRequest request)
