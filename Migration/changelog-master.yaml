@@ -2,10 +2,11 @@
   - include:
       file: ./ChangeLog/ticket-8.yaml
   - include:
-      file: ./ChangeLog/ticket-21.yaml
       file: ./ChangeLog/ticket-7.yaml
   - include:
       file: ./ChangeLog/ticket-16.yaml
+  - include:
+      file: ./ChangeLog/ticket-21.yaml
   - include:
       file: ./ChangeLog/ticket-19.yaml
   - include:

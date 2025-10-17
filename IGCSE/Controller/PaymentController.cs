@@ -20,7 +20,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create-vnpay-url")]
-        [Authorize] // UNCOMMENTED - REQUIRED FOR AUTHENTICATION
+        [Authorize]
         public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
         {
             if (!ModelState.IsValid)
@@ -47,38 +47,6 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
                 ));
-            }
-        }
-
-        [HttpPost("vnpay-callback")]
-        public async Task<IActionResult> VnPayCallback()
-        {
-            var queryParams = Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-
-            if (!queryParams.ContainsKey("vnp_TxnRef") || !queryParams.ContainsKey("vnp_ResponseCode"))
-            {
-                return Content("<html><body><h2>Thanh toán thất bại</h2><p>Dữ liệu chưa đủ!</p></body></html>", "text/html");
-            }
-
-            try
-            {
-                var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
-                var key = result.Data;
-                return Content($@"
-                    <html>
-                        <head><title>Thanh toán thành công</title></head>
-                        <body>
-                            <h2>Thanh toán thành công!</h2>
-                            <p>Mã key kích hoạt khoá học của bạn: <b>{key}</b></p>
-                        </body>
-                    </html>", "text/html");
-            }
-            catch (Exception ex)
-            {
-                return Content($@"<html><body>
-                    <h2>Thanh toán thất bại</h2>
-                    <p>{ex.Message}</p>
-                    </body></html>", "text/html");
             }
         }
 
