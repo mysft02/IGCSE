@@ -1,94 +1,89 @@
 ﻿databaseChangeLog:
   - changeSet:
-      id: feat-7-fix-course-schema
+      id: 7
       author: quanghuy
       changes:
-        # ===== COURSE =====
-        - createTable:
+        # ===== COURSE ALTERATIONS =====
+        # Thêm các cột còn thiếu
+        - addColumn:
             tableName: course
             columns:
               - column:
-                  name: CourseID
-                  type: INT
-                  autoIncrement: true
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-
-              - column:
-                  name: Name
-                  type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-
-              - column:
-                  name: Description
-                  type: VARCHAR(1000)
-
-              - column:
-                  name: Status
-                  type: VARCHAR(50)
-                  constraints:
-                    nullable: false
-
-              - column:
                   name: Price
                   type: DECIMAL(18,2)
+                  defaultValueNumeric: 0.00
                   constraints:
-                    nullable: true
-
+                    nullable: false
+        - addColumn:
+            tableName: course
+            columns:
               - column:
                   name: ImageUrl
                   type: VARCHAR(500)
-                  constraints:
-                    nullable: true
-
-              - column:
-                  name: CategoryId
-                  type: INT
-                  constraints:
-                    nullable: true
-
-              - column:
-                  name: CreatedAt
-                  type: DATETIME
-
-              - column:
-                  name: UpdatedAt
-                  type: DATETIME
-
-              - column:
-                  name: CreatedBy
-                  type: VARCHAR(255)
-
-              - column:
-                  name: UpdatedBy
-                  type: VARCHAR(255)
-
-        - createTable:
-            tableName: category
-            columns:
-              - column:
-                  name: CategoryID
-                  type: INT
-                  autoIncrement: true
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: CategoryName
-                  type: VARCHAR(255)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: Description
-                  type: TEXT
-              - column:
-                  name: IsActive
-                  type: TINYINT(1)
-                  defaultValueNumeric: 1
-                  constraints:
-                    nullable: false
+        
+        # Sửa đổi các cột hiện có
+        - renameColumn:
+            tableName: course
+            oldColumnName: id
+            newColumnName: CourseID
+        - renameColumn:
+            tableName: course
+            oldColumnName: name
+            newColumnName: Name
+        - renameColumn:
+            tableName: course
+            oldColumnName: createdat
+            newColumnName: CreatedAt
+        - renameColumn:
+            tableName: course
+            oldColumnName: updatedat
+            newColumnName: UpdatedAt
+        - renameColumn:
+            tableName: course
+            oldColumnName: createdby
+            newColumnName: CreatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: updatedby
+            newColumnName: UpdatedBy
+        - renameColumn:
+            tableName: course
+            oldColumnName: category
+            newColumnName: CategoryID
+        - renameColumn:
+            tableName: course
+            oldColumnName: description
+            newColumnName: Description
+        - renameColumn:
+            tableName: course
+            oldColumnName: status
+            newColumnName: Status
+        
+        # Thay đổi kiểu dữ liệu
+        - modifyDataType:
+            tableName: course
+            columnName: CourseID
+            newDataType: INT AUTO_INCREMENT
+        - modifyDataType:
+            tableName: course
+            columnName: description
+            newDataType: TEXT
+        - modifyDataType:
+            tableName: course
+            columnName: CategoryID
+            newDataType: INT
+        
+        # Thêm default values cho timestamp - sử dụng modifyDataType với defaultValueComputed
+        - modifyDataType:
+            tableName: course
+            columnName: CreatedAt
+            newDataType: DATETIME
+            defaultValueComputed: CURRENT_TIMESTAMP
+        - modifyDataType:
+            tableName: course
+            columnName: UpdatedAt
+            newDataType: DATETIME
+            defaultValueComputed: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
 
         # ===== COURSE SECTION =====
         - createTable:
@@ -338,6 +333,30 @@
               - column:
                   name: UpdatedAt
                   type: DATETIME
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: CategoryID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CategoryName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
 
       rollback:
         - dropTable:
@@ -353,6 +372,63 @@
         - dropTable:
             tableName: coursesection
         - dropTable:
-            tableName: course
-        - dropTable:
             tableName: category
+        # Rollback course alterations
+        - dropColumn:
+            tableName: course
+            columnName: Price
+        - dropColumn:
+            tableName: course
+            columnName: ImageUrl
+        - renameColumn:
+            tableName: course
+            oldColumnName: CourseID
+            newColumnName: id
+        - renameColumn:
+            tableName: course
+            oldColumnName: CourseName
+            newColumnName: name
+        - renameColumn:
+            tableName: course
+            oldColumnName: CreatedAt
+            newColumnName: createdat
+        - renameColumn:
+            tableName: course
+            oldColumnName: UpdatedAt
+            newColumnName: updatedat
+        - renameColumn:
+            tableName: course
+            oldColumnName: CreatedBy
+            newColumnName: createdby
+        - renameColumn:
+            tableName: course
+            oldColumnName: UpdatedBy
+            newColumnName: updatedby
+        - renameColumn:
+            tableName: course
+            oldColumnName: CategoryID
+            newColumnName: category
+        - modifyDataType:
+            tableName: course
+            columnName: id
+            newDataType: BIGINT
+        - modifyDataType:
+            tableName: course
+            columnName: description
+            newDataType: VARCHAR(1000)
+        - modifyDataType:
+            tableName: course
+            columnName: status
+            newDataType: VARCHAR(50)
+        - modifyDataType:
+            tableName: course
+            columnName: category
+            newDataType: VARCHAR(255)
+        - modifyDataType:
+            tableName: course
+            columnName: createdat
+            newDataType: DATETIME
+        - modifyDataType:
+            tableName: course
+            columnName: updatedat
+            newDataType: DATETIME

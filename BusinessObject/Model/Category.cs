@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace BusinessObject.Model;
 
-namespace BusinessObject.Model;
-
-public partial class Category
+public class Category
 {
     public int CategoryId { get; set; }
 

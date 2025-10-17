@@ -9,6 +9,10 @@ using Microsoft.AspNetCore.Authorization;
 using Service;
 using DTOs.Response.Accounts;
 using Common.Utils;
+using BusinessObject.Payload.Request.VnPay;
+using BusinessObject.Payload.Response.VnPay;
+using Microsoft.AspNetCore.Http.Extensions;
+using BusinessObject.DTOs.Request.Courses;
 
 namespace IGCSE.Controller
 {
@@ -19,12 +23,14 @@ namespace IGCSE.Controller
         private readonly CourseService _courseService;
         private readonly CourseRegistrationService _courseRegistrationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly PaymentService _paymentService;
 
-        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment)
+        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment, PaymentService paymentService)
         {
             _courseService = courseService;
             _courseRegistrationService = courseRegistrationService;
             _webHostEnvironment = webHostEnvironment;
+            _paymentService = paymentService;
         }
 
         [HttpPost("create")]
@@ -43,33 +49,13 @@ namespace IGCSE.Controller
                 ));
         }
 
-            try
-        {
-                if (request.ImageFile != null && FileUploadHelper.IsValidImageFile(request.ImageFile))
-                {
-                    var imageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, _webHostEnvironment.WebRootPath);
-                    request.ImageUrl = imageUrl;
-                }
+            if (request.ImageFile != null && FileUploadHelper.IsValidImageFile(request.ImageFile))
+            {
+                request.ImageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, _webHostEnvironment.WebRootPath);
+            }
 
-                var result = await _courseService.CreateCourseAsync(request);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseService.CreateCourseAsync(request);
+            return Ok(result);
         }
 
         [HttpGet("all")]
@@ -151,37 +137,15 @@ namespace IGCSE.Controller
         [HttpGet("registrations/{studentId}")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetStudentRegistrations(string studentId)
         {
-            try
-            {
-                var result = await _courseRegistrationService.GetStudentRegistrationsAsync(studentId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseRegistrationService.GetStudentRegistrationsAsync(studentId);
+            return Ok(result);
         }
 
         [HttpGet("content/{courseKeyId}/section/{courseSectionId}")]
         public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> GetCourseContent(long courseKeyId, long courseSectionId)
         {
-            try
-            {
-                var result = await _courseRegistrationService.GetCourseContentAsync(courseKeyId, courseSectionId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.NotFound_404,
-                    null
-                ));
-            }
+            var result = await _courseRegistrationService.GetCourseContentAsync(courseKeyId, courseSectionId);
+            return Ok(result);
         }
 
         [HttpGet("progress")]
@@ -205,19 +169,8 @@ namespace IGCSE.Controller
         [HttpPost("complete-lesson-item")]
         public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
         {
-            try
-            {
-                var result = await _courseRegistrationService.CompleteLessonItemAsync(courseKeyId, lessonItemId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseRegistrationService.CompleteLessonItemAsync(courseKeyId, lessonItemId);
+            return Ok(result);
         }
 
         // Course Content Management endpoints
@@ -236,20 +189,9 @@ namespace IGCSE.Controller
                 ));
             }
 
-            try
-            {
-                var result = await _courseService.CreateCourseSectionAsync(request);
-                return Created("course section", result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-            }
+            var result = await _courseService.CreateCourseSectionAsync(request);
+            return Created("course section", result);
+        }
 
         [HttpPost("lesson/create")]
         public async Task<ActionResult<BaseResponse<LessonResponse>>> CreateLesson([FromBody] LessonRequest request)
@@ -266,19 +208,8 @@ namespace IGCSE.Controller
                 ));
         }
 
-            try
-        {
-                var result = await _courseService.CreateLessonAsync(request);
-                return Created("lesson", result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseService.CreateLessonAsync(request);
+            return Created("lesson", result);
         }
 
         [HttpPost("lesson-item/create")]
@@ -340,37 +271,15 @@ namespace IGCSE.Controller
         [HttpGet("{courseId}/sections")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
         {
-            try
-            {
-                var result = await _courseService.GetCourseSectionsAsync(courseId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseService.GetCourseSectionsAsync(courseId);
+            return Ok(result);
         }
 
         [HttpGet("lesson/{lessonId}/items")]
         public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
         {
-            try
-            {
-                var result = await _courseService.GetLessonItemsAsync(lessonId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseService.GetLessonItemsAsync(lessonId);
+            return Ok(result);
         }
 
         [HttpPost("redeem-key")]
@@ -430,6 +339,56 @@ namespace IGCSE.Controller
                     null
                 ));
             }
+        }
+
+        [HttpPost("create-vnpay-url")]
+        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _paymentService.CreatePaymentUrlAsync(HttpContext, request);
+            return Ok(result);
+        }
+
+        [HttpPost("vnpay-callback")]
+        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
+        {
+            var currentUrl = Request.GetDisplayUrl();
+
+            var queryParams = Request.Query
+                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+            var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
+            return Ok(result);
+        }
+
+        [HttpGet("get-all-similar-courses")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromBody] SimilarCourseRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
+            return Ok(result);
         }
     }
 }

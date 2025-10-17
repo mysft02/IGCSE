@@ -1,4 +1,5 @@
-﻿using BusinessObject.Payload.Request.OpenAI;
+﻿using BusinessObject.Model;
+using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Response.OpenAI;
 using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,13 @@ namespace IGCSE.Controller
     public class TestController : ControllerBase
     {
         private readonly TestService _testService;
+        private readonly OpenAIEmbeddingsApiService _openAIEmbeddingsApiService;
 
-        public TestController(TestService testService)
+        public TestController(TestService testService, OpenAIEmbeddingsApiService openAIEmbeddingsApiService)
         {
             _testService = testService;
+            _openAIEmbeddingsApiService = openAIEmbeddingsApiService;
+
         }
 
         [HttpPost("mark")]
@@ -32,19 +36,8 @@ namespace IGCSE.Controller
                 ));
             }
 
-            try
-            {
-                var result = await _testService.MarkTest(request.Questions);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _testService.MarkTest(request.Questions);
+            return Ok(result);
         }
     }
 }

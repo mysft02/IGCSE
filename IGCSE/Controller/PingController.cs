@@ -4,6 +4,8 @@ using Service.Trello;
 using BusinessObject.Payload.Request.OpenAI;
 using Common.Utils;
 using Service.OpenAI;
+using System.Security.Principal;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace IGCSE.Controller;
 
@@ -46,8 +48,9 @@ public class PingController : ControllerBase
         var apiKey = CommonUtils.GetApiKey("OPEN_API_KEY");
 
         var request = OpenApiRequest.Builder()
-            .CallUrl("https://api.openai.com/v1/models")
+            .CallUrl("/models")
             .Build();
+        request.BuildUrl();
 
         var result = await _openApiService.GetAsync<object>(request);
         return Ok(result);

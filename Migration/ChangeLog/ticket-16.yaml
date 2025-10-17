@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: feat-16-payment
+      id: 16
       author: quanghuy
       changes:
         - modifyDataType:
