@@ -1,6 +1,7 @@
 using DTOs.Request.Accounts;
 using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Service;
 
 namespace IGCSE.Controller
@@ -71,14 +72,14 @@ namespace IGCSE.Controller
 
             try
             {
-                // Lấy user hiện tại từ claims
+                // Lấy user hiện tại từ claims trong JWT token
                 var user = HttpContext.User;
                 var currentUserId = user.FindFirst("AccountID")?.Value;
-                
+
                 if (string.IsNullOrEmpty(currentUserId))
                 {
                     return Unauthorized(new BaseResponse<string>(
-                        "Không tìm thấy thông tin người dùng",
+                        "Không tìm thấy thông tin người dùng hiện tại",
                         Common.Constants.StatusCodeEnum.Unauthorized_401,
                         null
                     ));

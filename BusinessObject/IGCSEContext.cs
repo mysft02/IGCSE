@@ -263,6 +263,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.LessonId).HasColumnName("LessonID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.Property(e => e.IsUnlocked).HasColumnName("IsUnlocked").HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Processitem>(entity =>

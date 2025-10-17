@@ -247,6 +247,12 @@ namespace Service
         {
             try
             {
+                // Kiểm tra người dùng hiện tại có được xác thực không
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    throw new Exception("Người dùng chưa đăng nhập");
+                }
+
                 // Kiểm tra quyền Admin
                 var currentUser = await _userManager.FindByIdAsync(currentUserId);
                 if (currentUser == null)
