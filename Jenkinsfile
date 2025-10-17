@@ -249,6 +249,22 @@ pipeline {
                 '''
             }
         }
+
+        stage('Deploy to Host') {
+    steps {
+        sh '''
+            echo "🚀 Copying publish files to host..."
+            HOST_PATH="/var/www/igcse"
+            mkdir -p $HOST_PATH
+            cp -r ./publish/* $HOST_PATH/
+            
+            echo "▶ Restarting app on host..."
+            pkill -f "dotnet $HOST_PATH/IGCSE.dll" || true
+            nohup dotnet $HOST_PATH/IGCSE.dll > $HOST_PATH/app.log 2>&1 &
+            echo "✅ App running on port 7211"
+        '''
+    }
+}
     }
     
     post {
