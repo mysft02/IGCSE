@@ -50,18 +50,19 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpGet("vnpay-callback")]
-
-        public async Task<IActionResult> VnPayCallback([FromQuery] VnPayCallbackRequest request)
+        [HttpPost("vnpay-callback")]
+        public async Task<IActionResult> VnPayCallback()
         {
-            if (string.IsNullOrEmpty(request.vnp_TxnRef) || string.IsNullOrEmpty(request.vnp_ResponseCode))
+            var queryParams = Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+            if (!queryParams.ContainsKey("vnp_TxnRef") || !queryParams.ContainsKey("vnp_ResponseCode"))
             {
                 return Content("<html><body><h2>Thanh toán thất bại</h2><p>Dữ liệu chưa đủ!</p></body></html>", "text/html");
             }
-            
+
             try
             {
-                var result = await _paymentService.HandlePaymentSuccessAsync(request);
+                var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
                 var key = result.Data;
                 return Content($@"
                     <html>
