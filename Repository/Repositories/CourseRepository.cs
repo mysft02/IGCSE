@@ -68,6 +68,7 @@ namespace Repository.Repositories
                 .ToListAsync();
 
             return (items, total);
+        }
         public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(long courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);

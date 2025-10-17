@@ -18,8 +18,9 @@ namespace Service
         private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
+        private readonly IPaymentRepository _paymentRepository;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager)
+        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager, IPaymentRepository paymentRepository)
         {
             _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
@@ -68,7 +69,6 @@ namespace Service
                     .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent: {parentId}")
                     .AddParameter("vnp_OrderType", "other")
                     .AddParameter("vnp_Locale", "vn")
-                    .AddParameter("vnp_ReturnUrl", "https://localhost:7211/api/payment/vnpay-callback")
                     .AddParameter("vnp_ReturnUrl", CommonUtils.GetApiKey("VNP_RETURN_URL"))
                     .AddParameter("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"))
                     .AddParameter("vnp_IpAddr", CommonUtils.GetIpAddress(context))
@@ -215,7 +215,6 @@ namespace Service
             }
         }
 
-        private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
         public async Task<VnPayQueryApiResponse> GetVnPayTransactionDetail(VnPayQueryApiRequest request, HttpContext context)
         {
                 var body = new VnPayQueryApiBody

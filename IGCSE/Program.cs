@@ -19,6 +19,13 @@ using BusinessObject.Model;
 using IGCSE.Extensions;
 
 
+// Ensure wwwroot exists BEFORE building the web application to avoid DirectoryNotFoundException
+var preBuildWebRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+if (!Directory.Exists(preBuildWebRoot))
+{
+    Directory.CreateDirectory(preBuildWebRoot);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 Env.Load("ApiKey.env");
@@ -208,7 +215,13 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+//// Ensure wwwroot exists to avoid DirectoryNotFoundException when serving static files
+//var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+//if (!Directory.Exists(webRootPath))
+//{
+//    Directory.CreateDirectory(webRootPath);
+//}
+//app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
