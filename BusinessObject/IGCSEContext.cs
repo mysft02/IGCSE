@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Configuration;
 
+
 namespace BusinessObject;
 
 public partial class IGCSEContext : IdentityDbContext<Account>
@@ -30,16 +31,32 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Quizresult> Quizresults { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148.
-        => optionsBuilder.UseMySql(GetConnectionString(), ServerVersion.Parse("8.0.43-mysql"));
-
-    private string GetConnectionString()
     {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json")
+        if (optionsBuilder.IsConfigured)
+        {
+            return;
+        }
+
+        // ?u tiên bi?n môi tr??ng (Jenkins truy?n vào) r?i m?i t?i appsettings.json
+        var envConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
+        if (!string.IsNullOrWhiteSpace(envConnection))
+        {
+            optionsBuilder.UseMySql(envConnection, ServerVersion.Parse("8.0.43-mysql"));
+            return;
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
-        return configuration.GetConnectionString("DbConnection");
+
+        var fileConnection = configuration.GetConnectionString("DbConnection");
+        if (!string.IsNullOrWhiteSpace(fileConnection))
+        {
+            optionsBuilder.UseMySql(fileConnection, ServerVersion.Parse("8.0.43-mysql"));
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

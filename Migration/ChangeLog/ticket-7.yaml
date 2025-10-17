@@ -26,38 +26,47 @@
             tableName: course
             oldColumnName: id
             newColumnName: CourseID
+            columnDataType: INT
         - renameColumn:
             tableName: course
             oldColumnName: name
             newColumnName: Name
+            columnDataType: VARCHAR(255)
         - renameColumn:
             tableName: course
             oldColumnName: createdat
             newColumnName: CreatedAt
+            columnDataType: DATETIME
         - renameColumn:
             tableName: course
             oldColumnName: updatedat
             newColumnName: UpdatedAt
+            columnDataType: DATETIME
         - renameColumn:
             tableName: course
             oldColumnName: createdby
             newColumnName: CreatedBy
+            columnDataType: VARCHAR(255)
         - renameColumn:
             tableName: course
             oldColumnName: updatedby
             newColumnName: UpdatedBy
+            columnDataType: VARCHAR(255)
         - renameColumn:
             tableName: course
             oldColumnName: category
             newColumnName: CategoryID
+            columnDataType: INT
         - renameColumn:
             tableName: course
             oldColumnName: description
             newColumnName: Description
+            columnDataType: TEXT
         - renameColumn:
             tableName: course
             oldColumnName: status
             newColumnName: Status
+            columnDataType: VARCHAR(50)
         
         # Thay đổi kiểu dữ liệu
         - modifyDataType:

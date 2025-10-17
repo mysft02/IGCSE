@@ -5,15 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using IGCSE.Middleware;
-using Repository.IRepositories;
-using Repository.Repositories;
-using Repository.BaseRepository;
-using Repository.IBaseRepository;
-using Service;
-using Service.Trello;
 using DotNetEnv;
-using Service.OpenAI;
-using Service.VnPay;
 using BusinessObject;
 using BusinessObject.Model;
 using IGCSE.Extensions;
@@ -167,8 +159,8 @@ using (var scope = app.Services.CreateScope())
     var adminUser = await userManager.FindByNameAsync("admin");
     if (adminUser == null)
     {
-        adminUser = new Account 
-        { 
+        adminUser = new Account
+        {
             UserName = "admin",
             Email = "admin@example.com",
             Name = "System Administrator",
@@ -177,7 +169,7 @@ using (var scope = app.Services.CreateScope())
             Status = true,
             DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddYears(-30))
         };
-        
+
         var result = await userManager.CreateAsync(adminUser, "A123456789a!");
         if (result.Succeeded)
         {
