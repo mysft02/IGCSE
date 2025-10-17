@@ -145,6 +145,11 @@ pipeline {
         stage('Build Application') {
             steps {
                 sh '''
+                echo "=== COPY APPSETTINGS ==="
+            mkdir -p ./BusinessObject
+            cp ./IGCSE/appsettings.json ./BusinessObject/appsettings.json || true
+            echo "=== VERIFY APPSETTINGS ==="
+            cat ./IGCSE/appsettings.json | head -n 20
                     echo "=== BUILD PROCESS ==="
                     
                     # Tìm file solution (trong thư mục con nếu có)
