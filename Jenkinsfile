@@ -176,47 +176,66 @@ pipeline {
         }
 
         stage('Smoke Test') {
-            steps {
-                sh '''
-                    echo "=== RUNNING SMOKE TEST ==="
+    steps {
+        sh '''
+            echo "=== RUNNING SMOKE TEST ==="
 
-                    # Ưu tiên lấy file chính (IGCSE.dll)
-                    DLL_FILE=$(find ./publish -maxdepth 1 -name "IGCSE.dll" | head -1)
+            # Tìm file chính
+            DLL_FILE=$(find ./publish -maxdepth 1 -name "IGCSE.dll" | head -1)
 
-                    if [ -z "$DLL_FILE" ]; then
-                        echo "❌ ERROR: Main DLL (IGCSE.dll) not found in publish folder!"
-                        ls -la ./publish/
-                        exit 1
-                    fi
+            if [ -z "$DLL_FILE" ]; then
+                echo "❌ ERROR: Main DLL (IGCSE.dll) not found in publish folder!"
+                exit 1
+            fi
 
-                    echo "✅ Found DLL file: $DLL_FILE"
+            echo "✅ Found DLL file: $DLL_FILE"
 
-                    export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                    nohup dotnet "$DLL_FILE" > smoke_test.log 2>&1 &
-                    APP_PID=$!
+            # Chạy app nền
+            export ASPNETCORE_URLS="http://0.0.0.0:7211"
+            nohup dotnet "$DLL_FILE" > smoke_test.log 2>&1 &
+            APP_PID=$!
+            echo "App PID: $APP_PID"
 
-                    sleep 5
+            # Chờ app khởi động
+            sleep 7
 
-                    if ps -p $APP_PID > /dev/null; then
-                        echo "✅ App started successfully (PID: $APP_PID)"
-                        kill $APP_PID
-                    else
-                        echo "❌ App failed to start"
-                        echo "=== SMOKE TEST LOG ==="
-                        cat smoke_test.log
-                        exit 1
-                    fi
-                '''
-            }
-            post {
-                success {
-                    echo '✅ Smoke test passed!'
-                }
-                failure {
-                    echo '❌ Smoke test failed!'
-                }
-            }
-        }
+            # Kiểm tra xem tiến trình có đang chạy không
+            if ! ps -p $APP_PID > /dev/null; then
+                echo "❌ App failed to start"
+                echo "=== SMOKE TEST LOG ==="
+                cat smoke_test.log
+                exit 1
+            fi
+
+            echo "✅ App started successfully"
+
+            # Gọi API /ping và kiểm tra JSON trả về
+            echo "=== CALLING /ping API ==="
+            RESPONSE=$(curl -s -o response.json -w "%{http_code}" http://localhost:7211/api/ping || true)
+            
+            echo "HTTP STATUS: $RESPONSE"
+            echo "=== RESPONSE BODY ==="
+            cat response.json || true
+
+            if [ "$RESPONSE" != "200" ]; then
+                echo "❌ Smoke test failed — API /ping không trả về 200"
+                kill $APP_PID || true
+                exit 1
+            fi
+
+            # Kiểm tra xem response có phải JSON không
+            if ! cat response.json | jq . >/dev/null 2>&1; then
+                echo "❌ Smoke test failed — Response không phải JSON hợp lệ"
+                kill $APP_PID || true
+                exit 1
+            fi
+
+            echo "✅ Smoke test passed — API /ping hoạt động ổn định"
+            kill $APP_PID || true
+        '''
+    }
+}
+
 
         stage('Run App') {
             steps {
