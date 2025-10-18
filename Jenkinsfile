@@ -273,14 +273,14 @@ pipeline {
             echo "🚀 Starting app in background..."
             pkill -f "dotnet ./publish/IGCSE.dll" || true
             export ASPNETCORE_URLS="http://0.0.0.0:7211"
-            nohup dotnet ./publish/IGCSE.dll > app.out 2>&1 &
-            disown
+            setsid nohup dotnet ./publish/IGCSE.dll > app.out 2>&1 < /dev/null &
             sleep 5
             echo "✅ App started on port 7211"
-            ps aux | grep "dotnet ./publish/IGCSE.dll" | grep -v grep
+            ps aux | grep "IGCSE.dll" | grep -v grep
         '''
     }
 }
+
 
 
         stage('Deploy Local') {
