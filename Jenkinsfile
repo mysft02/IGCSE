@@ -303,9 +303,10 @@ pipeline {
     steps {
         sh '''
             echo "🚀 Copying publish files to host..."
-            HOST_PATH="/var/www/igcse"
+            HOST_PATH=/var/lib/jenkins/deploy/igcse
             mkdir -p $HOST_PATH
             cp -r ./publish/* $HOST_PATH/
+
             
             echo "▶ Restarting app on host..."
             pkill -f "dotnet $HOST_PATH/IGCSE.dll" || true
