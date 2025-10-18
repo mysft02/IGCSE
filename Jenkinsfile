@@ -31,13 +31,22 @@ pipeline {
         stage('Install .NET SDK') {
     steps {
         sh '''
-            echo "=== INSTALLING .NET SDK ==="
-            curl -L https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
-            chmod +x dotnet-install.sh
+            echo "=== CHECKING .NET SDK INSTALLATION ==="
 
-            # Cài SDK .NET 8 đầy đủ (bao gồm hostfxr)
-            ./dotnet-install.sh --channel 8.0 --install-dir $HOME/.dotnet
+            # Nếu dotnet đã có sẵn thì bỏ qua cài đặt
+            if command -v dotnet >/dev/null 2>&1; then
+                echo "✅ .NET SDK đã được cài đặt sẵn:"
+                dotnet --info | head -n 10
+            else
+                echo "⚙️  .NET SDK chưa có — tiến hành cài đặt..."
+                curl -L https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+                chmod +x dotnet-install.sh
 
+                # Cài SDK .NET 8 đầy đủ (bao gồm hostfxr)
+                ./dotnet-install.sh --channel 8.0 --install-dir $HOME/.dotnet
+            fi
+
+            # Cấu hình biến môi trường
             export DOTNET_ROOT=$HOME/.dotnet
             export PATH=$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH
 
@@ -46,12 +55,19 @@ pipeline {
             dotnet --list-runtimes
             dotnet --list-sdks
 
-            # Cài EF CLI (dùng riêng trong pipeline)
-            dotnet tool install --tool-path "$DOTNET_ROOT/tools" dotnet-ef || true
-            "$DOTNET_ROOT/tools/dotnet-ef" --version
+            # Cài EF CLI nếu chưa có
+            if [ ! -f "$DOTNET_ROOT/tools/dotnet-ef" ]; then
+                echo "⚙️  Cài đặt công cụ dotnet-ef..."
+                mkdir -p "$DOTNET_ROOT/tools"
+                dotnet tool install --tool-path "$DOTNET_ROOT/tools" dotnet-ef || true
+            fi
+
+            echo "✅ Kiểm tra phiên bản dotnet-ef:"
+            "$DOTNET_ROOT/tools/dotnet-ef" --version || true
         '''
     }
 }
+
 
 
         stage('Run EF Migrations') {
@@ -232,14 +248,19 @@ pipeline {
                 exit 1
             fi
 
-            # Kiểm tra xem response có phải JSON không
-            if ! cat response.json | jq . >/dev/null 2>&1; then
-                echo "❌ Smoke test failed — Response không phải JSON hợp lệ"
+            # Kiểm tra nội dung JSON có đúng message:pong không
+            EXPECTED='{"message":"pong"}'
+            ACTUAL=$(cat response.json | tr -d '[:space:]')
+
+            if [ "$ACTUAL" != "$EXPECTED" ]; then
+                echo "❌ Smoke test failed — Response không khớp"
+                echo "Expected: $EXPECTED"
+                echo "Actual:   $ACTUAL"
                 kill $APP_PID || true
                 exit 1
             fi
 
-            echo "✅ Smoke test passed — API /ping hoạt động ổn định"
+            echo "✅ Smoke test passed — API /ping trả về đúng dữ liệu"
             kill $APP_PID || true
         '''
     }
