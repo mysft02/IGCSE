@@ -256,12 +256,10 @@ pipeline {
                 echo "❌ Smoke test failed — Response không khớp"
                 echo "Expected: $EXPECTED"
                 echo "Actual:   $ACTUAL"
-                kill $APP_PID || true
                 exit 1
             fi
 
             echo "✅ Smoke test passed — API /ping trả về đúng dữ liệu"
-            kill $APP_PID || true
         '''
     }
 }
