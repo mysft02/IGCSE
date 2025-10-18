@@ -293,19 +293,19 @@ pipeline {
                     # Check if Docker is available
                     if ! command -v docker >/dev/null 2>&1; then
                         echo "❌ Docker not available in Jenkins container"
-                        echo "💡 Jenkins needs Docker-in-Docker (DinD) or Docker socket mounted"
-                        echo "🔧 Try running Jenkins with: -v /var/run/docker.sock:/var/run/docker.sock"
+                        echo "💡 Jenkins needs Docker socket mounted"
                         exit 1
                     fi
                     
-                    # Test Docker access
+                    # Test Docker access (using Docker socket)
                     if ! docker info >/dev/null 2>&1; then
                         echo "❌ Cannot access Docker daemon"
-                        echo "💡 Check Docker socket permissions or DinD setup"
+                        echo "💡 Check Docker socket permissions"
+                        echo "🔧 Try: sudo chmod 666 /var/run/docker.sock"
                         exit 1
                     fi
                     
-                    echo "✅ Docker is available"
+                    echo "✅ Docker is available via socket"
                     
                     # Create Dockerfile
                     cat > Dockerfile << 'EOF'
