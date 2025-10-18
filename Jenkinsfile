@@ -256,16 +256,91 @@ pipeline {
                 echo "❌ Smoke test failed — Response không khớp"
                 echo "Expected: $EXPECTED"
                 echo "Actual:   $ACTUAL"
+                kill $APP_PID || true
                 exit 1
             fi
 
             echo "✅ Smoke test passed — API /ping trả về đúng dữ liệu"
+            kill $APP_PID || true
         '''
     }
 }
 
 
-        
+        stage('Run App') {
+            steps {
+                sh '''
+                    pkill -f "dotnet ./publish/IGCSE.dll" || true
+                    export ASPNETCORE_URLS="http://0.0.0.0:7211"
+                    nohup dotnet ./publish/IGCSE.dll > app.out 2>&1 &
+                    sleep 3
+                    echo "=== PROCESS CHECK ==="
+                    ps aux | grep "IGCSE.dll" | grep -v grep || true
+                    echo "=== LAST LOGS ==="
+                    tail -n 200 app.out || true
+                '''
+            }
+        }
+
+        stage('Deploy Local') {
+            steps {
+                sh '''
+                    echo "=== DEPLOYING LOCALLY ==="
+                    ls -la ./publish/
+                    mkdir -p ./deploy
+                    cp -r ./publish/* ./deploy/
+                    chmod -R 755 ./deploy
+                    echo "=== DEPLOYMENT COMPLETED ==="
+                    ls -la ./deploy/
+                    echo ""
+                    echo "✅ LOCAL DEPLOYMENT COMPLETED!"
+                    echo "📁 Files are ready in: ./deploy/"
+                '''
+            }
+        }
+
+        stage('Network Check') {
+    steps {
+        sh '''
+            echo "=== NETWORK DIAGNOSTICS ==="
+            
+            # Kiểm tra IP interfaces
+            echo "=== NETWORK INTERFACES ==="
+            ip addr show || ifconfig
+            
+            # Kiểm tra listening ports
+            echo "=== LISTENING PORTS ==="
+            netstat -tulpn | grep :7211 || ss -tulpn | grep :7211
+            
+            # Kiểm tra firewall
+            echo "=== FIREWALL STATUS ==="
+            sudo ufw status 2>/dev/null || echo "ufw not available"
+            
+            # Test từ bên ngoài
+            echo "=== EXTERNAL ACCESS TEST ==="
+            PUBLIC_IP=$(curl -s ifconfig.me)
+            echo "Public IP: $PUBLIC_IP"
+            echo "Test command: curl http://$PUBLIC_IP:7211/api/ping"
+        '''
+    }
+}
+
+        stage('Deploy to Host') {
+    steps {
+        sh '''
+            echo "🚀 Copying publish files to host..."
+            HOST_PATH=/var/lib/jenkins/deploy/igcse
+            mkdir -p $HOST_PATH
+            cp -r ./publish/* $HOST_PATH/
+
+            
+            echo "▶ Restarting app on host..."
+            pkill -f "dotnet $HOST_PATH/IGCSE.dll" || true
+            nohup dotnet $HOST_PATH/IGCSE.dll > $HOST_PATH/app.log 2>&1 &
+            echo "✅ App running on port 7211"
+        '''
+    }
+}
     }
     
     post {
