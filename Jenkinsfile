@@ -256,16 +256,50 @@ pipeline {
                 echo "❌ Smoke test failed — Response không khớp"
                 echo "Expected: $EXPECTED"
                 echo "Actual:   $ACTUAL"
+                kill $APP_PID || true
                 exit 1
             fi
 
             echo "✅ Smoke test passed — API /ping trả về đúng dữ liệu"
+            kill $APP_PID || true
         '''
     }
 }
 
+
+        stage('Run App') {
+    steps {
+        sh '''
+            echo "🚀 Starting app in background..."
+            pkill -f "dotnet ./publish/IGCSE.dll" || true
+            export ASPNETCORE_URLS="http://0.0.0.0:7211"
+            nohup dotnet ./publish/IGCSE.dll > app.out 2>&1 &
+            disown
+            sleep 5
+            echo "✅ App started on port 7211"
+            ps aux | grep "dotnet ./publish/IGCSE.dll" | grep -v grep
+        '''
     }
-        
+}
+
+
+        stage('Deploy Local') {
+            steps {
+                sh '''
+                    echo "=== DEPLOYING LOCALLY ==="
+                    ls -la ./publish/
+                    mkdir -p ./deploy
+                    cp -r ./publish/* ./deploy/
+                    chmod -R 755 ./deploy
+                    echo "=== DEPLOYMENT COMPLETED ==="
+                    ls -la ./deploy/
+                    echo ""
+                    echo "✅ LOCAL DEPLOYMENT COMPLETED!"
+                    echo "📁 Files are ready in: ./deploy/"
+                '''
+            }
+        }
+    }
     
     post {
         always {
