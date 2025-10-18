@@ -2,14 +2,19 @@ pipeline {
     agent any
 
     environment {
+        // .NET Configuration
         DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1"
         PATH = "$HOME/.dotnet:${env.PATH}"
         DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+        
+        // Liquibase Configuration
         LIQUIBASE_HOME = "$WORKSPACE/.liquibase"
 
+        // Database Configuration
         DB_CONNECTION_STRING = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True"
         ConnectionStrings__DbConnection = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True"
 
+        // JWT Configuration
         JWT__Issuer = ""
         JWT__Audience = ""
         JWT__SigningKey = "sdgfijjh3466iu345g87g08c24g7204gr803g30587ghh35807fg39074fvg80493745gf082b507807g807fgf"
@@ -278,18 +283,258 @@ pipeline {
                 '''
             }
         }
+
+        /* =====================================
+           🐳 BUILD DOCKER IMAGE
+        ====================================== */
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    echo "=== BUILDING DOCKER IMAGE ==="
+                    
+                    # Create Dockerfile if not exists
+                    if [ ! -f Dockerfile ]; then
+                        cat > Dockerfile << 'EOF'
+# ===========================================
+# Build Stage
+# ===========================================
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy solution context
+COPY ./BusinessObject ./BusinessObject
+COPY ./Common ./Common
+COPY ./Repository ./Repository
+COPY ./Service ./Service
+COPY ./Migration ./Migration
+COPY ./IGCSE ./IGCSE
+
+# Restore dependencies
+RUN dotnet restore ./IGCSE/IGCSE.csproj
+
+# Build and publish
+RUN dotnet publish ./IGCSE/IGCSE.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# ===========================================
+# Runtime Stage
+# ===========================================
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+
+# Copy built application
+COPY --from=build /app/publish .
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:7211
+EXPOSE 7211
+
+# Start application
+ENTRYPOINT ["dotnet", "IGCSE.dll"]
+EOF
+                    fi
+
+                    # Build Docker image
+                    docker build -t igcse-app:${BUILD_NUMBER} .
+                    docker tag igcse-app:${BUILD_NUMBER} igcse-app:latest
+                    
+                    echo "✅ Docker image built successfully"
+                    docker images | grep igcse-app
+                '''
+            }
+        }
+
+        /* =====================================
+           🚀 DEPLOY TO SERVER
+        ====================================== */
+        stage('Deploy to Server') {
+            steps {
+                sh '''
+                    echo "=== DEPLOYING TO SERVER ==="
+                    
+                    # Create deployment script
+                    cat > deploy.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "=== STOPPING OLD CONTAINER ==="
+docker stop igcse-app || true
+docker rm igcse-app || true
+
+echo "=== PULLING NEW IMAGE ==="
+# If using registry, pull here
+# docker pull your-registry/igcse-app:latest
+
+echo "=== STARTING NEW CONTAINER ==="
+docker run -d \
+    --name igcse-app \
+    --restart unless-stopped \
+    -p 7211:7211 \
+    -e ConnectionStrings__DbConnection="$DB_CONNECTION_STRING" \
+    -e JWT__Issuer="$JWT__Issuer" \
+    -e JWT__Audience="$JWT__Audience" \
+    -e JWT__SigningKey="$JWT__SigningKey" \
+    -e ASPNETCORE_ENVIRONMENT=Production \
+    -e ASPNETCORE_URLS=http://+:7211 \
+    igcse-app:latest
+
+echo "=== WAITING FOR APP TO START ==="
+sleep 10
+
+echo "=== CHECKING APP HEALTH ==="
+for i in {1..30}; do
+    if curl -f http://localhost:7211/api/ping >/dev/null 2>&1; then
+        echo "✅ App is healthy!"
+        break
+    fi
+    echo "Waiting for app... ($i/30)"
+    sleep 2
+done
+
+echo "=== DEPLOYMENT COMPLETED ==="
+docker ps | grep igcse-app
+EOF
+
+                    chmod +x deploy.sh
+                    
+                    # Deploy locally (for testing)
+                    ./deploy.sh
+                    
+                    echo "✅ DEPLOYMENT COMPLETED!"
+                '''
+            }
+        }
+
+        /* =====================================
+           🔄 DEPLOY WITH DOCKER COMPOSE
+        ====================================== */
+        stage('Deploy with Docker Compose') {
+            when {
+                expression { env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master' }
+            }
+            steps {
+                sh '''
+                    echo "=== DEPLOYING WITH DOCKER COMPOSE ==="
+                    
+                    # Create docker-compose.yml
+                    cat > docker-compose.yml << 'EOF'
+                        version: "3.9"
+
+services:
+  web:
+    image: igcse-app:latest
+    container_name: igcse-web
+    ports:
+      - "7211:7211"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:7211
+      ConnectionStrings__DbConnection: "${DB_CONNECTION_STRING}"
+      JWT__Issuer: "${JWT__Issuer}"
+      JWT__Audience: "${JWT__Audience}"
+      JWT__SigningKey: "${JWT__SigningKey}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7211/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+EOF
+
+                    # Deploy with compose
+                    docker-compose down || true
+                    docker-compose up -d
+                    
+                    echo "✅ Docker Compose deployment completed"
+                    docker-compose ps
+                '''
+            }
+        }
+
+        /* =====================================
+           📊 POST-DEPLOYMENT VERIFICATION
+        ====================================== */
+        stage('Post-Deployment Verification') {
+            steps {
+                sh '''
+                    echo "=== POST-DEPLOYMENT VERIFICATION ==="
+                    
+                    # Wait for app to be ready
+                    sleep 15
+                    
+                    # Health check
+                    echo "Checking app health..."
+                    HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:7211/api/ping || echo "000")
+                    
+                    if [ "$HEALTH_RESPONSE" = "200" ]; then
+                        echo "✅ Health check passed"
+                    else
+                        echo "❌ Health check failed (HTTP $HEALTH_RESPONSE)"
+                        docker logs igcse-app --tail 50
+                        exit 1
+                    fi
+                    
+                    # API test
+                    echo "Testing API endpoints..."
+                    PING_RESPONSE=$(curl -s http://localhost:7211/api/ping)
+                    echo "Ping response: $PING_RESPONSE"
+                    
+                    if echo "$PING_RESPONSE" | grep -q "pong"; then
+                        echo "✅ API test passed"
+                    else
+                        echo "❌ API test failed"
+                        exit 1
+                    fi
+                    
+                    # Show running containers
+                    echo "=== RUNNING CONTAINERS ==="
+                    docker ps | grep igcse
+                    
+                    echo "✅ POST-DEPLOYMENT VERIFICATION COMPLETED!"
+                '''
+            }
+        }
+
+        /* =====================================
+           🧹 CLEANUP OLD IMAGES
+        ====================================== */
+        stage('Cleanup Old Images') {
+            steps {
+                sh '''
+                    echo "=== CLEANING UP OLD IMAGES ==="
+                    
+                    # Remove dangling images
+                    docker image prune -f
+                    
+                    # Keep only last 3 versions
+                    docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}" | grep igcse-app | tail -n +4 | awk '{print $1":"$2}' | xargs -r docker rmi || true
+                    
+                    echo "✅ Cleanup completed"
+                    docker images | grep igcse-app
+                '''
+            }
+        }
     }
 
     post {
         always {
-            echo 'Build process completed'
+            echo '============================================'
+            echo '🏁 BUILD PROCESS COMPLETED'
+            echo '============================================'
         }
         success {
-            echo '✅ Build SUCCESS!'
+            echo '============================================'
+            echo '✅ BUILD SUCCESS!'
             echo '📁 Application ready in ./deploy/ folder'
+            echo '🐳 Docker image: igcse-app:latest'
+            echo '🌐 App running on: http://localhost:7211'
+            echo '============================================'
         }
         failure {
-            echo '❌ Build FAILED!'
+            echo '============================================'
+            echo '❌ BUILD FAILED!'
+            echo '📋 Check logs above for details'
+            echo '============================================'
         }
     }
 }
