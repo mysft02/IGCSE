@@ -283,57 +283,122 @@ pipeline {
         }
 
         /* =====================================
-           🔄 CHECK APP STATUS
+           🐳 BUILD DOCKER IMAGE
         ====================================== */
-        stage('Check App Status') {
+        stage('Build Docker Image') {
             steps {
                 sh '''
-                    echo "=== CHECKING APP STATUS ==="
+                    echo "=== BUILDING DOCKER IMAGE ==="
                     
-                    # Check if app is still running (check screen/tmux sessions)
-                    if command -v screen >/dev/null 2>&1 && screen -list | grep -q igcse-app; then
-                        echo "✅ App is running in screen session"
-                        echo "📱 Access your app at: http://localhost:7211"
-                        echo "📋 App logs: tail -f app.log"
-                        echo "🔧 To attach: screen -r igcse-app"
-                    elif command -v tmux >/dev/null 2>&1 && tmux list-sessions | grep -q igcse-app; then
-                        echo "✅ App is running in tmux session"
-                        echo "📱 Access your app at: http://localhost:7211"
-                        echo "📋 App logs: tail -f app.log"
-                        echo "🔧 To attach: tmux attach -t igcse-app"
-                    elif [ -f app.pid ]; then
-                        APP_PID=$(cat app.pid)
-                        if ps -p $APP_PID > /dev/null; then
-                            echo "✅ App is still running (PID: $APP_PID)"
-                            echo "📱 Access your app at: http://localhost:7211"
-                            echo "📋 App logs: tail -f app.log"
-                        else
-                            echo "⚠️ App stopped unexpectedly, restarting with screen..."
-                            if command -v screen >/dev/null 2>&1; then
-                                screen -dmS igcse-app bash -c "cd $(pwd) && dotnet ./publish/IGCSE.dll > app.log 2>&1"
-                            else
-                                export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                                nohup dotnet ./publish/IGCSE.dll > app.log 2>&1 &
-                                echo $! > app.pid
-                            fi
-                            sleep 5
-                            echo "✅ App restarted"
-                        fi
-                    else
-                        echo "⚠️ No app found, starting with screen..."
-                        if command -v screen >/dev/null 2>&1; then
-                            screen -dmS igcse-app bash -c "cd $(pwd) && dotnet ./publish/IGCSE.dll > app.log 2>&1"
-                        else
-                            export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                            nohup dotnet ./publish/IGCSE.dll > app.log 2>&1 &
-                            echo $! > app.pid
-                        fi
-                        sleep 5
-                        echo "✅ App started"
+                    # Check if Docker is available
+                    if ! command -v docker >/dev/null 2>&1; then
+                        echo "❌ Docker not available in Jenkins container"
+                        echo "💡 Jenkins needs Docker-in-Docker (DinD) or Docker socket mounted"
+                        echo "🔧 Try running Jenkins with: -v /var/run/docker.sock:/var/run/docker.sock"
+                        exit 1
                     fi
                     
-                    # Show app status
-                    ps aux | grep "IGCSE.dll" | grep -v grep || echo "No app process found"
+                    # Test Docker access
+                    if ! docker info >/dev/null 2>&1; then
+                        echo "❌ Cannot access Docker daemon"
+                        echo "💡 Check Docker socket permissions or DinD setup"
+                        exit 1
+                    fi
+                    
+                    echo "✅ Docker is available"
+                    
+                    # Create Dockerfile
+                    cat > Dockerfile << 'EOF'
+# ===========================================
+# Build Stage
+# ===========================================
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy solution context
+COPY ./BusinessObject ./BusinessObject
+COPY ./Common ./Common
+COPY ./Repository ./Repository
+COPY ./Service ./Service
+COPY ./Migration ./Migration
+COPY ./IGCSE ./IGCSE
+
+# Restore dependencies
+RUN dotnet restore ./IGCSE/IGCSE.csproj
+
+# Build and publish
+RUN dotnet publish ./IGCSE/IGCSE.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# ===========================================
+# Runtime Stage
+# ===========================================
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+
+# Copy built application
+COPY --from=build /app/publish .
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:7211
+EXPOSE 7211
+
+# Start application
+ENTRYPOINT ["dotnet", "IGCSE.dll"]
+EOF
+
+                    # Build Docker image
+                    echo "Building Docker image..."
+                    docker build -t igcse-app:${BUILD_NUMBER} .
+                    docker tag igcse-app:${BUILD_NUMBER} igcse-app:latest
+                    
+                    echo "✅ Docker image built successfully"
+                    docker images | grep igcse-app
+                '''
+            }
+        }
+
+        /* =====================================
+           🚀 DEPLOY WITH DOCKER
+        ====================================== */
+        stage('Deploy with Docker') {
+            steps {
+                sh '''
+                    echo "=== DEPLOYING WITH DOCKER ==="
+                    
+                    # Stop and remove old container
+                    docker stop igcse-app || true
+                    docker rm igcse-app || true
+                    
+                    # Run new container with restart policy
+                    docker run -d \
+                        --name igcse-app \
+                        --restart unless-stopped \
+                        -p 7211:7211 \
+                        -e ConnectionStrings__DbConnection="$DB_CONNECTION_STRING" \
+                        -e JWT__Issuer="$JWT__Issuer" \
+                        -e JWT__Audience="$JWT__Audience" \
+                        -e JWT__SigningKey="$JWT__SigningKey" \
+                        -e ASPNETCORE_ENVIRONMENT=Production \
+                        -e ASPNETCORE_URLS=http://+:7211 \
+                        igcse-app:latest
+                    
+                    echo "=== WAITING FOR APP TO START ==="
+                    sleep 10
+                    
+                    echo "=== CHECKING APP HEALTH ==="
+                    for i in {1..30}; do
+                        if curl -f http://localhost:7211/api/ping >/dev/null 2>&1; then
+                            echo "✅ App is healthy!"
+                            break
+                        fi
+                        echo "Waiting for app... ($i/30)"
+                        sleep 2
+                    done
+                    
+                    echo "=== DEPLOYMENT COMPLETED ==="
+                    docker ps | grep igcse-app
+                    echo "🌐 App is running at: http://localhost:7211"
+                    echo "📋 View logs: docker logs igcse-app"
                 '''
             }
         }
