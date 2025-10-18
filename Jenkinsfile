@@ -8,8 +8,8 @@ pipeline {
         LIQUIBASE_HOME = "$WORKSPACE/.liquibase"
         DB_CONNECTION_STRING = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True"
         ConnectionStrings__DbConnection = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True"
-        JWT__Issuer = "IGCSE.Api"
-        JWT__Audience = "IGCSE.Client"
+        JWT__Issuer = ""
+        JWT__Audience = ""
         JWT__SigningKey = "sdgfijjh3466iu345g87g08c24g7204gr803g30587ghh35807fg39074fvg80493745gf082b507807g807fgf"
 
     }
