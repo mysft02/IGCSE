@@ -227,7 +227,7 @@ pipeline {
                         screen -dmS igcse-app bash -c "cd $(pwd) && dotnet '$DLL_FILE' > app.log 2>&1"
                         sleep 7
                         # Get PID from screen session
-                        APP_PID=$(screen -list | grep igcse-app | awk -F'\.' '{print $1}' | awk '{print $1}')
+                        APP_PID=$(screen -list | grep igcse-app | awk -F'.' '{print $1}' | awk '{print $1}')
                     elif command -v tmux >/dev/null 2>&1; then
                         echo "Using tmux for persistent app..."
                         tmux new-session -d -s igcse-app "cd $(pwd) && dotnet '$DLL_FILE' > app.log 2>&1"
