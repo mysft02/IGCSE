@@ -267,54 +267,7 @@ pipeline {
 }
 
 
-        stage('Run App') {
-            steps {
-                sh '''
-                    pkill -f "dotnet ./publish/IGCSE.dll" || true
-                    export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                    nohup dotnet ./publish/IGCSE.dll > app.out 2>&1 &
-                    sleep 3
-                    echo "=== PROCESS CHECK ==="
-                    ps aux | grep "IGCSE.dll" | grep -v grep || true
-                    echo "=== LAST LOGS ==="
-                    tail -n 200 app.out || true
-                '''
-            }
-        }
-
-        stage('Deploy Local') {
-            steps {
-                sh '''
-                    echo "=== DEPLOYING LOCALLY ==="
-                    ls -la ./publish/
-                    mkdir -p ./deploy
-                    cp -r ./publish/* ./deploy/
-                    chmod -R 755 ./deploy
-                    echo "=== DEPLOYMENT COMPLETED ==="
-                    ls -la ./deploy/
-                    echo ""
-                    echo "✅ LOCAL DEPLOYMENT COMPLETED!"
-                    echo "📁 Files are ready in: ./deploy/"
-                '''
-            }
-        }
-
-        stage('Deploy to Host') {
-    steps {
-        sh '''
-            echo "🚀 Copying publish files to host..."
-            HOST_PATH=/var/lib/jenkins/deploy/igcse
-            mkdir -p $HOST_PATH
-            cp -r ./publish/* $HOST_PATH/
-
-            
-            echo "▶ Restarting app on host..."
-            pkill -f "dotnet $HOST_PATH/IGCSE.dll" || true
-            nohup dotnet $HOST_PATH/IGCSE.dll > $HOST_PATH/app.log 2>&1 &
-            echo "✅ App running on port 7211"
-        '''
-    }
-}
+        
     }
     
     post {
