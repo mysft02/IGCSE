@@ -298,49 +298,6 @@ pipeline {
                 '''
             }
         }
-
-        stage('Network Check') {
-    steps {
-        sh '''
-            echo "=== NETWORK DIAGNOSTICS ==="
-            
-            # Kiểm tra IP interfaces
-            echo "=== NETWORK INTERFACES ==="
-            ip addr show || ifconfig
-            
-            # Kiểm tra listening ports
-            echo "=== LISTENING PORTS ==="
-            netstat -tulpn | grep :7211 || ss -tulpn | grep :7211
-            
-            # Kiểm tra firewall
-            echo "=== FIREWALL STATUS ==="
-            sudo ufw status 2>/dev/null || echo "ufw not available"
-            
-            # Test từ bên ngoài
-            echo "=== EXTERNAL ACCESS TEST ==="
-            PUBLIC_IP=$(curl -s ifconfig.me)
-            echo "Public IP: $PUBLIC_IP"
-            echo "Test command: curl http://$PUBLIC_IP:7211/api/ping"
-        '''
-    }
-}
-
-        stage('Deploy to Host') {
-    steps {
-        sh '''
-            echo "🚀 Copying publish files to host..."
-            HOST_PATH=/var/lib/jenkins/deploy/igcse
-            mkdir -p $HOST_PATH
-            cp -r ./publish/* $HOST_PATH/
-
-            
-            echo "▶ Restarting app on host..."
-            pkill -f "dotnet $HOST_PATH/IGCSE.dll" || true
-            nohup dotnet $HOST_PATH/IGCSE.dll > $HOST_PATH/app.log 2>&1 &
-            echo "✅ App running on port 7211"
-        '''
-    }
-}
     }
     
     post {
