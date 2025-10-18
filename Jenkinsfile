@@ -218,11 +218,28 @@ pipeline {
                     pkill -f "dotnet.*IGCSE.dll" || true
                     sleep 2
                     
-                    # Start the app
+                    # Start the app with systemd or screen/tmux for persistence
                     export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                    nohup dotnet "$DLL_FILE" > app.log 2>&1 &
-                    APP_PID=$!
-                    sleep 7
+                    
+                    # Try to use screen first, then tmux, then nohup as fallback
+                    if command -v screen >/dev/null 2>&1; then
+                        echo "Using screen for persistent app..."
+                        screen -dmS igcse-app bash -c "cd $(pwd) && dotnet '$DLL_FILE' > app.log 2>&1"
+                        sleep 7
+                        # Get PID from screen session
+                        APP_PID=$(screen -list | grep igcse-app | awk -F'\.' '{print $1}' | awk '{print $1}')
+                    elif command -v tmux >/dev/null 2>&1; then
+                        echo "Using tmux for persistent app..."
+                        tmux new-session -d -s igcse-app "cd $(pwd) && dotnet '$DLL_FILE' > app.log 2>&1"
+                        sleep 7
+                        # Get PID from tmux session
+                        APP_PID=$(tmux list-sessions | grep igcse-app | awk -F: '{print $1}')
+                    else
+                        echo "Using nohup for app (less persistent)..."
+                        nohup dotnet "$DLL_FILE" > app.log 2>&1 &
+                        APP_PID=$!
+                        sleep 7
+                    fi
 
                     if ! ps -p $APP_PID > /dev/null; then
                         echo "❌ App failed to start"
@@ -273,26 +290,44 @@ pipeline {
                 sh '''
                     echo "=== CHECKING APP STATUS ==="
                     
-                    # Check if app is still running
-                    if [ -f app.pid ]; then
+                    # Check if app is still running (check screen/tmux sessions)
+                    if command -v screen >/dev/null 2>&1 && screen -list | grep -q igcse-app; then
+                        echo "✅ App is running in screen session"
+                        echo "📱 Access your app at: http://localhost:7211"
+                        echo "📋 App logs: tail -f app.log"
+                        echo "🔧 To attach: screen -r igcse-app"
+                    elif command -v tmux >/dev/null 2>&1 && tmux list-sessions | grep -q igcse-app; then
+                        echo "✅ App is running in tmux session"
+                        echo "📱 Access your app at: http://localhost:7211"
+                        echo "📋 App logs: tail -f app.log"
+                        echo "🔧 To attach: tmux attach -t igcse-app"
+                    elif [ -f app.pid ]; then
                         APP_PID=$(cat app.pid)
                         if ps -p $APP_PID > /dev/null; then
                             echo "✅ App is still running (PID: $APP_PID)"
                             echo "📱 Access your app at: http://localhost:7211"
                             echo "📋 App logs: tail -f app.log"
                         else
-                            echo "⚠️ App stopped unexpectedly, restarting..."
-                            export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                            nohup dotnet ./publish/IGCSE.dll > app.log 2>&1 &
-                            echo $! > app.pid
+                            echo "⚠️ App stopped unexpectedly, restarting with screen..."
+                            if command -v screen >/dev/null 2>&1; then
+                                screen -dmS igcse-app bash -c "cd $(pwd) && dotnet ./publish/IGCSE.dll > app.log 2>&1"
+                            else
+                                export ASPNETCORE_URLS="http://0.0.0.0:7211"
+                                nohup dotnet ./publish/IGCSE.dll > app.log 2>&1 &
+                                echo $! > app.pid
+                            fi
                             sleep 5
                             echo "✅ App restarted"
                         fi
                     else
-                        echo "⚠️ No PID file found, starting app..."
-                        export ASPNETCORE_URLS="http://0.0.0.0:7211"
-                        nohup dotnet ./publish/IGCSE.dll > app.log 2>&1 &
-                        echo $! > app.pid
+                        echo "⚠️ No app found, starting with screen..."
+                        if command -v screen >/dev/null 2>&1; then
+                            screen -dmS igcse-app bash -c "cd $(pwd) && dotnet ./publish/IGCSE.dll > app.log 2>&1"
+                        else
+                            export ASPNETCORE_URLS="http://0.0.0.0:7211"
+                            nohup dotnet ./publish/IGCSE.dll > app.log 2>&1 &
+                            echo $! > app.pid
+                        fi
                         sleep 5
                         echo "✅ App started"
                     fi
