@@ -342,6 +342,9 @@ WORKDIR /app
 # Copy built application
 COPY --from=build /app/publish .
 
+# Copy ApiKey.env file to runtime
+COPY --from=build /src/IGCSE/ApiKey.env ./ApiKey.env
+
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:7211
 EXPOSE 7211
