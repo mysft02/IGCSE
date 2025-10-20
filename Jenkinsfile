@@ -40,6 +40,32 @@ pipeline {
             }
         }
 
+        stage('Inspect IGCSE Directory') {
+            steps {
+                sh '''
+                    echo "=== CHECKING IGCSE DIRECTORY ==="
+
+                    if [ -d "./IGCSE" ]; then
+                        echo "📂 Listing all files in ./IGCSE/"
+                        find ./IGCSE -type f -print | sort
+
+                        echo "----------------------------------------"
+                        if [ -f "./IGCSE/ApiKey.env" ]; then
+                            echo "🧾 Contents of ApiKey.env:"
+                            echo "----------------------------------------"
+                            cat ./IGCSE/ApiKey.env
+                            echo "----------------------------------------"
+                        else
+                            echo "⚠️  ApiKey.env not found in ./IGCSE/"
+                        fi
+                    else
+                        echo "❌ Directory ./IGCSE not found!"
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
         /* =====================================
            ⚙️ INSTALL .NET SDK
         ====================================== */
