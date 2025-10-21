@@ -1,4 +1,4 @@
-﻿namespace BusinessObject.Model;
+namespace BusinessObject.Model;
 
 public class Useranswer
 {
@@ -8,7 +8,7 @@ public class Useranswer
 
     public string Answer { get; set; } = null!;
 
-    public int UserId { get; set; }
+    public string UserId { get; set; } = null!;
 
     public virtual Question Question { get; set; } = null!;
 
