@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Service;
 using BusinessObject.DTOs.Request.ParentStudentLink;
 using BusinessObject.DTOs.Response.ParentStudentLink;
+using BusinessObject.Model;
 
 namespace IGCSE.Controller
 {
@@ -122,6 +123,13 @@ namespace IGCSE.Controller
             }
 
             var result = await _accountService.LinkStudentToParentAsync(request);
+            return Ok(result);
+        }
+
+        [HttpGet("get-all-students-belong-to-parent")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<AccountResponse>>>> GetListStudentsBelongToParent([FromQuery] string parentId)
+        {
+            var result = await _accountService.GetAllStudentsByParentId(parentId);
             return Ok(result);
         }
     }

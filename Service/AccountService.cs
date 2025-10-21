@@ -373,10 +373,43 @@ namespace Service
                 StudentId = request.StudentId,
             };
 
+            var checkDuplicate = await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(request.ParentId, request.StudentId);
+
+            if(checkDuplicate == true)
+            {
+                throw new Exception("Parent-Student link already exists.");
+            }
+
             var result = await _parentStudentLinkRepository.AddAsync(parentStudentLink);
             var response = _mapper.Map<ParentStudentLinkResponse>(result);
 
             return new BaseResponse<ParentStudentLinkResponse>(
+                "Parent-Student link created successfully",
+                StatusCodeEnum.Created_201,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<IEnumerable<AccountResponse>>> GetAllStudentsByParentId(string parentId)
+        {
+            var parent = await _accountRepository.GetByStringId(parentId);
+
+            if (parent == null)
+            {
+                throw new Exception("Parent not found.");
+            }
+
+            var parentRole = await _userManager.GetRolesAsync(parent);
+
+            if (!parentRole.Contains("Parent"))
+            {
+                throw new Exception("You are not a parent.");
+            }
+
+            var result = await _parentStudentLinkRepository.GetByParentId(parentId);
+            var response = _mapper.Map<IEnumerable<AccountResponse>>(result);
+
+            return new BaseResponse<IEnumerable<AccountResponse>>(
                 "Parent-Student link created successfully",
                 StatusCodeEnum.Created_201,
                 response

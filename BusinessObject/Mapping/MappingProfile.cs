@@ -8,6 +8,7 @@ using DTOs.Response.CourseRegistration;
 using DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Response.ParentStudentLink;
+using DTOs.Response.Accounts;
 
 namespace BusinessObject.Mapping
 {
@@ -16,7 +17,10 @@ namespace BusinessObject.Mapping
         public MappingProfile()
         {
             // Account mappings
-            //CreateMap<Account, xxxx>().ReverseMap();
+            CreateMap<Account, AccountResponse>()
+                .ForMember(dest => dest.UserID, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(src => src.Status))
+                .ReverseMap();
 
             // Course mappings
             CreateMap<Course, CourseResponse>()
@@ -64,7 +68,8 @@ namespace BusinessObject.Mapping
 
             CreateMap<Quiz, QuizResponse>().ReverseMap();
 
-            CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap();
+            CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap()
+                .ForMember(dest => dest.Student, opt => opt.MapFrom(src => src.Student));
         }
     }
 }

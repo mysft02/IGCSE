@@ -10,4 +10,8 @@ public partial class Parentstudentlink
     public string ParentId { get; set; } = null!;
 
     public string StudentId { get; set; } = null!;
+
+    public virtual Account Parent { get; set; } = null!;
+
+    public virtual Account Student { get; set; } = null!;
 }
