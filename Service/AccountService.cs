@@ -8,6 +8,9 @@ using Repository.IRepositories;
 using Common.Constants;
 using DTOs.Request.Accounts;
 using DTOs.Response.Accounts;
+using BusinessObject.DTOs.Request.ParentStudentLink;
+using BusinessObject.DTOs.Response.ParentStudentLink;
+using Repository.Repositories;
 
 namespace Service
 {
@@ -19,17 +22,19 @@ namespace Service
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITokenRepository _tokenRepository;
         private readonly SignInManager<Account> _signinManager;
+        private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
 
         public AccountService(IMapper mapper,
             IAccountRepository accountRepository,
             UserManager<Account> userManager,
             RoleManager<IdentityRole> roleManager,
             ITokenRepository tokenRepository,
-            SignInManager<Account> signinManager)
+            SignInManager<Account> signinManager,
+            IParentStudentLinkRepository parentStudentLinkRepository)
         {
             _mapper = mapper;
             _accountRepository = accountRepository;
-
+            _parentStudentLinkRepository = parentStudentLinkRepository;
             _userManager = userManager;
             _roleManager = roleManager;
             _tokenRepository = tokenRepository;
@@ -337,6 +342,45 @@ namespace Service
                 });
             }
             return accountInfoList;
+        }
+
+        public async Task<BaseResponse<ParentStudentLinkResponse>> LinkStudentToParentAsync(ParentStudentLinkRequest request)
+        {
+            var parent = await _accountRepository.GetByStringId(request.ParentId);
+            var student = await _accountRepository.GetByStringId(request.StudentId);
+
+            if (parent == null || student == null)
+            {
+                throw new Exception("Parent or student not found.");
+            }
+
+            var parentRole = await _userManager.GetRolesAsync(parent);
+            var studentRole = await _userManager.GetRolesAsync(student);
+
+            if (!parentRole.Contains("Parent"))
+            {
+                throw new Exception("You are not a parent.");
+            }
+
+            if (!studentRole.Contains("Student"))
+            {
+                throw new Exception("You are not a student.");
+            }
+
+            var parentStudentLink = new Parentstudentlink
+            {
+                ParentId = request.ParentId,
+                StudentId = request.StudentId,
+            };
+
+            var result = await _parentStudentLinkRepository.AddAsync(parentStudentLink);
+            var response = _mapper.Map<ParentStudentLinkResponse>(result);
+
+            return new BaseResponse<ParentStudentLinkResponse>(
+                "Parent-Student link created successfully",
+                StatusCodeEnum.Created_201,
+                response
+            );
         }
     }
 }

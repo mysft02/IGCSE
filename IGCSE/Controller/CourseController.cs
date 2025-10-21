@@ -13,6 +13,8 @@ using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Microsoft.AspNetCore.Http.Extensions;
 using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.ParentStudentLink;
+using BusinessObject.DTOs.Request.ParentStudentLink;
 
 namespace IGCSE.Controller
 {

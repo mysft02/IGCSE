@@ -351,27 +351,20 @@ namespace Service
 
         public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
         {
-            try
-            {
-                var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
+            var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
 
-                var courseResponses = new List<CourseResponse>();
-                foreach (var course in similarCourses)
-                {
-                    var courseResponse = _mapper.Map<CourseResponse>(course);
-                    courseResponses.Add(courseResponse);
-                }
-
-                return new BaseResponse<IEnumerable<CourseResponse>>(
-                    "Courses retrieved successfully",
-                    StatusCodeEnum.OK_200,
-                    courseResponses
-                );
-            }
-            catch (Exception ex)
+            var courseResponses = new List<CourseResponse>();
+            foreach (var course in similarCourses)
             {
-                throw new Exception($"Failed to get lesson items: {ex.Message}");
+                var courseResponse = _mapper.Map<CourseResponse>(course);
+                courseResponses.Add(courseResponse);
             }
+
+            return new BaseResponse<IEnumerable<CourseResponse>>(
+                "Courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                courseResponses
+            );
         }
     }
 }

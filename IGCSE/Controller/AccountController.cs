@@ -3,6 +3,8 @@ using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Service;
+using BusinessObject.DTOs.Request.ParentStudentLink;
+using BusinessObject.DTOs.Response.ParentStudentLink;
 
 namespace IGCSE.Controller
 {
@@ -102,6 +104,25 @@ namespace IGCSE.Controller
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             return await _accountService.ChangePassword(changePassword);
+        }
+
+        [HttpPost("link-student-to-parent")]
+        public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] ParentStudentLinkRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _accountService.LinkStudentToParentAsync(request);
+            return Ok(result);
         }
     }
 }
