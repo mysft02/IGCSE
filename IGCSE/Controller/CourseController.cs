@@ -438,5 +438,24 @@ namespace IGCSE.Controller
             var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
             return Ok(result);
         }
+
+        [HttpGet("{courseId}/detail")]
+        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items)")]
+        public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(long courseId)
+        {
+            try
+            {
+                var result = await _courseService.GetCourseDetailAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy thông tin khóa học: {ex.Message}",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
     }
 }
