@@ -49,7 +49,7 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
-        }
+            }
 
             if (request.ImageFile != null && FileUploadHelper.IsValidImageFile(request.ImageFile))
             {

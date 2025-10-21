@@ -21,7 +21,7 @@ namespace DTOs.Request.Courses
         public int CategoryId { get; set; }
 
         [Required]
-        public string Status { get; set; } = string.Empty;
+        public string Status { get; set; }
 
         public IFormFile? ImageFile { get; set; }
     }

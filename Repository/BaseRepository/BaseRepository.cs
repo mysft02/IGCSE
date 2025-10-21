@@ -103,5 +103,10 @@ namespace Repository.BaseRepository
             await _dbContext.SaveChangesAsync();
             return entities;
         }
+
+        public async Task<int> CountAsync()
+        {
+            return await _dbContext.Set<T>().CountAsync();
+        }
     }
 }

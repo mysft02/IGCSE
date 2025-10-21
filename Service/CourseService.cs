@@ -9,6 +9,7 @@ using BusinessObject.Model;
 using DTOs.Response.Accounts;
 using Service.OpenAI;
 using Common.Utils;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace Service
 {
@@ -364,6 +365,23 @@ namespace Service
                 "Courses retrieved successfully",
                 StatusCodeEnum.OK_200,
                 courseResponses
+            );
+        }
+
+        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync()
+        {
+            var courseAnalytics = await _courseRepository.GetCoursesSortedByStatus();
+
+            var result = new CourseAnalyticsResponse
+            {
+                TotalCourse = await _courseRepository.CountAsync(),
+                Partion = courseAnalytics
+            };
+
+            return new BaseResponse<CourseAnalyticsResponse>(
+                "Course analytics retrieved successfully",
+                StatusCodeEnum.OK_200,
+                result
             );
         }
     }

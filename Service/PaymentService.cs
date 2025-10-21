@@ -9,6 +9,7 @@ using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity;
+using BusinessObject.DTOs.Response.Payment;
 
 namespace Service
 {
@@ -250,6 +251,22 @@ namespace Service
 
                 var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
                 return response;
+        }
+
+        public async Task<BaseResponse<PaymentAnalyticsResponse>> GetPaymentAnalyticsAsync()
+        {
+            var analytics = await _paymentRepository.GetPaymentSortedByDate();
+
+            var response = new PaymentAnalyticsResponse
+            {
+                PaymentAnalytics = analytics
+            };
+
+            return new BaseResponse<PaymentAnalyticsResponse>(
+                    "Thành công",
+                    StatusCodeEnum.OK_200,
+                    response
+                );
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
