@@ -1,11 +1,12 @@
-using Microsoft.AspNetCore.Mvc;
-using BusinessObject.Payload.Request;
-using Service.Trello;
+﻿using BusinessObject.Payload.Request;
 using BusinessObject.Payload.Request.OpenAI;
 using Common.Utils;
-using Service.OpenAI;
-using System.Security.Principal;
 using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using Service.OpenAI;
+using Service.Trello;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Principal;
 
 namespace IGCSE.Controller;
 
@@ -29,6 +30,7 @@ public class PingController : ControllerBase
 
     // GET api/ping/trello?key=...&token=...
     [HttpGet("trello")]
+    [SwaggerOperation(Summary = "Gọi trello")]
     public async Task<IActionResult> PingTrello([FromQuery] string token)
     {
         var request = TrelloApiRequest.Builder()
@@ -43,6 +45,7 @@ public class PingController : ControllerBase
     }
 
     [HttpGet("openai")]
+    [SwaggerOperation(Summary = "Gọi api bên trello")]
     public async Task<IActionResult> PingOpenAI()
     {
         var apiKey = CommonUtils.GetApiKey("OPEN_API_KEY");

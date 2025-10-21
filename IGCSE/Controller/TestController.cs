@@ -4,6 +4,7 @@ using BusinessObject.Payload.Response.OpenAI;
 using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
 using Service.OpenAI;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace IGCSE.Controller
 {
@@ -22,6 +23,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("mark")]
+        [SwaggerOperation(Summary = "Chấm bài kiểm tra")]
         public async Task<ActionResult<BaseResponse<TestResponse>>> MarkTest([FromBody] TestRequest request)
         {
             if (!ModelState.IsValid)

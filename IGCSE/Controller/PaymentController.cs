@@ -5,6 +5,7 @@ using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace IGCSE.Controller
 {
@@ -21,6 +22,7 @@ namespace IGCSE.Controller
 
         [HttpPost("create-vnpay-url")]
         [Authorize]
+        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
         public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
         {
             if (!ModelState.IsValid)
@@ -52,6 +54,7 @@ namespace IGCSE.Controller
 
         [HttpGet("parent-coursekeys")]
         [Authorize(Roles = "Parent")]
+        [SwaggerOperation(Summary = "Lấy danh sách các key khóa học đã thanh toán thành công mà parent đang có (Parent)")]
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetParentCourseKeys()
         {
             try
@@ -80,6 +83,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-keys")]
+        [SwaggerOperation(Summary = "Lấy tất cả key khóa học đã thanh toán thành công")]
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeys([FromQuery] string? status = null, [FromQuery] string? parentId = null, [FromQuery] int? courseId = null)
         {
             try

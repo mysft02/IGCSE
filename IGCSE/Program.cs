@@ -62,6 +62,8 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "IGCSE", Version = "V1" });
 
+    c.EnableAnnotations();
+
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {

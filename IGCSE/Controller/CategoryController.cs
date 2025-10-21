@@ -3,6 +3,7 @@ using DTOs.Response.Accounts;
 using DTOs.Response.Categories;
 using Microsoft.AspNetCore.Mvc;
 using Service;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace IGCSE.Controller
 {
@@ -18,6 +19,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create")]
+        [SwaggerOperation(Summary = "Tạo category")]
         public async Task<ActionResult<BaseResponse<CategoryResponse>>> CreateCategory([FromBody] CategoryRequest request)
         {
             if (!ModelState.IsValid)
@@ -37,6 +39,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPut("update/{id}")]
+        [SwaggerOperation(Summary = "Update category")]
         public async Task<ActionResult<BaseResponse<CategoryResponse>>> UpdateCategory(int id, [FromBody] CategoryRequest request)
         {
             if (!ModelState.IsValid)
@@ -56,6 +59,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Lấy category theo id")]
         public async Task<ActionResult<BaseResponse<CategoryResponse>>> GetCategory(int id)
         {
             var result = await _categoryService.GetCategoryByIdAsync(id);
@@ -63,6 +67,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
+        [SwaggerOperation(Summary = "Lấy tất cả category")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetAllCategories()
         {
             var result = await _categoryService.GetAllCategoriesAsync();
@@ -70,6 +75,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("active")]
+        [SwaggerOperation(Summary = "Lấy category status active")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetActiveCategories()
         {
             var result = await _categoryService.GetActiveCategoriesAsync();
