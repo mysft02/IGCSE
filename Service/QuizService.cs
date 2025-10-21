@@ -8,6 +8,8 @@ using Common.Constants;
 using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
+using OfficeOpenXml;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Service
 {
@@ -206,6 +208,99 @@ namespace Service
                         "Quiz marked successfully",
                         StatusCodeEnum.OK_200,
                         result);
+        }
+
+        public async Task<BaseResponse<QuizCreateResponse>> ImportQuizFromExcelAsync(QuizCreateRequest request)
+        {
+            var response = new QuizCreateResponse();
+
+            // Validate file
+            if (request.ExcelFile == null || request.ExcelFile.Length == 0)
+            {
+                throw new Exception("No file uploaded");
+            }
+
+            // Check file extension
+            var allowedExtensions = new[] { ".xlsx", ".xls" };
+            var fileExtension = Path.GetExtension(request.ExcelFile.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                throw new Exception("Only .xlsx and .xls files are allowed");
+            }
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+            // Create new Quiz
+            var quiz = new Quiz
+            {
+                CourseId = request.CourseId,
+                QuizTitle = request.QuizTitle,
+                QuizDescription = request.QuizDescription ?? "",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            // Add quiz to database
+            await _quizRepository.AddAsync(quiz);
+
+            // Read Excel file
+            using var stream = request.ExcelFile.OpenReadStream();
+            using var package = new ExcelPackage(stream);
+
+            var worksheet = package.Workbook.Worksheets[0];
+            if (worksheet == null)
+            {
+                throw new Exception("Excel file must have at least one worksheet");
+            }
+
+            var rowCount = worksheet.Dimension?.Rows ?? 0;
+            if (rowCount < 2)
+            {
+                throw new Exception("Excel file must have at least two rows");
+            }
+
+            var questions = new List<Question>();
+
+            // Process each row (skip header row)
+            for (int row = 2; row <= rowCount; row++)
+            {
+                var questionContent = worksheet.Cells[row, 1]?.Value?.ToString()?.Trim();
+                var correctAnswer = worksheet.Cells[row, 2]?.Value?.ToString()?.Trim();
+
+                if (string.IsNullOrEmpty(questionContent) || string.IsNullOrEmpty(correctAnswer))
+                {
+                    continue;
+                }
+
+                var question = new Question
+                {
+                    QuizId = quiz.QuizId,
+                    QuestionContent = questionContent,
+                    CorrectAnswer = correctAnswer,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                questions.Add(question);
+            }
+
+            if (questions.Count == 0)
+            {
+                throw new Exception("No questions found in Excel file");
+            }
+
+            // Add questions to database
+            foreach (var question in questions)
+            {
+                await _questionRepository.AddAsync(question);
+                response.Questions.Add(question);
+            }
+
+            return new BaseResponse<QuizCreateResponse>(
+                    "Quiz imported successfully",
+                    StatusCodeEnum.OK_200,
+                    response);
         }
     }
 }
