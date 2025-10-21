@@ -29,5 +29,20 @@ namespace Repository.Repositories
             );
             return result;
         }
+
+        public async Task<IEnumerable<TransactionHistoryResponse>> GetAllTransactionHistoriesByUserId(string userId)
+        {
+            var transactionHistories = _context.Transactionhistories
+                .Where(c => c.ParentId == userId)
+                .Select(c => new TransactionHistoryResponse
+                {
+                    Course = c.Course,
+                    Amount = c.Amount,
+                    TransactionDate = DateTime.ParseExact(c.VnpTransactionDate, "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture)
+                })
+                .ToList();
+            
+            return transactionHistories;
+        }
     }
 }

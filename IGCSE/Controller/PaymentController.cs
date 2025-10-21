@@ -133,5 +133,12 @@ namespace IGCSE.Controller
                 ));
             }
         }
+
+        [HttpGet("get-transaction-history")]
+        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllTransactionHistories([FromQuery] string userId)
+        {
+            var result = _paymentService.GetAllTransactionHistoriesByUserId(userId);
+            return Ok(result);
+        }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace BusinessObject.Model;
+﻿using System.Text.Json.Serialization;
+
+namespace BusinessObject.Model;
 
 public class Course
 {
@@ -24,6 +26,7 @@ public class Course
 
     public string? ImageUrl { get; set; }
 
+    [JsonIgnore]
     public string EmbeddingData { get; set; } = null!;
 
     public virtual Category? Category { get; set; }

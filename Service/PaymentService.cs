@@ -269,6 +269,17 @@ namespace Service
                 );
         }
 
+        public async Task<BaseResponse<IEnumerable<TransactionHistoryResponse>>> GetAllTransactionHistoriesByUserId(string userId)
+        {
+            var transactionHistories = await _paymentRepository.GetAllTransactionHistoriesByUserId(userId);
+
+            return new BaseResponse<IEnumerable<TransactionHistoryResponse>>(
+                "Thành công",
+                StatusCodeEnum.OK_200,
+                transactionHistories
+            );
+        }
+
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
         {
             var parent = await _accountRepository.GetByStringId(parentId);

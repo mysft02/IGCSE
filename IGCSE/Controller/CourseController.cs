@@ -375,7 +375,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-similar-courses")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromBody] SimilarCourseRequest request)
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)
         {
             if (!ModelState.IsValid)
             {
