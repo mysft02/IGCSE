@@ -204,34 +204,27 @@ namespace Service
 
         public async Task<BaseResponse<PagedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
         {
-            try
+            var page = query.Page <= 0 ? 1 : query.Page;
+            var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
+            var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
+
+            var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+            var paged = new PagedResponse<CourseResponse>
             {
-                var page = query.Page <= 0 ? 1 : query.Page;
-                var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                TotalRecords = total,
+                Data = courseResponses
+            };
 
-                var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
-                var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
-
-                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
-                var paged = new PagedResponse<CourseResponse>
-                {
-                    CurrentPage = page,
-                    PageSize = pageSize,
-                    TotalPages = totalPages,
-                    TotalRecords = total,
-                    Data = courseResponses
-                };
-
-                return new DTOs.Response.Accounts.BaseResponse<PagedResponse<CourseResponse>>(
-                    "Courses retrieved successfully",
-                    StatusCodeEnum.OK_200,
-                    paged
-                );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to get courses: {ex.Message}");
-            }
+            return new DTOs.Response.Accounts.BaseResponse<PagedResponse<CourseResponse>>(
+                "Courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                paged
+            );
         }
 
         // Course Content Management Methods

@@ -63,7 +63,7 @@ namespace IGCSE.Controller
         [HttpGet("all")]
         [Authorize(Roles = "Manager")]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromForm] CourseListQuery query)
         {
             try
             {
@@ -83,11 +83,11 @@ namespace IGCSE.Controller
         [HttpGet("pending")]
         [Authorize(Roles = "Manager")]
         [SwaggerOperation(Summary = "Lấy danh sách khóa học đang pending để duyệt/từ chối (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchByName = null)
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromForm] CourseListQuery query)
         {
             try
             {
-                var result = await _courseService.GetPendingCoursesPagedAsync(page, pageSize, searchByName);
+                var result = await _courseService.GetPendingCoursesPagedAsync(query.Page, query.PageSize, query.SearchByName);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -388,7 +388,7 @@ namespace IGCSE.Controller
 
         [HttpPost("create-vnpay-url")]
         [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
-        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
+        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromForm] PaymentRequest request)
         {
             if (!ModelState.IsValid)
             {

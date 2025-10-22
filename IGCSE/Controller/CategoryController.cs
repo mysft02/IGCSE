@@ -20,7 +20,7 @@ namespace IGCSE.Controller
 
         [HttpPost("create")]
         [SwaggerOperation(Summary = "Tạo category")]
-        public async Task<ActionResult<BaseResponse<CategoryResponse>>> CreateCategory([FromBody] CategoryRequest request)
+        public async Task<ActionResult<BaseResponse<CategoryResponse>>> CreateCategory([FromForm] CategoryRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -39,8 +39,8 @@ namespace IGCSE.Controller
         }
 
         [HttpPut("update/{id}")]
-        [SwaggerOperation(Summary = "Update category")]
-        public async Task<ActionResult<BaseResponse<CategoryResponse>>> UpdateCategory(int id, [FromBody] CategoryRequest request)
+        [SwaggerOperation(Summary = "Cập nhật category")]
+        public async Task<ActionResult<BaseResponse<CategoryResponse>>> UpdateCategory(int id, [FromForm] CategoryRequest request)
         {
             if (!ModelState.IsValid)
             {
