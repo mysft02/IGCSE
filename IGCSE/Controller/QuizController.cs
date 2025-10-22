@@ -3,6 +3,7 @@ using BusinessObject.DTOs.Response.Quizzes;
 using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
 using Service;
+using Common.Utils;
 
 namespace IGCSE.Controller
 {
@@ -28,6 +29,13 @@ namespace IGCSE.Controller
         public async Task<ActionResult<BaseResponse<List<QuizMarkResponse>>>> MarkQuiz([FromBody] QuizMarkRequest request)
         {
             var result = await _quizService.MarkQuizAsync(request);
+            return Ok(result);
+        }
+
+        [HttpPost("import-from-excel")]
+        public async Task<ActionResult<BaseResponse<QuizCreateResponse>>> ImportFromExcel([FromForm] QuizCreateRequest request)
+        {
+            var result = await _quizService.ImportQuizFromExcelAsync(request);
             return Ok(result);
         }
     }
