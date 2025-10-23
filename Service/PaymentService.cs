@@ -1,12 +1,15 @@
-﻿using BusinessObject.Payload.Request.VnPay;
+using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Common.Constants;
 using Common.Utils;
 using DTOs.Response.Accounts;
+using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Http;
 using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
+using Microsoft.AspNetCore.Identity;
+using BusinessObject.DTOs.Response.Payment;
 
 namespace Service
 {
@@ -15,13 +18,15 @@ namespace Service
         private readonly VnPayApiService _apiService;
         private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
+        private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, IPaymentRepository paymentRepository)
+        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager, IPaymentRepository paymentRepository)
         {
             _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
+            _userManager = userManager;
             _paymentRepository = paymentRepository;
         }
 
@@ -30,9 +35,25 @@ namespace Service
                 var user = context.User;
                 var parentId = user.FindFirst("AccountID")?.Value;
                 var parentRoles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
-                if (string.IsNullOrEmpty(parentId) || !parentRoles.Contains("Parent"))
+                
+                if (string.IsNullOrEmpty(parentId))
                 {
-                    throw new Exception("Phải đăng nhập bằng tài khoản phụ huynh để thanh toán khóa học!");
+                    throw new Exception("Không tìm thấy thông tin người dùng trong token!");
+                }
+
+                if (!parentRoles.Contains("Parent"))
+                {
+                    // Nếu không có role Parent, thử tạo lại token với role đúng
+                    var userAccount = await _accountRepository.GetByStringId(parentId);
+                    if (userAccount != null)
+                    {
+                        var currentRoles = await _userManager.GetRolesAsync(userAccount);
+                        if (!currentRoles.Contains("Parent"))
+                        {
+                            await _userManager.AddToRoleAsync(userAccount, "Parent");
+                        }
+                    }
+                    throw new Exception($"Phải đăng nhập bằng tài khoản phụ huynh để thanh toán khóa học! Current roles: {string.Join(", ", parentRoles)}. Vui lòng đăng nhập lại để nhận token mới.");
                 }
 
                 // Tạo transaction reference với thông tin course và parent
@@ -126,6 +147,75 @@ namespace Service
                 );
         }
 
+        public async Task<List<CourseKeyResponse>> GetAllCourseKeysAsync()
+        {
+            try
+            {
+                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync();
+
+                var response = courseKeys.Select(k => new CourseKeyResponse
+                {
+                    KeyValue = k.KeyValue,
+                    CourseId = k.CourseId,
+                    StudentId = k.StudentId,
+                    CreatedAt = k.CreatedAt,
+                    Status = k.Status
+                }).ToList();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new List<CourseKeyResponse>();
+            }
+        }
+
+        public async Task<List<CourseKeyResponse>> GetFilteredCourseKeysAsync(string? status = null, string? parentId = null, int? courseId = null)
+        {
+            try
+            {
+                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync(status, parentId, courseId);
+
+                var response = courseKeys.Select(k => new CourseKeyResponse
+                {
+                    KeyValue = k.KeyValue,
+                    CourseId = k.CourseId,
+                    StudentId = k.StudentId,
+                    CreatedAt = k.CreatedAt,
+                    Status = k.Status
+                }).ToList();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new List<CourseKeyResponse>();
+            }
+        }
+
+        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
+        {
+            try
+            {
+                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
+
+                var response = courseKeys.Select(k => new CourseKeyResponse
+                {
+                    KeyValue = k.KeyValue,
+                    CourseId = k.CourseId,
+                    StudentId = k.StudentId,
+                    CreatedAt = k.CreatedAt,
+                    Status = k.Status
+                }).ToList();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                return new List<CourseKeyResponse>();
+            }
+        }
+
         public async Task<VnPayQueryApiResponse> GetVnPayTransactionDetail(VnPayQueryApiRequest request, HttpContext context)
         {
                 var body = new VnPayQueryApiBody
@@ -161,6 +251,33 @@ namespace Service
 
                 var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
                 return response;
+        }
+
+        public async Task<BaseResponse<PaymentAnalyticsResponse>> GetPaymentAnalyticsAsync()
+        {
+            var analytics = await _paymentRepository.GetPaymentSortedByDate();
+
+            var response = new PaymentAnalyticsResponse
+            {
+                PaymentAnalytics = analytics
+            };
+
+            return new BaseResponse<PaymentAnalyticsResponse>(
+                    "Thành công",
+                    StatusCodeEnum.OK_200,
+                    response
+                );
+        }
+
+        public async Task<BaseResponse<IEnumerable<TransactionHistoryResponse>>> GetAllTransactionHistoriesByUserId(string userId)
+        {
+            var transactionHistories = await _paymentRepository.GetAllTransactionHistoriesByUserId(userId);
+
+            return new BaseResponse<IEnumerable<TransactionHistoryResponse>>(
+                "Thành công",
+                StatusCodeEnum.OK_200,
+                transactionHistories
+            );
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)

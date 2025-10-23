@@ -27,8 +27,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Useranswer> Useranswers { get; set; }
     public virtual DbSet<Question> Questions { get; set; }
     public virtual DbSet<Quiz> Quizzes { get; set; }
-
     public virtual DbSet<Quizresult> Quizresults { get; set; }
+    public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -280,6 +280,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.LessonId).HasColumnName("LessonID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.Property(e => e.IsUnlocked).HasColumnName("IsUnlocked").HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Processitem>(entity =>
@@ -304,6 +305,21 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.QuizId).HasColumnName("QuizID");
             entity.Property(e => e.Score).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Parentstudentlink>(entity =>
+        {
+            entity.HasKey(e => e.LinkId).HasName("PRIMARY");
+
+            entity.ToTable("parentstudentlink");
+
+            entity.Property(e => e.LinkId).HasColumnName("LinkID");
+            entity.Property(e => e.ParentId)
+                .HasMaxLength(255)
+                .HasColumnName("ParentID");
+            entity.Property(e => e.StudentId)
+                .HasMaxLength(255)
+                .HasColumnName("StudentID");
         });
 
         OnModelCreatingPartial(modelBuilder);

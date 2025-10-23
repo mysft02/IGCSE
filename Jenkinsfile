@@ -1,6 +1,6 @@
 pipeline {
     agent any
-
+    
     environment {
         // .NET Configuration
         DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1"
@@ -19,7 +19,7 @@ pipeline {
         JWT__Audience = ""
         JWT__SigningKey = "sdgfijjh3466iu345g87g08c24g7204gr803g30587ghh35807fg39074fvg80493745gf082b507807g807fgf"
     }
-
+    
     stages {
 
         /* =====================================
@@ -39,7 +39,7 @@ pipeline {
                 '''
             }
         }
-
+        
         /* =====================================
            ⚙️ INSTALL .NET SDK
         ====================================== */
@@ -53,8 +53,8 @@ pipeline {
                         dotnet --info | head -n 10
                     else
                         echo "⚙️ Installing .NET SDK..."
-                        curl -L https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
-                        chmod +x dotnet-install.sh
+                    curl -L https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+                    chmod +x dotnet-install.sh
                         ./dotnet-install.sh --channel 8.0 --install-dir $HOME/.dotnet
                     fi
 
@@ -76,7 +76,7 @@ pipeline {
                 '''
             }
         }
-
+        
         /* =====================================
            🗃️ RUN EF MIGRATIONS
         ====================================== */
@@ -173,7 +173,7 @@ pipeline {
 
                     echo "=== BUILD PROCESS ==="
                     SOLUTION_FILE=$(find . -name "IGCSE.sln" | head -1)
-
+                    
                     if [ -n "$SOLUTION_FILE" ]; then
                         echo "✅ Found solution file: $SOLUTION_FILE"
                         dotnet restore "$SOLUTION_FILE"
@@ -182,16 +182,16 @@ pipeline {
                         PROJECT_FILE=$(find . -name "IGCSE.csproj" | head -1)
                         if [ -n "$PROJECT_FILE" ]; then
                             echo "📦 Publishing project: $PROJECT_FILE"
-                            dotnet publish "$PROJECT_FILE" -c Release -o ./publish
-                        else
+                        dotnet publish "$PROJECT_FILE" -c Release -o ./publish
+                    else
                             echo "❌ Project file not found!"
-                            exit 1
-                        fi
+                        exit 1
+                    fi
                     else
                         echo "❌ No solution file found!"
                         exit 1
                     fi
-
+                    
                     echo "=== PUBLISHED OUTPUT ==="
                     ls -la ./publish/
                 '''
@@ -202,8 +202,8 @@ pipeline {
            🧪 SMOKE TEST & START APP
         ====================================== */
         stage('Smoke Test & Start App') {
-            steps {
-                sh '''
+    steps {
+        sh '''
                     echo "=== RUNNING SMOKE TEST & STARTING APP ==="
                     DLL_FILE=$(find ./publish -maxdepth 1 -name "IGCSE.dll" | head -1)
 
@@ -219,7 +219,7 @@ pipeline {
                     sleep 2
                     
                     # Start the app with systemd or screen/tmux for persistence
-                    export ASPNETCORE_URLS="http://0.0.0.0:7211"
+            export ASPNETCORE_URLS="http://0.0.0.0:7211"
                     
                     # Try to use screen first, then tmux, then nohup as fallback
                     if command -v screen >/dev/null 2>&1; then
@@ -275,12 +275,12 @@ pipeline {
                     echo "🚀 App is running and ready for use!"
                     echo "📱 Access your app at: http://localhost:7211"
                     echo "📋 App logs: tail -f app.log"
-                    
+
                     # Save PID for later stages
                     echo $APP_PID > app.pid
-                '''
-            }
-        }
+        '''
+    }
+}
 
         /* =====================================
            🐳 BUILD DOCKER IMAGE
@@ -338,21 +338,21 @@ RUN dotnet publish ./IGCSE/IGCSE.csproj -c Release -o /app/publish /p:UseAppHost
 # ===========================================
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
+                    
 # Copy built application
 COPY --from=build /app/publish .
-
+                    
 # Copy ApiKey.env file to runtime
 COPY --from=build /src/IGCSE/ApiKey.env ./ApiKey.env
-
+                    
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:7211
 EXPOSE 7211
-
+                    
 # Start application
 ENTRYPOINT ["dotnet", "IGCSE.dll"]
 EOF
-
+                    
                     # Build Docker image
                     echo "Building Docker image..."
                     docker build -t igcse-app:${BUILD_NUMBER} .
@@ -363,7 +363,7 @@ EOF
                 '''
             }
         }
-
+        
         /* =====================================
            🚀 DEPLOY WITH DOCKER
         ====================================== */
@@ -412,7 +412,7 @@ EOF
 
 
     }
-
+    
     post {
         always {
             echo '============================================'

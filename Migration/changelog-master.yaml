@@ -4,6 +4,8 @@
   - include:
       file: ./ChangeLog/ticket-7.yaml
   - include:
+      file: ./ChangeLog/ticket-21.yaml
+  - include:
       file: ./ChangeLog/ticket-16.yaml
   - include:
       file: ./ChangeLog/ticket-19.yaml
@@ -11,3 +13,5 @@
       file: ./ChangeLog/ticket-20.yaml
   - include:
       file: ./ChangeLog/ticket-17.yaml
+  - include:
+      file: ./ChangeLog/ticket-27.yaml

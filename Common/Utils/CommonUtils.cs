@@ -225,6 +225,5 @@ namespace Common.Utils
 
             return dot / denominator;
         }
-
     }
 }

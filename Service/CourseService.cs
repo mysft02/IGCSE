@@ -9,6 +9,7 @@ using BusinessObject.Model;
 using DTOs.Response.Accounts;
 using Service.OpenAI;
 using Common.Utils;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace Service
 {
@@ -47,7 +48,7 @@ namespace Service
                     Price = request.Price,
                     ImageUrl = request.ImageUrl,
                     CategoryId = request.CategoryId,
-                    Status = request.Status,
+                    Status = "Open",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -64,6 +65,67 @@ namespace Service
                     StatusCodeEnum.Created_201,
                     courseResponse
                 );
+        }
+
+        public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(long courseId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            course.Status = "Approved";
+            course.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                "Course approved successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<CourseResponse>> RejectCourseAsync(long courseId, string? reason)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            course.Status = "Rejected";
+            course.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                string.IsNullOrWhiteSpace(reason) ? "Course rejected" : $"Course rejected: {reason}",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<PagedResponse<CourseResponse>>> GetPendingCoursesPagedAsync(int page, int pageSize, string? searchByName)
+        {
+            var (items, total) = await _courseRepository.SearchAsync(page <= 0 ? 1 : page, pageSize <= 0 ? 10 : pageSize, searchByName, null, "Pending");
+            var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
+            var totalPages = (int)Math.Ceiling(total / (double)(pageSize <= 0 ? 10 : pageSize));
+            var paged = new PagedResponse<CourseResponse>
+            {
+                CurrentPage = page <= 0 ? 1 : page,
+                PageSize = pageSize <= 0 ? 10 : pageSize,
+                TotalPages = totalPages,
+                TotalRecords = total,
+                Data = courseResponses
+            };
+
+            return new BaseResponse<PagedResponse<CourseResponse>>(
+                "Pending courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                paged
+            );
         }
 
         public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(long courseId, CourseRequest request)
@@ -139,6 +201,38 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     courseResponses
                 );
+        }
+
+        public async Task<BaseResponse<PagedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
+        {
+            try
+            {
+                var page = query.Page <= 0 ? 1 : query.Page;
+                var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+
+                var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
+                var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
+
+                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                var paged = new PagedResponse<CourseResponse>
+                {
+                    CurrentPage = page,
+                    PageSize = pageSize,
+                    TotalPages = totalPages,
+                    TotalRecords = total,
+                    Data = courseResponses
+                };
+
+                return new DTOs.Response.Accounts.BaseResponse<PagedResponse<CourseResponse>>(
+                    "Courses retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    paged
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get courses: {ex.Message}");
+            }
         }
 
         // Course Content Management Methods
@@ -258,27 +352,37 @@ namespace Service
 
         public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
         {
-            try
-            {
-                var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
+            var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
 
-                var courseResponses = new List<CourseResponse>();
-                foreach (var course in similarCourses)
-                {
-                    var courseResponse = _mapper.Map<CourseResponse>(course);
-                    courseResponses.Add(courseResponse);
-                }
-
-                return new BaseResponse<IEnumerable<CourseResponse>>(
-                    "Courses retrieved successfully",
-                    StatusCodeEnum.OK_200,
-                    courseResponses
-                );
-            }
-            catch (Exception ex)
+            var courseResponses = new List<CourseResponse>();
+            foreach (var course in similarCourses)
             {
-                throw new Exception($"Failed to get lesson items: {ex.Message}");
+                var courseResponse = _mapper.Map<CourseResponse>(course);
+                courseResponses.Add(courseResponse);
             }
+
+            return new BaseResponse<IEnumerable<CourseResponse>>(
+                "Courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                courseResponses
+            );
+        }
+
+        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync()
+        {
+            var courseAnalytics = await _courseRepository.GetCoursesSortedByStatus();
+
+            var result = new CourseAnalyticsResponse
+            {
+                TotalCourse = await _courseRepository.CountAsync(),
+                Partion = courseAnalytics
+            };
+
+            return new BaseResponse<CourseAnalyticsResponse>(
+                "Course analytics retrieved successfully",
+                StatusCodeEnum.OK_200,
+                result
+            );
         }
     }
 }

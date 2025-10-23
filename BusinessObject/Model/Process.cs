@@ -12,6 +12,8 @@ public class Process
 
     public DateTime? UpdatedAt { get; set; }
 
+    public bool IsUnlocked { get; set; }
+
     public virtual Coursekey CourseKey { get; set; } = null!;
 
     public virtual Lesson Lesson { get; set; } = null!;

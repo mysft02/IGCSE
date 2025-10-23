@@ -21,6 +21,7 @@ namespace DTOs.Response.CourseContent
         public string? Description { get; set; }
         public int Order { get; set; }
         public bool IsActive { get; set; }
+        public bool IsUnlocked { get; set; }  // trạng thái mở khoá bài học
     }
 
     public class LessonItemResponse
@@ -40,7 +41,7 @@ namespace DTOs.Response.CourseContent
         public string CourseName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
-        public List<LessonProgressResponse> LessonProgress { get; set; } = new List<LessonProgressResponse>();
+        public List<SectionProgressResponse> Sections { get; set; } = new List<SectionProgressResponse>();
         public double OverallProgress { get; set; }
     }
 
@@ -51,6 +52,7 @@ namespace DTOs.Response.CourseContent
         public bool IsCompleted { get; set; }
         public DateTime? CompletedAt { get; set; }
         public List<LessonItemProgressResponse> ItemProgress { get; set; } = new List<LessonItemProgressResponse>();
+        public bool IsUnlocked { get; set; }    // trạng thái mở khoá bài học
     }
 
     public class LessonItemProgressResponse

@@ -38,6 +38,37 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status)
+        {
+            var query = _context.Set<Course>().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchByName))
+            {
+                var keyword = searchByName.Trim();
+                query = query.Where(c => c.Name.Contains(keyword));
+            }
+
+            if (couseId.HasValue)
+            {
+                query = query.Where(c => c.CourseId == couseId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(c => c.Status == status);
+            }
+
+            var total = await query.CountAsync();
+
+            var skip = (page <= 1 ? 0 : (page - 1) * pageSize);
+            var items = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, total);
+        }
         public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(long courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);
@@ -56,6 +87,20 @@ namespace Repository.Repositories
                 .Select(c => c.c)
                 .ToListAsync();
             return courses;
+        }
+
+        public async Task<Dictionary<string, int>> GetCoursesSortedByStatus()
+        {
+            var result = await _context.Courses
+                .GroupBy(c => c.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToDictionaryAsync(x => x.Status, x => x.Count);
+            
+            return result;
         }
     }
 }

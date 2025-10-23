@@ -11,6 +11,13 @@ using BusinessObject.Model;
 using IGCSE.Extensions;
 
 
+// Ensure wwwroot exists BEFORE building the web application to avoid DirectoryNotFoundException
+var preBuildWebRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+if (!Directory.Exists(preBuildWebRoot))
+{
+    Directory.CreateDirectory(preBuildWebRoot);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 Env.Load("ApiKey.env");
@@ -144,14 +151,13 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
 
     // Danh sách các role cần tạo
-    string[] roleNames = { "Admin", "Parent", "Student", "Teacher" };
+    string[] roleNames = { "Admin", "Parent", "Student", "Teacher", "Manager" };
 
     foreach (var roleName in roleNames)
     {
         if (!await roleManager.RoleExistsAsync(roleName))
         {
             await roleManager.CreateAsync(new IdentityRole(roleName));
-            Console.WriteLine($"Đã tạo role: {roleName}");
         }
     }
 
@@ -174,7 +180,6 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
-            Console.WriteLine("Đã tạo tài khoản Admin mặc định");
         }
     }
     else
@@ -190,7 +195,6 @@ using (var scope = app.Services.CreateScope())
             }
             // Thêm role Admin
             await userManager.AddToRoleAsync(adminUser, "Admin");
-            Console.WriteLine("Đã cập nhật role Admin cho tài khoản admin hiện có");
         }
     }
 }
@@ -214,9 +218,23 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Enable static files
+//// Ensure wwwroot exists to avoid DirectoryNotFoundException when serving static files
+//var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+//if (!Directory.Exists(webRootPath))
+//{
+//    Directory.CreateDirectory(webRootPath);
+//}
+//app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "IGCSE");
+    c.RoutePrefix = "swagger";
+});
+
 
 app.MapControllers();
 
