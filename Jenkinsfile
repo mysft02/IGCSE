@@ -154,30 +154,6 @@ pipeline {
 
                     cd Migration
                     echo "Using defaultsFile=$(pwd)/liquibase.properties"
-                    
-                    # Install MySQL client if not available
-                    if ! command -v mysql >/dev/null 2>&1; then
-                        echo "Installing MySQL client..."
-                        if [ -f /etc/alpine-release ]; then
-                            apk add --no-cache mysql-client || true
-                        elif command -v apt-get >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
-                            apt-get update && apt-get install -y mysql-client || true
-                        fi
-                    fi
-                    
-                    # Set MySQL max_allowed_packet before running Liquibase (if mysql client available)
-                    if command -v mysql >/dev/null 2>&1; then
-                        echo "Setting MySQL max_allowed_packet to 16MB..."
-                        mysql -h 163.223.210.80 -u root -prootpassword -e "SET GLOBAL max_allowed_packet=16777216;" || true
-                        mysql -h 163.223.210.80 -u root -prootpassword -e "SET SESSION max_allowed_packet=16777216;" || true
-                    else
-                        echo "⚠️ MySQL client not available, skipping max_allowed_packet setting"
-                        echo "💡 CRITICAL: Configure MySQL server directly:"
-                        echo "   mysql -h 163.223.210.80 -u root -p"
-                        echo "   SET GLOBAL max_allowed_packet=16777216;"
-                        echo "   SHOW VARIABLES LIKE 'max_allowed_packet';"
-                    fi
-                    
                     $LIQUIBASE_HOME/liquibase --defaultsFile=liquibase.properties update
 
                     echo "✅ Liquibase migrations applied successfully."
