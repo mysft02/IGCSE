@@ -5,6 +5,7 @@ using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace IGCSE.Controller
 {
@@ -20,7 +21,8 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create-vnpay-url")]
-        [Authorize] // UNCOMMENTED - REQUIRED FOR AUTHENTICATION
+        [Authorize]
+        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
         public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
         {
             if (!ModelState.IsValid)
@@ -50,40 +52,9 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpPost("vnpay-callback")]
-        public async Task<IActionResult> VnPayCallback()
-        {
-            var queryParams = Request.Query.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-
-            if (!queryParams.ContainsKey("vnp_TxnRef") || !queryParams.ContainsKey("vnp_ResponseCode"))
-            {
-                return Content("<html><body><h2>Thanh toán thất bại</h2><p>Dữ liệu chưa đủ!</p></body></html>", "text/html");
-            }
-
-            try
-            {
-                var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
-                var key = result.Data;
-                return Content($@"
-                    <html>
-                        <head><title>Thanh toán thành công</title></head>
-                        <body>
-                            <h2>Thanh toán thành công!</h2>
-                            <p>Mã key kích hoạt khoá học của bạn: <b>{key}</b></p>
-                        </body>
-                    </html>", "text/html");
-            }
-            catch (Exception ex)
-            {
-                return Content($@"<html><body>
-                    <h2>Thanh toán thất bại</h2>
-                    <p>{ex.Message}</p>
-                    </body></html>", "text/html");
-            }
-        }
-
         [HttpGet("parent-coursekeys")]
         [Authorize(Roles = "Parent")]
+        [SwaggerOperation(Summary = "Lấy danh sách các key khóa học đã thanh toán thành công mà parent đang có (Parent)")]
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetParentCourseKeys()
         {
             try
@@ -112,6 +83,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-keys")]
+        [SwaggerOperation(Summary = "Lấy tất cả key khóa học đã thanh toán thành công")]
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeys([FromQuery] string? status = null, [FromQuery] string? parentId = null, [FromQuery] int? courseId = null)
         {
             try

@@ -217,6 +217,25 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.UserAnswerId).HasColumnName("UserAnswerID");
             entity.Property(e => e.Answer).HasMaxLength(500);
             entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+
+            entity.HasOne(d => d.Question)
+                  .WithMany()
+                  .HasForeignKey(d => d.QuestionId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_Useranswer_Question_QuestionID");
+
+            entity.HasOne(d => d.User)
+                  .WithMany()
+                  .HasForeignKey(d => d.UserId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_Useranswer_AspNetUsers_UserID");
+
+            entity.HasIndex(e => e.QuestionId)
+                  .HasDatabaseName("IX_Useranswer_QuestionID");
+
+            entity.HasIndex(e => e.UserId)
+                  .HasDatabaseName("IX_Useranswer_UserID");
         });
 
         modelBuilder.Entity<Quiz>(entity =>
