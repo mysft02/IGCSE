@@ -172,7 +172,10 @@ pipeline {
                         mysql -h 163.223.210.80 -u root -prootpassword -e "SET SESSION max_allowed_packet=16777216;" || true
                     else
                         echo "⚠️ MySQL client not available, skipping max_allowed_packet setting"
-                        echo "💡 If Liquibase fails with PacketTooBigException, configure MySQL server directly"
+                        echo "💡 CRITICAL: Configure MySQL server directly:"
+                        echo "   mysql -h 163.223.210.80 -u root -p"
+                        echo "   SET GLOBAL max_allowed_packet=16777216;"
+                        echo "   SHOW VARIABLES LIKE 'max_allowed_packet';"
                     fi
                     
                     $LIQUIBASE_HOME/liquibase --defaultsFile=liquibase.properties update
