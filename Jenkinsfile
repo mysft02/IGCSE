@@ -11,8 +11,8 @@ pipeline {
         LIQUIBASE_HOME = "$WORKSPACE/.liquibase"
 
         // Database Configuration
-        DB_CONNECTION_STRING = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True"
-        ConnectionStrings__DbConnection = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True"
+        DB_CONNECTION_STRING = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True;MaxAllowedPacket=16777216"
+        ConnectionStrings__DbConnection = "server=163.223.210.80;port=3306;database=IGCSE;user=root;password=rootpassword;TreatTinyAsBoolean=true;Allow User Variables=true;SslMode=None;AllowPublicKeyRetrieval=True;MaxAllowedPacket=16777216"
 
         // JWT Configuration
         JWT__Issuer = ""
@@ -154,6 +154,11 @@ pipeline {
 
                     cd Migration
                     echo "Using defaultsFile=$(pwd)/liquibase.properties"
+                    
+                    # Set MySQL max_allowed_packet before running Liquibase
+                    echo "Setting MySQL max_allowed_packet to 16MB..."
+                    mysql -h 163.223.210.80 -u root -prootpassword -e "SET GLOBAL max_allowed_packet=16777216;" || true
+                    
                     $LIQUIBASE_HOME/liquibase --defaultsFile=liquibase.properties update
 
                     echo "✅ Liquibase migrations applied successfully."
