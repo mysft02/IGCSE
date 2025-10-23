@@ -155,12 +155,25 @@ pipeline {
                     cd Migration
                     echo "Using defaultsFile=$(pwd)/liquibase.properties"
                     
-                    # Set MySQL max_allowed_packet before running Liquibase
-                    echo "Setting MySQL max_allowed_packet to 16MB..."
-                    mysql -h 163.223.210.80 -u root -prootpassword -e "SET GLOBAL max_allowed_packet=16777216;" || true
+                    # Install MySQL client if not available
+                    if ! command -v mysql >/dev/null 2>&1; then
+                        echo "Installing MySQL client..."
+                        if [ -f /etc/alpine-release ]; then
+                            apk add --no-cache mysql-client || true
+                        elif command -v apt-get >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
+                            apt-get update && apt-get install -y mysql-client || true
+                        fi
+                    fi
                     
-                    # Also set session variable for current connection
-                    mysql -h 163.223.210.80 -u root -prootpassword -e "SET SESSION max_allowed_packet=16777216;" || true
+                    # Set MySQL max_allowed_packet before running Liquibase (if mysql client available)
+                    if command -v mysql >/dev/null 2>&1; then
+                        echo "Setting MySQL max_allowed_packet to 16MB..."
+                        mysql -h 163.223.210.80 -u root -prootpassword -e "SET GLOBAL max_allowed_packet=16777216;" || true
+                        mysql -h 163.223.210.80 -u root -prootpassword -e "SET SESSION max_allowed_packet=16777216;" || true
+                    else
+                        echo "⚠️ MySQL client not available, skipping max_allowed_packet setting"
+                        echo "💡 If Liquibase fails with PacketTooBigException, configure MySQL server directly"
+                    fi
                     
                     $LIQUIBASE_HOME/liquibase --defaultsFile=liquibase.properties update
 
