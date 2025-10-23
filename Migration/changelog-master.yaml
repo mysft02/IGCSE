@@ -8,8 +8,6 @@
   - include:
       file: ./ChangeLog/ticket-16.yaml
   - include:
-      file: ./ChangeLog/ticket-21.yaml
-  - include:
       file: ./ChangeLog/ticket-19.yaml
   - include:
       file: ./ChangeLog/ticket-20.yaml
