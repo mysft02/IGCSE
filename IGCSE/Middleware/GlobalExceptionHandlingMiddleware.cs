@@ -35,17 +35,11 @@ namespace IGCSE.Middleware
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-            var response = _env.IsDevelopment()
-                ? new ApiResponse
+            var response = new ApiResponse
                 {
                     Success = false,
                     Message = exception.Message,
                     Data = null,
-                }
-                : new ApiResponse
-                {
-                    Success = false,
-                    Message = "An internal server error has occurred. Please try again later."
                 };
 
             var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
