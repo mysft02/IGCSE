@@ -416,6 +416,31 @@ EOF
     post {
         always {
             echo '============================================'
+            echo '🧹 CLEANING UP WORKSPACE'
+            echo '============================================'
+            sh '''
+                echo "=== CLEANING UP WORKSPACE ==="
+                
+                # Clean .NET build artifacts
+                find . -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
+                find . -name "obj" -type d -exec rm -rf {} + 2>/dev/null || true
+                find . -name "publish" -type d -exec rm -rf {} + 2>/dev/null || true
+                
+                # Clean temporary files
+                rm -rf /tmp/liquibase.zip 2>/dev/null || true
+                rm -rf .liquibase 2>/dev/null || true
+                rm -f dotnet-install.sh 2>/dev/null || true
+                rm -f app.log app.pid response.json 2>/dev/null || true
+                
+                # Show disk usage
+                echo "=== CURRENT DISK USAGE ==="
+                df -h /var/jenkins_home 2>/dev/null || df -h . 2>/dev/null || true
+                
+                echo "✅ Workspace cleanup completed"
+            '''
+        }
+        always {
+            echo '============================================'
             echo '🏁 BUILD PROCESS COMPLETED'
             echo '============================================'
         }
