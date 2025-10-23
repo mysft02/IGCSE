@@ -438,8 +438,7 @@ EOF
                 
                 echo "✅ Workspace cleanup completed"
             '''
-        }
-        always {
+            
             echo '============================================'
             echo '🏁 BUILD PROCESS COMPLETED'
             echo '============================================'
