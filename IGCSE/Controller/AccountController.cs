@@ -108,8 +108,17 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("link-student-to-parent")]
-        public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] ParentStudentLinkRequest request)
+        [Authorize(Roles = "Parent")]
+        public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] string studentId)
         {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
@@ -122,14 +131,29 @@ namespace IGCSE.Controller
                 ));
             }
 
+            var request = new ParentStudentLinkRequest
+            {
+                ParentId = userId,
+                StudentId = studentId
+            };
+
             var result = await _accountService.LinkStudentToParentAsync(request);
             return Ok(result);
         }
 
         [HttpGet("get-all-students-belong-to-parent")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<AccountResponse>>>> GetListStudentsBelongToParent([FromQuery] string parentId)
+        [Authorize(Roles = "Parent")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<AccountResponse>>>> GetListStudentsBelongToParent()
         {
-            var result = await _accountService.GetAllStudentsByParentId(parentId);
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _accountService.GetAllStudentsByParentId(userId);
             return Ok(result);
         }
     }
