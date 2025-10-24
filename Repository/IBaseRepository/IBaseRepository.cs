@@ -8,7 +8,7 @@
         Task<T> UpdateAsync(T entity);
         Task<T> DeleteAsync(T entity);
         Task<T> GetByStringId(string id);
-
+        Task<int> CountAsync();
         Task<List<T>> AddRange(List<T> entities);
         Task<List<T>> UpdateRange(List<T> entities);
         Task<List<T>> DeleteRange(List<T> entities);

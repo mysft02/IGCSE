@@ -13,4 +13,6 @@ public class Transactionhistory
     public string VnpTxnRef { get; set; } = null!;
 
     public string VnpTransactionDate { get; set; } = null!;
+
+    public virtual Course Course { get; set; } = null!;
 }

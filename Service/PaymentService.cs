@@ -9,6 +9,7 @@ using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity;
+using BusinessObject.DTOs.Response.Payment;
 
 namespace Service
 {
@@ -19,14 +20,16 @@ namespace Service
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
+        private readonly ICourseRepository _courseRepository;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager, IPaymentRepository paymentRepository)
+        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager, IPaymentRepository paymentRepository, ICourseRepository courseRepository)
         {
             _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
             _userManager = userManager;
             _paymentRepository = paymentRepository;
+            _courseRepository = courseRepository;
         }
 
         public async Task<BaseResponse<PaymentResponse>> CreatePaymentUrlAsync(HttpContext context, PaymentRequest req)
@@ -55,6 +58,8 @@ namespace Service
                     throw new Exception($"Phải đăng nhập bằng tài khoản phụ huynh để thanh toán khóa học! Current roles: {string.Join(", ", parentRoles)}. Vui lòng đăng nhập lại để nhận token mới.");
                 }
 
+                var course = await _courseRepository.GetByIdAsync(req.CourseId);
+
                 // Tạo transaction reference với thông tin course và parent
                 var txnRef = $"{req.CourseId}_{parentId}_{DateTime.Now.Ticks}";
 
@@ -63,7 +68,7 @@ namespace Service
                     .AddParameter("vnp_Version", "2.1.0")
                     .AddParameter("vnp_Command", "pay")
                     .AddParameter("vnp_TmnCode", CommonUtils.GetApiKey("VNP_TMNCODE"))
-                    .AddParameter("vnp_Amount", (req.Amount * 100).ToString())
+                    .AddParameter("vnp_Amount", (course.Price * 100).ToString())
                     .AddParameter("vnp_CurrCode", "VND")
                     .AddParameter("vnp_TxnRef", txnRef)
                     .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent: {parentId}")
@@ -250,6 +255,33 @@ namespace Service
 
                 var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
                 return response;
+        }
+
+        public async Task<BaseResponse<PaymentAnalyticsResponse>> GetPaymentAnalyticsAsync()
+        {
+            var analytics = await _paymentRepository.GetPaymentSortedByDate();
+
+            var response = new PaymentAnalyticsResponse
+            {
+                PaymentAnalytics = analytics
+            };
+
+            return new BaseResponse<PaymentAnalyticsResponse>(
+                    "Thành công",
+                    StatusCodeEnum.OK_200,
+                    response
+                );
+        }
+
+        public async Task<BaseResponse<IEnumerable<TransactionHistoryResponse>>> GetAllTransactionHistoriesByUserId(string userId)
+        {
+            var transactionHistories = await _paymentRepository.GetAllTransactionHistoriesByUserId(userId);
+
+            return new BaseResponse<IEnumerable<TransactionHistoryResponse>>(
+                "Thành công",
+                StatusCodeEnum.OK_200,
+                transactionHistories
+            );
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)

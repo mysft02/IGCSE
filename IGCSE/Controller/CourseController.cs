@@ -1,18 +1,19 @@
-using DTOs.Request.Courses;
-using DTOs.Response.Courses;
-using DTOs.Request.CourseRegistration;
-using DTOs.Response.CourseRegistration;
-using DTOs.Response.CourseContent;
-using DTOs.Request.CourseContent;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Service;
-using DTOs.Response.Accounts;
-using Common.Utils;
+using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
+using Common.Utils;
+using DTOs.Request.CourseContent;
+using DTOs.Request.CourseRegistration;
+using DTOs.Request.Courses;
+using DTOs.Response.Accounts;
+using DTOs.Response.CourseContent;
+using DTOs.Response.CourseRegistration;
+using DTOs.Response.Courses;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
-using BusinessObject.DTOs.Request.Courses;
+using Microsoft.AspNetCore.Mvc;
+using Service;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace IGCSE.Controller
 {
@@ -35,6 +36,7 @@ namespace IGCSE.Controller
 
         [HttpPost("create")]
         [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(Summary = "Tạo khóa học (Teacher)")]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> CreateCourse([FromForm] CourseRequest request)
         {
             if (!ModelState.IsValid)
@@ -47,7 +49,7 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
-        }
+            }
 
             if (request.ImageFile != null && FileUploadHelper.IsValidImageFile(request.ImageFile))
             {
@@ -60,7 +62,8 @@ namespace IGCSE.Controller
 
         [HttpGet("all")]
         [Authorize(Roles = "Manager")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học (Manager)")]
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromForm] CourseListQuery query)
         {
             try
             {
@@ -79,11 +82,12 @@ namespace IGCSE.Controller
 
         [HttpGet("pending")]
         [Authorize(Roles = "Manager")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchByName = null)
+        [SwaggerOperation(Summary = "Lấy danh sách khóa học đang pending để duyệt/từ chối (Manager)")]
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromForm] CourseListQuery query)
         {
             try
             {
-                var result = await _courseService.GetPendingCoursesPagedAsync(page, pageSize, searchByName);
+                var result = await _courseService.GetPendingCoursesPagedAsync(query.Page, query.PageSize, query.SearchByName);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -98,6 +102,7 @@ namespace IGCSE.Controller
 
         [HttpPost("{courseId}/approve")]
         [Authorize(Roles = "Manager")]
+        [SwaggerOperation(Summary = "Duyệt khóa học (Manager)")]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> ApproveCourse(long courseId)
         {
             try
@@ -117,6 +122,7 @@ namespace IGCSE.Controller
 
         [HttpPost("{courseId}/reject")]
         [Authorize(Roles = "Manager")]
+        [SwaggerOperation(Summary = "Từ chối khóa học (Manager)")]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> RejectCourse(long courseId, [FromBody] string? reason)
         {
             try
@@ -134,7 +140,37 @@ namespace IGCSE.Controller
             }
         }
 
+        [HttpGet("my-registrations")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetMyRegistrations()
+        {
+            try
+            {
+                // Lấy thông tin user từ JWT token
+                var user = HttpContext.User;
+                var userId = user.FindFirst("AccountID")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseRegistrationService.GetStudentRegistrationsAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy danh sách khóa học đã đăng ký: {ex.Message}",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
         [HttpGet("registrations/{studentId}")]
+        [Authorize(Roles = "Parent")]
+        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của sinh viên theo studentId (Parent)")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetStudentRegistrations(string studentId)
         {
             var result = await _courseRegistrationService.GetStudentRegistrationsAsync(studentId);
@@ -149,6 +185,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("progress")]
+        [SwaggerOperation(Summary = "Lấy thông tin tiến trình khóa học đã đăng ký của sinh viên theo studentId và courseId (Parent)")]
         public async Task<ActionResult<BaseResponse<StudentProgressResponse>>> GetStudentProgressByStudentAndCourse([FromQuery] string studentId, [FromQuery] long courseId)
         {
             try
@@ -167,6 +204,8 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("complete-lesson-item")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(Summary = "Gọi để chuyển status thành hoàn thành các lessonitem (Student)")]
         public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int courseKeyId, [FromQuery] int lessonItemId)
         {
             var result = await _courseRegistrationService.CompleteLessonItemAsync(courseKeyId, lessonItemId);
@@ -175,6 +214,7 @@ namespace IGCSE.Controller
 
         // Course Content Management endpoints
         [HttpPost("section/create")]
+        [SwaggerOperation(Summary = "Tạo các course section (Teacher)")]
         public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> CreateCourseSection([FromBody] CourseSectionRequest request)
         {
             if (!ModelState.IsValid)
@@ -194,6 +234,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("lesson/create")]
+        [SwaggerOperation(Summary = "Tạo các course lesson (Teacher)")]
         public async Task<ActionResult<BaseResponse<LessonResponse>>> CreateLesson([FromBody] LessonRequest request)
         {
             if (!ModelState.IsValid)
@@ -206,13 +247,14 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
-        }
+            }
 
             var result = await _courseService.CreateLessonAsync(request);
             return Created("lesson", result);
         }
 
         [HttpPost("lesson-item/create")]
+        [SwaggerOperation(Summary = "Tạo các course lessonitem (Teacher)")]
         public async Task<ActionResult<BaseResponse<LessonItemResponse>>> CreateLessonItem([FromForm] LessonItemRequest request)
         {
             if (!ModelState.IsValid)
@@ -265,10 +307,11 @@ namespace IGCSE.Controller
                     Common.Constants.StatusCodeEnum.BadRequest_400,
                     null
                 ));
-    }
-}
+            }
+        }
 
         [HttpGet("{courseId}/sections")]
+        [SwaggerOperation(Summary = "Lấy thông tin của các section (Teacher)")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
         {
             var result = await _courseService.GetCourseSectionsAsync(courseId);
@@ -276,6 +319,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("lesson/{lessonId}/items")]
+        [SwaggerOperation(Summary = "Lấy thông tin Lessonitem của Lesson (Teacher)")]
         public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
         {
             var result = await _courseService.GetLessonItemsAsync(lessonId);
@@ -284,6 +328,7 @@ namespace IGCSE.Controller
 
         [HttpPost("redeem-key")]
         [Authorize(Roles = "Student")]
+        [SwaggerOperation(Summary = "Nhập mã key của khóa học để enroll (Student)")]
         public async Task<ActionResult<BaseResponse<string>>> RedeemCourseKey([FromBody] string courseKeyValue)
         {
             try
@@ -342,7 +387,8 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create-vnpay-url")]
-        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
+        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
+        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromForm] PaymentRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -361,6 +407,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("vnpay-callback")]
+        [SwaggerOperation(Summary = "Lấy thông tin giao dịch (Parent)")]
         public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
         {
             var currentUrl = Request.GetDisplayUrl();
@@ -373,6 +420,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-similar-courses")]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromBody] SimilarCourseRequest request)
         {
             if (!ModelState.IsValid)
@@ -389,6 +437,25 @@ namespace IGCSE.Controller
 
             var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
             return Ok(result);
+        }
+
+        [HttpGet("{courseId}/detail")]
+        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items)")]
+        public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(long courseId)
+        {
+            try
+            {
+                var result = await _courseService.GetCourseDetailAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy thông tin khóa học: {ex.Message}",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
         }
     }
 }

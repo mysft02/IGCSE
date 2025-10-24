@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Configuration;
 
+
 namespace BusinessObject;
 
 public partial class IGCSEContext : IdentityDbContext<Account>
@@ -26,20 +27,36 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Useranswer> Useranswers { get; set; }
     public virtual DbSet<Question> Questions { get; set; }
     public virtual DbSet<Quiz> Quizzes { get; set; }
-
     public virtual DbSet<Quizresult> Quizresults { get; set; }
+    public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148.
-        => optionsBuilder.UseMySql(GetConnectionString(), ServerVersion.Parse("8.0.43-mysql"));
-
-    private string GetConnectionString()
     {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json")
+        if (optionsBuilder.IsConfigured)
+        {
+            return;
+        }
+
+        // ?u tiên bi?n môi tr??ng (Jenkins truy?n vào) r?i m?i t?i appsettings.json
+        var envConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
+        if (!string.IsNullOrWhiteSpace(envConnection))
+        {
+            optionsBuilder.UseMySql(envConnection, ServerVersion.Parse("8.0.43-mysql"));
+            return;
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
-        return configuration.GetConnectionString("DbConnection");
+
+        var fileConnection = configuration.GetConnectionString("DbConnection");
+        if (!string.IsNullOrWhiteSpace(fileConnection))
+        {
+            optionsBuilder.UseMySql(fileConnection, ServerVersion.Parse("8.0.43-mysql"));
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -200,6 +217,25 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.UserAnswerId).HasColumnName("UserAnswerID");
             entity.Property(e => e.Answer).HasMaxLength(500);
             entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+
+            entity.HasOne(d => d.Question)
+                  .WithMany()
+                  .HasForeignKey(d => d.QuestionId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_Useranswer_Question_QuestionID");
+
+            entity.HasOne(d => d.User)
+                  .WithMany()
+                  .HasForeignKey(d => d.UserId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_Useranswer_AspNetUsers_UserID");
+
+            entity.HasIndex(e => e.QuestionId)
+                  .HasDatabaseName("IX_Useranswer_QuestionID");
+
+            entity.HasIndex(e => e.UserId)
+                  .HasDatabaseName("IX_Useranswer_UserID");
         });
 
         modelBuilder.Entity<Quiz>(entity =>
@@ -288,6 +324,21 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.QuizId).HasColumnName("QuizID");
             entity.Property(e => e.Score).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Parentstudentlink>(entity =>
+        {
+            entity.HasKey(e => e.LinkId).HasName("PRIMARY");
+
+            entity.ToTable("parentstudentlink");
+
+            entity.Property(e => e.LinkId).HasColumnName("LinkID");
+            entity.Property(e => e.ParentId)
+                .HasMaxLength(255)
+                .HasColumnName("ParentID");
+            entity.Property(e => e.StudentId)
+                .HasMaxLength(255)
+                .HasColumnName("StudentID");
         });
 
         OnModelCreatingPartial(modelBuilder);

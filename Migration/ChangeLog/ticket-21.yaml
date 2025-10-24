@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: feat-21-unlock-progress
+      id: 21
       author: quanghuy
       changes:
         - addColumn:
