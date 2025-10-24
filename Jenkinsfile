@@ -288,17 +288,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    echo "=== CLEANING BEFORE DOCKER BUILD ==="
-                    # Clean only dangling Docker resources (SAFE - keeps running containers)
-                    if command -v docker >/dev/null 2>&1; then
-                        echo "Cleaning only dangling Docker resources..."
-                        # Chỉ xóa dangling images (không có tag) - SAFE
-                        docker image prune -f 2>/dev/null || true
-                        # Xóa dangling volumes (không được sử dụng) - SAFE
-                        docker volume prune -f 2>/dev/null || true
-                        echo "✅ Only dangling resources cleaned, running containers SAFE"
-                    fi
-                    
+               
                     echo "=== BUILDING DOCKER IMAGE ==="
                     
                     # Check if Docker is available
@@ -443,19 +433,18 @@ EOF
                 rm -f dotnet-install.sh 2>/dev/null || true
                 rm -f app.log app.pid response.json 2>/dev/null || true
                 
-                # Clean only dangling Docker resources (SAFE - keeps running containers)
-                if command -v docker >/dev/null 2>&1; then
-                    echo "Cleaning only dangling Docker resources..."
-                    # Chỉ xóa dangling images (không có tag) - SAFE
-                    docker image prune -f 2>/dev/null || true
-                    # Xóa dangling volumes (không được sử dụng) - SAFE
-                    docker volume prune -f 2>/dev/null || true
-                    echo "✅ Only dangling resources cleaned, running containers SAFE"
-                fi
                 
-                # Clean Jenkins workspace temp files
+                # Clean Jenkins workspace temp files (AGGRESSIVE)
                 rm -rf /var/jenkins_home/workspace/IGCSE-Pipeline@tmp 2>/dev/null || true
                 rm -rf /tmp/jenkins* 2>/dev/null || true
+                
+                # Clean old build artifacts (if accessible)
+                find /var/jenkins_home/workspace -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
+                find /var/jenkins_home/workspace -name "obj" -type d -exec rm -rf {} + 2>/dev/null || true
+                find /var/jenkins_home/workspace -name "publish" -type d -exec rm -rf {} + 2>/dev/null || true
+                
+                # Clean old logs (keep last 3 days)
+                find /var/jenkins_home/logs -name "*.log" -mtime +3 -delete 2>/dev/null || true
                 
                 # Show disk usage
                 echo "=== CURRENT DISK USAGE ==="
