@@ -7,6 +7,7 @@ using Service.Trello;
 using Service.OpenAI;
 using Service.VnPay;
 using BusinessObject.Mapping;
+using Service.PayOS;
 
 namespace IGCSE.Extensions
 {
@@ -47,6 +48,7 @@ namespace IGCSE.Extensions
             services.AddScoped<TrelloApiService>();
             services.AddHttpClient<ApiService>();
             services.AddScoped<VnPayApiService>();
+            services.AddScoped<PayOSApiService>();
             services.AddScoped<OpenAIApiService>();
             services.AddScoped<PaymentService>();
             services.AddScoped<OpenAIEmbeddingsApiService>();

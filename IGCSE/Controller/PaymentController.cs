@@ -1,4 +1,5 @@
 using BusinessObject.Payload.Request.VnPay;
+using BusinessObject.Payload.Response.PayOS;
 using BusinessObject.Payload.Response.VnPay;
 using DTOs.Response.Accounts;
 using DTOs.Response.Courses;
@@ -110,6 +111,23 @@ namespace IGCSE.Controller
         public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllTransactionHistories([FromQuery] string userId)
         {
             var result = _paymentService.GetAllTransactionHistoriesByUserId(userId);
+            return Ok(result);
+        }
+
+        
+        [HttpGet("get-payos-payment-url")]
+        [Authorize]
+        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> GetPayOSPaymentUrl([FromQuery] int amount)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _paymentService.GetPayOSPaymentUrlAsync(amount, userId);
             return Ok(result);
         }
     }

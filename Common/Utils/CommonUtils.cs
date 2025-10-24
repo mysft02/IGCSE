@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Reflection;
 
 namespace Common.Utils
 {
@@ -225,5 +227,40 @@ namespace Common.Utils
 
             return dot / denominator;
         }
+
+        public static string GeneratePayOSSignature(object body, string checksumKey)
+        {
+            var props = body.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.GetValue(body) != null)
+                .Select(p => 
+                {
+                    var jsonPropertyName = p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name;
+                    return new { Key = jsonPropertyName, Value = p.GetValue(body)!.ToString() };
+                })
+                .Where(x => x.Key != "buyerName" && x.Key != "signature") // Loại bỏ buyerName và signature
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            var sorted = props.OrderBy(p => p.Key, StringComparer.Ordinal);
+
+            var rawData = string.Join("&", sorted.Select(p => $"{p.Key}={p.Value}"));
+
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
+        public static int GenerateUniqueOrderCode()
+        {
+            // Lấy số mili-giây trong ngày (0–86,399,999)
+            int timePart = (int)(DateTime.UtcNow.TimeOfDay.TotalMilliseconds % 1000000);
+            int randomPart = Random.Shared.Next(100, 999); // 3 số ngẫu nhiên
+
+            // Ghép lại, đảm bảo không vượt giới hạn int
+            string combined = $"{timePart}{randomPart}";
+
+            return int.Parse(combined.Substring(0, Math.Min(combined.Length, 9)));
+        }
+
     }
 }

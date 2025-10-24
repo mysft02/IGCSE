@@ -10,6 +10,9 @@ using Repository.IRepositories;
 using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Response.Payment;
+using BusinessObject.Payload.Request.PayOS;
+using BusinessObject.Payload.Response.PayOS;
+using Service.PayOS;
 
 namespace Service
 {
@@ -21,8 +24,16 @@ namespace Service
         private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
         private readonly ICourseRepository _courseRepository;
+        private readonly PayOSApiService _payOSApiService;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager, IPaymentRepository paymentRepository, ICourseRepository courseRepository)
+        public PaymentService(
+            VnPayApiService apiService, 
+            ICoursekeyRepository coursekeyRepository,
+            IAccountRepository accountRepository,
+            UserManager<Account> userManager,
+            IPaymentRepository paymentRepository,
+            ICourseRepository courseRepository,
+            PayOSApiService payOSApiService)
         {
             _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
@@ -30,6 +41,7 @@ namespace Service
             _userManager = userManager;
             _paymentRepository = paymentRepository;
             _courseRepository = courseRepository;
+            _payOSApiService = payOSApiService;
         }
 
         public async Task<BaseResponse<PaymentResponse>> CreatePaymentUrlAsync(HttpContext context, PaymentRequest req)
@@ -282,6 +294,38 @@ namespace Service
                 StatusCodeEnum.OK_200,
                 transactionHistories
             );
+        }
+
+        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(int amount, string userId)
+        {
+            var body = new PayOSApiBody
+            {
+                OrderCode = CommonUtils.GenerateUniqueOrderCode(),
+                Amount = amount,
+                BuyerName = userId,
+                Description = "Course payment",
+                CancelUrl = "https://yourdomain.com/cancel",
+                ReturnUrl = "https://yourdomain.com/return"
+            };
+
+            var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
+
+            body.Signature = signature;
+
+            var request = PayOSApiRequest.Builder()
+                .CallUrl("/v2/payment-requests")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .Body(body)
+                .Build();
+
+            var response = await _payOSApiService.PostAsync<PayOSApiBody, PayOSApiResponse>(request, body);
+
+            return new BaseResponse<PayOSApiResponse>(
+                "Thanh toán thành công", 
+                StatusCodeEnum.OK_200, 
+                response
+                );
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
