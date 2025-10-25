@@ -214,9 +214,27 @@ pipeline {
 
                     echo "✅ Found DLL file: $DLL_FILE"
                     
-                    # Kill any existing app
+                    # Kill any existing app and processes on port 7211
+                    echo "=== CLEANING UP EXISTING PROCESSES ==="
+                    
+                    # Kill dotnet processes
                     pkill -f "dotnet.*IGCSE.dll" || true
-                    sleep 2
+                    
+                    # Kill processes on port 7211
+                    if command -v lsof >/dev/null 2>&1; then
+                        sudo lsof -ti:7211 | xargs kill -9 2>/dev/null || true
+                    fi
+                    
+                    # Kill screen/tmux sessions
+                    screen -S igcse-app -X quit 2>/dev/null || true
+                    tmux kill-session -t igcse-app 2>/dev/null || true
+                    
+                    # Stop Docker container if running
+                    docker stop igcse-app 2>/dev/null || true
+                    docker rm igcse-app 2>/dev/null || true
+                    
+                    sleep 3
+                    echo "✅ Cleanup completed"
                     
                     # Start the app with systemd or screen/tmux for persistence
             export ASPNETCORE_URLS="http://0.0.0.0:7211"
@@ -421,6 +439,17 @@ EOF
             echo '============================================'
             sh '''
                 echo "=== CLEANING UP WORKSPACE ==="
+                
+                # Kill any running processes
+                echo "Killing running processes..."
+                pkill -f "dotnet.*IGCSE.dll" || true
+                if command -v lsof >/dev/null 2>&1; then
+                    sudo lsof -ti:7211 | xargs kill -9 2>/dev/null || true
+                fi
+                screen -S igcse-app -X quit 2>/dev/null || true
+                tmux kill-session -t igcse-app 2>/dev/null || true
+                docker stop igcse-app 2>/dev/null || true
+                docker rm igcse-app 2>/dev/null || true
                 
                 # Clean .NET build artifacts
                 find . -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true
