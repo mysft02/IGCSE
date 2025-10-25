@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Repository.IBaseRepository;
+using System.Linq.Expressions;
 
 namespace Repository.BaseRepository
 {
@@ -144,5 +145,78 @@ namespace Repository.BaseRepository
             await _dbContext.SaveChangesAsync();
             return existing ?? entity;
         }
+
+        #region Query Methods
+
+        /// <summary>
+        /// Find entities with optional filter
+        /// </summary>
+        public async Task<List<T>> FindAsync(Expression<Func<T, bool>>? filter = null)
+        {
+            var query = _dbContext.Set<T>().AsQueryable();
+            
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            
+            return await query.ToListAsync();
+        }
+
+        /// <summary>
+        /// Count entities with optional filter
+        /// </summary>
+        public async Task<int> CountAsync(Expression<Func<T, bool>>? filter = null)
+        {
+            var query = _dbContext.Set<T>().AsQueryable();
+            
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            
+            return await query.CountAsync();
+        }
+
+        /// <summary>
+        /// Find entities with pagination and optional filter
+        /// </summary>
+        public async Task<List<T>> FindWithPagingAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10)
+        {
+            var query = _dbContext.Set<T>().AsQueryable();
+            
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            
+            return await query
+                .Skip(page * size)
+                .Take(size)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Find entities with pagination and count, with optional filter
+        /// </summary>
+        public async Task<(List<T> Items, int TotalCount)> FindWithPagingAndCountAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10)
+        {
+            var query = _dbContext.Set<T>().AsQueryable();
+            
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip(page * size)
+                .Take(size)
+                .ToListAsync();
+            
+            return (items, totalCount);
+        }
+
+        #endregion
     }
 }
