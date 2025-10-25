@@ -29,6 +29,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Quiz> Quizzes { get; set; }
     public virtual DbSet<Quizresult> Quizresults { get; set; }
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
+    public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -37,7 +38,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             return;
         }
 
-        // ?u tiên bi?n môi tr??ng (Jenkins truy?n vào) r?i m?i t?i appsettings.json
+        // ?u tiï¿½n bi?n mï¿½i tr??ng (Jenkins truy?n vï¿½o) r?i m?i t?i appsettings.json
         var envConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
 
         if (!string.IsNullOrWhiteSpace(envConnection))
@@ -339,6 +340,43 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.StudentId)
                 .HasMaxLength(255)
                 .HasColumnName("StudentID");
+        });
+
+        modelBuilder.Entity<TrelloToken>(entity =>
+        {
+            entity.HasKey(e => new { e.TrelloId, e.UserId }).HasName("PRIMARY");
+
+            entity.ToTable("trello_token");
+
+            entity.Property(e => e.TrelloId)
+                .HasMaxLength(100)
+                .HasColumnName("trello_id");
+
+            entity.Property(e => e.TrelloApiToken)
+                .HasMaxLength(100)
+                .HasColumnName("trello_api_token");
+
+            entity.Property(e => e.UserId)
+                .HasMaxLength(100)
+                .HasColumnName("user_id");
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
+
+            entity.Property(e => e.IsSync)
+                .HasColumnType("tinyint(1)")
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("is_sync");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_TrelloToken_AspNetUsers_UserId");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_TrelloToken_UserId");
         });
 
         OnModelCreatingPartial(modelBuilder);

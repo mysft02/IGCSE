@@ -108,5 +108,41 @@ namespace Repository.BaseRepository
         {
             return await _dbContext.Set<T>().CountAsync();
         }
+
+        public async Task<T> AddOrUpdateAsync(T entity, Func<T, object> keySelector)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
+
+            var key = keySelector(entity);
+            
+            // Handle composite keys by extracting individual key values
+            T? existing = null;
+            if (key is object[] keyArray)
+            {
+                existing = await _dbContext.Set<T>().FindAsync(keyArray);
+            }
+            else
+            {
+                existing = await _dbContext.Set<T>().FindAsync(key);
+            }
+            
+            if (existing != null)
+            {
+                // Update existing entity
+                _dbContext.Entry(existing).CurrentValues.SetValues(entity);
+                _dbContext.Entry(existing).State = EntityState.Modified;
+            }
+            else
+            {
+                // Add new entity
+                await _dbContext.Set<T>().AddAsync(entity);
+            }
+            
+            await _dbContext.SaveChangesAsync();
+            return existing ?? entity;
+        }
     }
 }

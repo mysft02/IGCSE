@@ -12,5 +12,6 @@
         Task<List<T>> AddRange(List<T> entities);
         Task<List<T>> UpdateRange(List<T> entities);
         Task<List<T>> DeleteRange(List<T> entities);
+        Task<T> AddOrUpdateAsync(T entity, Func<T, object> keySelector);
     }
 }
