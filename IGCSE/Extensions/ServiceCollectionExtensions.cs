@@ -55,6 +55,7 @@ namespace IGCSE.Extensions
             services.AddScoped<TestService>();
             services.AddScoped<QuizService>();
             services.AddScoped<TrelloOAuthService>();
+            services.AddScoped<TrelloTokenService>();
 
             return services;
         }
