@@ -6,9 +6,11 @@ using DTOs.Response.Categories;
 using DTOs.Response.Courses;
 using DTOs.Response.CourseRegistration;
 using DTOs.Response.CourseContent;
-using DTOs.Request.CourseRegistration;
-using DTOs.Request.CourseContent;
 using BusinessObject.DTOs.Response.Quizzes;
+using BusinessObject.DTOs.Response.Modules;
+using BusinessObject.DTOs.Request.Modules;
+using BusinessObject.DTOs.Request.Chapters;
+using DTOs.Request.CourseContent;
 
 namespace BusinessObject.Mapping
 {
@@ -54,6 +56,18 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content ?? ""))
                 .ForMember(dest => dest.ItemType, opt => opt.MapFrom(src => src.ItemType ?? "text"));
 
+            // Module, Chapter mappings
+            CreateMap<Module, ModuleResponse>().ReverseMap();
+            CreateMap<Chapter, ChapterResponse>().ReverseMap();
+            CreateMap<ModuleRequest, Module>();
+            CreateMap<ChapterRequest, Chapter>();
+            // Tree mappings for detail response with children
+            CreateMap<Module, ModuleDetailResponse>().ReverseMap();
+            CreateMap<Chapter, ChapterDetailResponse>().ReverseMap();
+            // Tree with children: List<Chapter> to List<ChapterDetailResponse> & List<Module> to List<ModuleDetailResponse>
+            // Use ForMember with child mapping if necessary or configure AllowNullCollections, PreserveReferences if recursion.
+            // Tương tự cho các class detail khác nếu cần custom.
+
             // Student Progress mappings
             CreateMap<Process, LessonProgressResponse>()
                 .ForMember(dest => dest.LessonName, opt => opt.MapFrom(src => src.Lesson.Name))
@@ -63,6 +77,7 @@ namespace BusinessObject.Mapping
             CreateMap<Processitem, LessonItemProgressResponse>()
                 .ForMember(dest => dest.LessonItemName, opt => opt.MapFrom(src => src.LessonItem.Name));
 
+            CreateMap<CourseSectionRequest, Coursesection>();
             CreateMap<Quiz, QuizResponse>().ReverseMap();
         }
     }

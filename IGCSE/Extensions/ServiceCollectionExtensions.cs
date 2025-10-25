@@ -29,6 +29,10 @@ namespace IGCSE.Extensions
             services.AddScoped<IQuizResultRepository, QuizResultRepository>();
             services.AddScoped<IPaymentRepository, PaymentRepository>();
             services.AddScoped<IQuestionRepository, QuestionRepository>();
+            services.AddScoped<IModuleRepository, ModuleRepository>();
+            services.AddScoped<ModuleService>();
+            services.AddScoped<IChapterRepository, ChapterRepository>();
+            services.AddScoped<ChapterService>();
 
             return services;
         }

@@ -1,4 +1,7 @@
+using BusinessObject.DTOs.Request.Chapters;
 using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Request.Modules;
+using BusinessObject.DTOs.Response.Modules;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Common.Utils;
@@ -15,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
 
+
 namespace IGCSE.Controller
 {
     [Route("api/course")]
@@ -25,13 +29,23 @@ namespace IGCSE.Controller
         private readonly CourseRegistrationService _courseRegistrationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly PaymentService _paymentService;
+        private readonly ModuleService _moduleService;
+        private readonly ChapterService _chapterService;
 
-        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment, PaymentService paymentService)
+        public CourseController(
+            CourseService courseService,
+            CourseRegistrationService courseRegistrationService,
+            IWebHostEnvironment webHostEnvironment,
+            PaymentService paymentService,
+            ModuleService moduleService,
+            ChapterService chapterService)
         {
             _courseService = courseService;
             _courseRegistrationService = courseRegistrationService;
             _webHostEnvironment = webHostEnvironment;
             _paymentService = paymentService;
+            _moduleService = moduleService;
+            _chapterService = chapterService;
         }
 
         [HttpPost("create")]
@@ -456,6 +470,31 @@ namespace IGCSE.Controller
                     null
                 ));
             }
+        }
+
+        [HttpGet("{courseId}/modules")]
+        public async Task<ActionResult<List<ModuleResponse>>> GetModules(int courseId)
+        {
+            var result = await _moduleService.GetModulesByCourseIdAsync(courseId);
+            return Ok(result);
+        }
+        [HttpPost("module/create")]
+        public async Task<ActionResult<ModuleResponse>> CreateModule([FromBody] ModuleRequest request)
+        {
+            var result = await _moduleService.CreateModuleAsync(request);
+            return Created("module", result);
+        }
+        [HttpGet("module/{moduleId}/chapters")]
+        public async Task<ActionResult<List<ChapterResponse>>> GetChapters(int moduleId)
+        {
+            var result = await _chapterService.GetByModuleIdAsync(moduleId);
+            return Ok(result);
+        }
+        [HttpPost("chapter/create")]
+        public async Task<ActionResult<ChapterResponse>> CreateChapter([FromBody] ChapterRequest request)
+        {
+            var result = await _chapterService.CreateAsync(request);
+            return Created("chapter", result);
         }
     }
 }

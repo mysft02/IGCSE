@@ -17,6 +17,9 @@ namespace DTOs.Request.CourseContent
         public int CourseId { get; set; }
 
         [Required]
+        public int ChapterId { get; set; }
+
+        [Required]
         public int Order { get; set; }
 
         [Required]

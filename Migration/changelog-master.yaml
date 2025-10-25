@@ -13,3 +13,5 @@
       file: ./ChangeLog/ticket-20.yaml
   - include:
       file: ./ChangeLog/ticket-17.yaml
+  - include:
+      file: ./ChangeLog/ticket-28.yaml
