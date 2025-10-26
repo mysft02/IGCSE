@@ -262,5 +262,24 @@ namespace Common.Utils
             return int.Parse(combined.Substring(0, Math.Min(combined.Length, 9)));
         }
 
+        public static string CreatePayoutSignature(object bodyObject, string checksumKey)
+        {
+            // Serialize body thành JSON theo chuẩn (không format thêm khoảng trắng)
+            string jsonBody = JsonSerializer.Serialize(bodyObject,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = false });
+
+            // Tạo HMAC SHA256 với checksumKey
+            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey)))
+            {
+                byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(jsonBody));
+                // Chuyển thành hex lowercase
+                StringBuilder sb = new StringBuilder(hashBytes.Length * 2);
+                foreach (byte b in hashBytes)
+                {
+                    sb.Append(b.ToString("x2"));
+                }
+                return sb.ToString();
+            }
+        }
     }
 }

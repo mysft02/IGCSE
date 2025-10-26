@@ -1,3 +1,4 @@
+using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.PayOS;
 using BusinessObject.Payload.Response.VnPay;
@@ -128,6 +129,22 @@ namespace IGCSE.Controller
             }
 
             var result = await _paymentService.GetPayOSPaymentUrlAsync(amount, userId);
+            return Ok(result);
+        }
+
+        [HttpPost("payout")]
+        [Authorize]
+        public async Task<ActionResult<BaseResponse<PayOSPayoutApiResponse>>> PayOSPayout([FromForm] PayoutRequest request)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _paymentService.PayOSPayoutAsync(request, userId);
             return Ok(result);
         }
     }

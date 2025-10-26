@@ -421,6 +421,7 @@ EOF
             echo '============================================'
             sh '''
                 echo "=== CLEANING UP WORKSPACE ==="
+                cleanWs()
                 
                 # Clean .NET build artifacts
                 find . -name "bin" -type d -exec rm -rf {} + 2>/dev/null || true

@@ -13,6 +13,7 @@ using BusinessObject.DTOs.Response.Payment;
 using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response.PayOS;
 using Service.PayOS;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 
 namespace Service
 {
@@ -324,6 +325,37 @@ namespace Service
             return new BaseResponse<PayOSApiResponse>(
                 "Thanh toán thành công", 
                 StatusCodeEnum.OK_200, 
+                response
+                );
+        }
+
+        public async Task<BaseResponse<PayOSPayoutApiResponse>> PayOSPayoutAsync(PayoutRequest payoutRequest, string userId)
+        {
+            var body = new PayOSPayoutApiBody
+            {
+                ReferenceId = DateTime.Now.Ticks.ToString() + "_" + userId,
+                Amount = payoutRequest.Amount,
+                Description = $"Payout for {payoutRequest.TeacherID}",
+                ToBin = payoutRequest.BankBin,
+                ToAccountNumber = payoutRequest.BankAccountNumber,
+            };
+
+            var signature = CommonUtils.CreatePayoutSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
+
+            var request = PayOSApiRequest.Builder()
+                .CallUrl("/v1/payouts")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddHeader("x-idempotency-key", DateTime.Now.Ticks.ToString())
+                .AddHeader("x-signature", signature)
+                .Body(body)
+                .Build();
+
+            var response = await _payOSApiService.PostAsync<PayOSPayoutApiBody, PayOSPayoutApiResponse>(request, body);
+
+            return new BaseResponse<PayOSPayoutApiResponse>(
+                "Thanh toán thành công",
+                StatusCodeEnum.OK_200,
                 response
                 );
         }

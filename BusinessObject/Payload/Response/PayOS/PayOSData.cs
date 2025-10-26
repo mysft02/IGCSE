@@ -6,14 +6,19 @@ namespace BusinessObject.Payload.Response.PayOS
     {
         [JsonPropertyName("bin")]
         public string Bin { get; set; }
+
         [JsonPropertyName("accountNumber")]
         public string AccountNumber { get; set; }
+
         [JsonPropertyName("accountName")]
         public string AccountName { get; set; }
+
         [JsonPropertyName("currency")]
         public string Currency { get; set; }
+
         [JsonPropertyName("paymentLinkId")]
         public string PaymentLinkId { get; set; }
+
         [JsonPropertyName("amount")]
         public double Amount { get; set; }
         
