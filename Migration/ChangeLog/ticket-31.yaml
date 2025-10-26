@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 31
+      author: vudq
+      changes:
+        - createTable:
+            tableName: trello_token
+            columns:
+              - column:
+                  name: trello_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: trello_api_token
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_sync
+                  type: tinyint(1)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+            tableName: trello_token
+      rollback:
+        - dropTable:
+            tableName: trello_token
+      tags:
+        - trello-token-table

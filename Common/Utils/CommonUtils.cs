@@ -281,5 +281,23 @@ namespace Common.Utils
                 return sb.ToString();
             }
         }
+
+        public static bool isEmtyString(string? str)
+        {
+            if (str == null)
+            {
+                return true;
+            }
+            return string.IsNullOrWhiteSpace(str);
+        }
+        
+        public static bool isEmtyObject(object? obj)
+        {
+            if (obj == null)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

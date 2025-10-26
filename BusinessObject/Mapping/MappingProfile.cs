@@ -9,6 +9,7 @@ using DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Response.ParentStudentLink;
 using DTOs.Response.Accounts;
+using BusinessObject.DTOs.Response;
 
 namespace BusinessObject.Mapping
 {
@@ -70,6 +71,14 @@ namespace BusinessObject.Mapping
 
             CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap()
                 .ForMember(dest => dest.Student, opt => opt.MapFrom(src => src.Student));
+
+            // TrelloToken mappings
+            CreateMap<TrelloToken, TrelloTokenResponse>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Name))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.Email))
+                .ReverseMap();
         }
     }
 }
