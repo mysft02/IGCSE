@@ -10,7 +10,7 @@ using DTOs.Request.Accounts;
 using DTOs.Response.Accounts;
 using BusinessObject.DTOs.Request.ParentStudentLink;
 using BusinessObject.DTOs.Response.ParentStudentLink;
-using Repository.Repositories;
+using BusinessObject.DTOs.Response;
 
 namespace Service
 {

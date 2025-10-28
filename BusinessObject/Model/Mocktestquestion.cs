@@ -1,6 +1,9 @@
-﻿namespace BusinessObject.Model;
+﻿using System;
+using System.Collections.Generic;
 
-public class Mocktestquestion
+namespace BusinessObject.Model;
+
+public partial class Mocktestquestion
 {
     public int MockTestQuestionId { get; set; }
 
@@ -9,6 +12,8 @@ public class Mocktestquestion
     public string QuestionContent { get; set; } = null!;
 
     public string CorrectAnswer { get; set; } = null!;
+
+    public string? ImageUrl { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

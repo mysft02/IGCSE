@@ -5,7 +5,6 @@ using Repository.IBaseRepository;
 using Service;
 using Service.Trello;
 using Service.OpenAI;
-using Service.VnPay;
 using BusinessObject.Mapping;
 using Service.PayOS;
 using Service.OAuth;
@@ -33,6 +32,9 @@ namespace IGCSE.Extensions
             services.AddScoped<IQuestionRepository, QuestionRepository>();
             services.AddScoped<IParentStudentLinkRepository, ParentStudentLinkRepository>();
             services.AddScoped<ITrelloTokenRepository, TrelloTokenRepository>();
+            services.AddScoped<IMockTestRepository, MockTestRepository>();
+            services.AddScoped<IMockTestQuestionRepository, MockTestQuestionRepository>();
+            services.AddScoped<IMockTestResultRepository, MockTestResultRepository>();
 
             return services;
         }
@@ -49,15 +51,14 @@ namespace IGCSE.Extensions
             services.AddScoped<CourseRegistrationService>();
             services.AddScoped<TrelloApiService>();
             services.AddHttpClient<ApiService>();
-            services.AddScoped<VnPayApiService>();
             services.AddScoped<PayOSApiService>();
             services.AddScoped<OpenAIApiService>();
             services.AddScoped<PaymentService>();
             services.AddScoped<OpenAIEmbeddingsApiService>();
-            services.AddScoped<TestService>();
             services.AddScoped<QuizService>();
             services.AddScoped<TrelloOAuthService>();
             services.AddScoped<TrelloTokenService>();
+            services.AddScoped<MockTestService>();
 
             return services;
         }

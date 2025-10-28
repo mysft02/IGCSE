@@ -1,8 +1,6 @@
+using BusinessObject.DTOs.Response;
 using BusinessObject.Payload.Request.PayOS;
-using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.PayOS;
-using BusinessObject.Payload.Response.VnPay;
-using DTOs.Response.Accounts;
 using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,38 +18,6 @@ namespace IGCSE.Controller
         public PaymentController(PaymentService paymentService)
         {
             _paymentService = paymentService;
-        }
-
-        [HttpPost("create-vnpay-url")]
-        [Authorize]
-        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
-        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromBody] PaymentRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
-                ));
-            }
-
-            try
-            {
-                var result = await _paymentService.CreatePaymentUrlAsync(HttpContext, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
         }
 
         [HttpGet("parent-coursekeys")]
@@ -134,7 +100,7 @@ namespace IGCSE.Controller
 
         [HttpPost("payout")]
         [Authorize]
-        public async Task<ActionResult<BaseResponse<PayOSPayoutApiResponse>>> PayOSPayout([FromForm] PayoutRequest request)
+        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> PayOSPayout([FromForm] PayoutRequest request)
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;
@@ -145,6 +111,22 @@ namespace IGCSE.Controller
             }
 
             var result = await _paymentService.PayOSPayoutAsync(request, userId);
+            return Ok(result);
+        }
+
+        [HttpPost("craete-or-udpate-webhook-url")]
+        //[Authorize]
+        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> CreateOrUpdateWebhookurl([FromForm] string url)
+        {
+            //var user = HttpContext.User;
+            //var userId = user.FindFirst("AccountID")?.Value;
+
+            //if (string.IsNullOrEmpty(userId))
+            //{
+            //    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            //}
+
+            var result = await _paymentService.CreateOrUpdateWebhookUrl(url);
             return Ok(result);
         }
     }

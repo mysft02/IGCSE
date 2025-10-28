@@ -407,6 +407,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.MockTestQuestionId).HasColumnName("MockTestQuestionID");
             entity.Property(e => e.CorrectAnswer).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
             entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
             entity.Property(e => e.QuestionContent).HasMaxLength(500);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");

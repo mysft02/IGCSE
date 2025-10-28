@@ -72,6 +72,9 @@
                   constraints:
                     nullable: false
               - column:
+                  name: ImageUrl
+                  type: varchar(255)
+              - column:
                   name: CreatedAt
                   type: datetime
                   constraints:

@@ -1,15 +1,10 @@
 using AutoMapper;
 using BusinessObject.Model;
-using DTOs.Request.CourseRegistration;
 using DTOs.Response.CourseContent;
 using DTOs.Response.CourseRegistration;
 using Repository.IRepositories;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using DTOs.Response.Accounts;
 using Common.Constants;
+using BusinessObject.DTOs.Response;
 
 namespace Service
 {

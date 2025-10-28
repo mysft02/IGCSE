@@ -1,11 +1,8 @@
 using BusinessObject.DTOs.Request.Courses;
-using BusinessObject.Payload.Request.VnPay;
-using BusinessObject.Payload.Response.VnPay;
+using BusinessObject.DTOs.Response;
 using Common.Utils;
 using DTOs.Request.CourseContent;
-using DTOs.Request.CourseRegistration;
 using DTOs.Request.Courses;
-using DTOs.Response.Accounts;
 using DTOs.Response.CourseContent;
 using DTOs.Response.CourseRegistration;
 using DTOs.Response.Courses;
@@ -386,36 +383,16 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpPost("create-vnpay-url")]
-        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
-        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromForm] PaymentRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
-                ));
-            }
-
-            var result = await _paymentService.CreatePaymentUrlAsync(HttpContext, request);
-            return Ok(result);
-        }
-
-        [HttpPost("vnpay-callback")]
-        [SwaggerOperation(Summary = "Lấy thông tin giao dịch (Parent)")]
-        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
+        [HttpPost("payment-callback")]
+        [SwaggerOperation(Summary = "Xử lí giao dịch sau khi thanh toán")]
+        public async Task<ActionResult<BaseResponse<string>>> PaymentCallback()
         {
             var currentUrl = Request.GetDisplayUrl();
 
             var queryParams = Request.Query
                 .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
 
-            var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
+            var result = await _paymentService.HandlePaymentAsync(queryParams);
             return Ok(result);
         }
 

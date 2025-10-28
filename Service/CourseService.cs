@@ -6,10 +6,10 @@ using DTOs.Response.Courses;
 using DTOs.Request.CourseContent;
 using DTOs.Response.CourseContent;
 using BusinessObject.Model;
-using DTOs.Response.Accounts;
 using Service.OpenAI;
 using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Response;
 
 namespace Service
 {
@@ -221,7 +221,7 @@ namespace Service
                 Data = courseResponses
             };
 
-            return new DTOs.Response.Accounts.BaseResponse<PagedResponse<CourseResponse>>(
+            return new BaseResponse<PagedResponse<CourseResponse>>(
                 "Courses retrieved successfully",
                 StatusCodeEnum.OK_200,
                 paged
