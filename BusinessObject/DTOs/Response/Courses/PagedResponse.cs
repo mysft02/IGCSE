@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DTOs.Response.Courses
+namespace BusinessObject.DTOs.Response.Courses
 {
     public class PagedResponse<T>
     {

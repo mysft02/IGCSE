@@ -1,6 +1,6 @@
 using System;
 
-namespace DTOs.Response.Courses
+namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseResponse
     {

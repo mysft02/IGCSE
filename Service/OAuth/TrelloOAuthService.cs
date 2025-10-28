@@ -3,7 +3,6 @@ using BusinessObject.Payload.Request;
 using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Repository.IRepositories;
-using Repository.Repositories;
 using Service.Trello;
 
 namespace Service.OAuth;

@@ -1,16 +1,14 @@
 using Repository.IRepositories;
 using AutoMapper;
 using Common.Constants;
-using DTOs.Request.Courses;
-using DTOs.Response.Courses;
-using DTOs.Request.CourseContent;
-using DTOs.Response.CourseContent;
 using BusinessObject.Model;
-using DTOs.Response.Accounts;
 using Service.OpenAI;
 using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Request.CourseContent;
 
 namespace Service
 {

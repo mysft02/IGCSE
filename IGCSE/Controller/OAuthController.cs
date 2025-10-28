@@ -1,6 +1,5 @@
 using BusinessObject.DTOs.Response;
 using Common.Utils;
-using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.OAuth;

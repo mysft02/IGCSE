@@ -1,9 +1,9 @@
 using AutoMapper;
+using BusinessObject.DTOs.Request.Categories;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Categories;
 using BusinessObject.Model;
 using Common.Constants;
-using DTOs.Request.Categories;
-using DTOs.Response.Categories;
 using Repository.IRepositories;
 
 namespace Service

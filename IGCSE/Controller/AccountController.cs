@@ -1,12 +1,10 @@
-using DTOs.Request.Accounts;
-using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Service;
 using BusinessObject.DTOs.Request.ParentStudentLink;
 using BusinessObject.DTOs.Response.ParentStudentLink;
-using BusinessObject.Model;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Accounts;
+using BusinessObject.DTOs.Request.Accounts;
 
 namespace IGCSE.Controller
 {

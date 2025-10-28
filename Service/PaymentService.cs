@@ -2,7 +2,6 @@ using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Common.Constants;
 using Common.Utils;
-using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Http;
 using Service.VnPay;
 using Repository.IRepositories;
@@ -10,6 +9,7 @@ using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Response.Payment;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace Service
 {

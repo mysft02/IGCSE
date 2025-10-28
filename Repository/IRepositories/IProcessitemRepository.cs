@@ -1,6 +1,5 @@
 using BusinessObject.Model;
 using Repository.IBaseRepository;
-using System.Threading.Tasks;
 
 namespace Repository.IRepositories
 {
