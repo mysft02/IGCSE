@@ -84,7 +84,7 @@ namespace IGCSE.Controller
         
         [HttpGet("get-payos-payment-url")]
         [Authorize]
-        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> GetPayOSPaymentUrl([FromQuery] int amount)
+        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> GetPayOSPaymentUrl([FromQuery] PayOSPaymentRequest request)
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;
@@ -94,7 +94,7 @@ namespace IGCSE.Controller
                 return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
             }
 
-            var result = await _paymentService.GetPayOSPaymentUrlAsync(amount, userId);
+            var result = await _paymentService.GetPayOSPaymentUrlAsync(request, userId);
             return Ok(result);
         }
 

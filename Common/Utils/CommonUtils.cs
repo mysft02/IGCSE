@@ -262,24 +262,27 @@ namespace Common.Utils
             return int.Parse(combined.Substring(0, Math.Min(combined.Length, 9)));
         }
 
-        public static string CreatePayoutSignature(object bodyObject, string checksumKey)
+        public static string CreatePayoutSignature(object body, string checksumKey)
         {
-            // Serialize body thành JSON theo chuẩn (không format thêm khoảng trắng)
-            string jsonBody = JsonSerializer.Serialize(bodyObject,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = false });
-
-            // Tạo HMAC SHA256 với checksumKey
-            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey)))
+            var json = JsonSerializer.Serialize(body, new JsonSerializerOptions
             {
-                byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(jsonBody));
-                // Chuyển thành hex lowercase
-                StringBuilder sb = new StringBuilder(hashBytes.Length * 2);
-                foreach (byte b in hashBytes)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
-                return sb.ToString();
-            }
+                IgnoreNullValues = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+
+            var sorted = new SortedDictionary<string, object>(
+                dict.Where(kv => kv.Value != null)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value)
+            );
+
+            var rawData = string.Join("&", sorted.Select(kv => $"{kv.Key}={kv.Value}"));
+
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
         }
 
         public static bool isEmtyString(string? str)

@@ -50,52 +50,51 @@ namespace Service
         
         public async Task<BaseResponse<List<QuizMarkResponse>>> MarkQuizAsync(QuizMarkRequest request)
         {
-                List<QuizMarkResponse> result = new List<QuizMarkResponse>();
+            List<QuizMarkResponse> result = new List<QuizMarkResponse>();
+            
+            List<QuestionMarkRequest> questions = new List<QuestionMarkRequest>();
+            int? quizIdFromQuestions = null;
 
-                List<QuestionMarkRequest> questions = new List<QuestionMarkRequest>();
-                int? quizIdFromQuestions = null;
+            if (request?.UserAnswers == null || request.UserAnswers.Count == 0)
+            {
+                return new BaseResponse<List<QuizMarkResponse>>(
+                        "No answers to mark",
+                        StatusCodeEnum.OK_200,
+                        new List<QuizMarkResponse>());
+            }
 
-				// Validate input list
-				if (request?.UserAnswers == null || request.UserAnswers.Count == 0)
-				{
-					return new BaseResponse<List<QuizMarkResponse>>(
-						"No answers to mark",
-						StatusCodeEnum.OK_200,
-						new List<QuizMarkResponse>());
-				}
-
-				foreach(var userAnswer in request.UserAnswers)
+            foreach (var userAnswer in request.UserAnswers)
+            {
+                if (userAnswer == null)
                 {
-					if (userAnswer == null)
-					{
-						continue;
-					}
-                    var questionText = await _questionRepository.GetByIdAsync(userAnswer.QuestionId);
-					if (questionText == null)
-					{
-						// Bỏ qua nếu không tìm thấy câu hỏi tương ứng
-						continue;
-					}
-
-                    if (quizIdFromQuestions == null)
-                    {
-                        quizIdFromQuestions = questionText.QuizId;
-                    }
-
-                    var questionRequest = new QuestionMarkRequest
-                    {
-                        QuestionText = questionText.QuestionContent,
-						Answer = userAnswer.Answer ?? string.Empty,
-                        RightAnswer = questionText.CorrectAnswer
-                    };
-
-                    questions.Add(questionRequest);
+                    continue;
+                }
+                var questionText = await _questionRepository.GetByIdAsync(userAnswer.QuestionId);
+                if (questionText == null)
+                {
+                    // Bỏ qua nếu không tìm thấy câu hỏi tương ứng
+                    continue;
                 }
 
-                var contentText = string.Join("\n", questions.Select(q =>
+                if (quizIdFromQuestions == null)
+                {
+                    quizIdFromQuestions = questionText.QuizId;
+                }
+
+                var questionRequest = new QuestionMarkRequest
+                {
+                    QuestionText = questionText.QuestionContent,
+                    Answer = userAnswer.Answer ?? string.Empty,
+                    RightAnswer = questionText.CorrectAnswer
+                };
+
+                questions.Add(questionRequest);
+            }
+
+            var contentText = string.Join("\n", questions.Select(q =>
                 $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\n"));
 
-                var input = new[]
+            var input = new[]
                 {
                     new
                     {
@@ -111,104 +110,104 @@ namespace Service
                     }
                 };
 
-                var body = new OpenAIBody
-                {
-                    Model = "gpt-4.1-mini",
-                    Input = input,
-                    Temperature = 0.5,
-                    MaxTokens = 200
-                };
-                var apiRequest = OpenApiRequest.Builder()
-                    .CallUrl("/responses")
-                    .Body(body)
-                    .Build();
+            var body = new OpenAIBody
+            {
+                Model = "gpt-4.1-mini",
+                Input = input,
+                Temperature = 0.5,
+                MaxTokens = 200
+            };
+            var apiRequest = OpenApiRequest.Builder()
+                .CallUrl("/responses")
+                .Body(body)
+                .Build();
 
-                var response = await _openAIApiService.PostAsync<OpenAIBody, OpenAIResponse>(apiRequest, body);
+            var response = await _openAIApiService.PostAsync<OpenAIBody, OpenAIResponse>(apiRequest, body);
 
-                if (response?.Output == null || response.Output.Count == 0)
-                    return new BaseResponse<List<QuizMarkResponse>>(
-                        "Quiz mark successfully",
-                        StatusCodeEnum.OK_200,
-                        new List<QuizMarkResponse>());
-
-                // 🧩 Ghép output text
-                var outputText = string.Join("\n",
-                    response.Output
-                        .SelectMany(o => o.Content)
-                        .Where(c => c.Type == "output_text")
-                        .Select(c => c.Text));
-
-                if (string.IsNullOrWhiteSpace(outputText))
-                {
-                    throw new Exception("OpenAI trả về rỗng (outputText empty)");
-                }
-
-                // 🧠 Cắt comment theo delimiter đơn giản '|||'
-                var cleaned = outputText.Replace("```", string.Empty).Trim();
-                var parts = cleaned.Split("|||", StringSplitOptions.RemoveEmptyEntries)
-                                   .Select(p => p.Trim())
-                                   .ToList();
-
-                // Chuẩn hoá số phần tử bằng số câu hỏi
-                if (parts.Count < questions.Count)
-                {
-                    while (parts.Count < questions.Count) parts.Add(string.Empty);
-                }
-                else if (parts.Count > questions.Count)
-                {
-                    parts = parts.Take(questions.Count).ToList();
-                }
-
-                // Hàm nội bộ để so sánh đáp án linh hoạt
-                static string Normalize(string? s)
-                {
-                    return (s ?? string.Empty).Trim().ToLowerInvariant().Replace(" ", string.Empty);
-                }
-
-                decimal finalScore = 0;
-
-                for (int i = 0; i < questions.Count; i++)
-                {
-                    var q = questions[i];
-                    var comment = parts[i];
-                    bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
-                    result.Add(new QuizMarkResponse
-                    {
-                        Question = q.QuestionText,
-                        Answer = q.Answer,
-                        RightAnswer = q.RightAnswer,
-                        IsCorrect = isCorrect,
-                        Comment = comment
-                    });
-                    if(isCorrect == true)
-                    {
-                        finalScore += 1;
-                    }
-                }
-
-                var quizResult = new Quizresult
-                {
-                    QuizId = request.UserAnswers[0].QuestionId,
-                    CreatedBy = request.UserAnswers[0].UserId,
-                    Score = finalScore,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                if(finalScore <= 60)
-                {
-                    quizResult.IsPassed = false;
-                }
-                else
-                {
-                    quizResult.IsPassed = true;
-                }
-
-                await _quizResultRepository.AddAsync(quizResult);
-
+            if (response?.Output == null || response.Output.Count == 0)
                 return new BaseResponse<List<QuizMarkResponse>>(
-                        "Quiz marked successfully",
-                        StatusCodeEnum.OK_200,
-                        result);
+                    "Quiz mark successfully",
+                    StatusCodeEnum.OK_200,
+                    new List<QuizMarkResponse>());
+
+            // 🧩 Ghép output text
+            var outputText = string.Join("\n",
+                response.Output
+                    .SelectMany(o => o.Content)
+                    .Where(c => c.Type == "output_text")
+                    .Select(c => c.Text));
+
+            if (string.IsNullOrWhiteSpace(outputText))
+            {
+                throw new Exception("OpenAI trả về rỗng (outputText empty)");
+            }
+
+            // 🧠 Cắt comment theo delimiter đơn giản '|||'
+            var cleaned = outputText.Replace("```", string.Empty).Trim();
+            var parts = cleaned.Split("|||", StringSplitOptions.RemoveEmptyEntries)
+                               .Select(p => p.Trim())
+                               .ToList();
+
+            // Chuẩn hoá số phần tử bằng số câu hỏi
+            if (parts.Count < questions.Count)
+            {
+                while (parts.Count < questions.Count) parts.Add(string.Empty);
+            }
+            else if (parts.Count > questions.Count)
+            {
+                parts = parts.Take(questions.Count).ToList();
+            }
+
+            // Hàm nội bộ để so sánh đáp án linh hoạt
+            static string Normalize(string? s)
+            {
+                return (s ?? string.Empty).Trim().ToLowerInvariant().Replace(" ", string.Empty);
+            }
+
+            decimal finalScore = 0;
+
+            for (int i = 0; i < questions.Count; i++)
+            {
+                var q = questions[i];
+                var comment = parts[i];
+                bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
+                result.Add(new QuizMarkResponse
+                {
+                    Question = q.QuestionText,
+                    Answer = q.Answer,
+                    RightAnswer = q.RightAnswer,
+                    IsCorrect = isCorrect,
+                    Comment = comment
+                });
+                if (isCorrect == true)
+                {
+                    finalScore += 1;
+                }
+            }
+
+            var quizResult = new Quizresult
+            {
+                QuizId = request.UserAnswers[0].QuestionId,
+                CreatedBy = request.UserAnswers[0].UserId,
+                Score = finalScore,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (finalScore <= 60)
+            {
+                quizResult.IsPassed = false;
+            }
+            else
+            {
+                quizResult.IsPassed = true;
+            }
+
+            await _quizResultRepository.AddAsync(quizResult);
+
+            return new BaseResponse<List<QuizMarkResponse>>(
+                    "Quiz marked successfully",
+                    StatusCodeEnum.OK_200,
+                    result);
         }
 
         public async Task<BaseResponse<QuizCreateResponse>> ImportQuizFromExcelAsync(QuizCreateRequest request)

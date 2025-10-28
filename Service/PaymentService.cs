@@ -9,6 +9,7 @@ using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response.PayOS;
 using Service.PayOS;
 using BusinessObject.DTOs.Response;
+using System.Runtime.InteropServices;
 
 namespace Service
 {
@@ -37,55 +38,61 @@ namespace Service
             _payOSApiService = payOSApiService;
         }
 
-        public async Task<BaseResponse<string>> HandlePaymentAsync(Dictionary<string, string> request)
+        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(Dictionary<string, string> request, string userId)
         {
-                if (request.GetValueOrDefault("code") != "00" || request.GetValueOrDefault("cancel") != "true")
-                {
-                    throw new Exception("Thanh toán thất bại.");
-                }
+            if (request.GetValueOrDefault("code") != "00" || request.GetValueOrDefault("cancel") != "true")
+            {
+                throw new Exception("Thanh toán thất bại.");
+            }
+            var paymentId = request.GetValueOrDefault("id");
 
-                // Parse thông tin từ txnRef: CourseId_ParentId_Timestamp
-                var txnRef = request.GetValueOrDefault("vnp_TxnRef");
+            var apiRequest = PayOSApiRequest.Builder()
+                .CallUrl("/v2/payment-requests/{id}")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddPathVariable("id", paymentId)
+                .Build();
 
-                var txnRefParts = txnRef?.Split('_');
-                if (txnRefParts == null || txnRefParts.Length < 3)
-                {
-                    throw new Exception("Thông tin giao dịch không hợp lệ");
-                }
+            var paymentResponse = await _payOSApiService.GetAsync<PayOSPaymentReturnResponse>(apiRequest);
 
-                var courseId = int.Parse(txnRefParts[0]);
-                var parentId = txnRefParts[1];
+            var desc = paymentResponse.Data.Transactions.First().Description;
 
-                var transaction = new Transactionhistory
-                {
-                    CourseId = courseId,
-                    UserId = parentId,
-                    Amount = int.Parse(request.GetValueOrDefault("vnp_Amount"))
-                };
+            int start = desc.IndexOf("(id:") + 4;
+            int end = desc.IndexOf(")", start);
 
-                await _paymentRepository.AddAsync(transaction);
+            var courseId = int.Parse(desc.Substring(start, end - start).Trim());
 
-                // Tạo CourseKey khi thanh toán thành công
-                var uniqueKeyValue = Guid.NewGuid().ToString("N");
-                var courseKey = new Coursekey
-                {
-                    CourseId = courseId,
-                    StudentId = null,
-                    CreatedBy = parentId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Status = "available",
-                    KeyValue = uniqueKeyValue
-                };
-                await _coursekeyRepository.AddAsync(courseKey);
+            var transaction = new Transactionhistory
+            {
+                CourseId = courseId,
+                UserId = userId,
+                Amount = paymentResponse.Data.AmountPaid,
+                TransactionDate = DateTime.Parse(paymentResponse.Data.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind)
+            };
 
-                // Gửi key cho Parent
-                await SendKeyToParentAsync(parentId, uniqueKeyValue, courseId);
+            await _paymentRepository.AddAsync(transaction);
 
-                return new BaseResponse<string>(
+            // Tạo CourseKey khi thanh toán thành công
+            var uniqueKeyValue = Guid.NewGuid().ToString("N");
+            var courseKey = new Coursekey
+            {
+                CourseId = courseId,
+                StudentId = null,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Status = "available",
+                KeyValue = uniqueKeyValue
+            };
+            await _coursekeyRepository.AddAsync(courseKey);
+
+            // Gửi key cho Parent
+            await SendKeyToParentAsync(userId, uniqueKeyValue, courseId);
+
+            return new BaseResponse<PayOSPaymentReturnResponse>(
                     "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh.",
                     StatusCodeEnum.OK_200,
-                    uniqueKeyValue
+                    paymentResponse
                 );
         }
 
@@ -185,14 +192,14 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(int amount, string userId)
+        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId)
         {
             var body = new PayOSApiBody
             {
                 OrderCode = CommonUtils.GenerateUniqueOrderCode(),
-                Amount = amount,
+                Amount = request.Amount,
                 BuyerName = userId,
-                Description = "Course payment",
+                Description = $"Course(id: {request.CourseId}) payment",
                 CancelUrl = "https://yourdomain.com/cancel",
                 ReturnUrl = "https://localhost:7211/swagger/index.html"
             };
@@ -201,14 +208,14 @@ namespace Service
 
             body.Signature = signature;
 
-            var request = PayOSApiRequest.Builder()
+            var apiRequest = PayOSApiRequest.Builder()
                 .CallUrl("/v2/payment-requests")
                 .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
                 .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
                 .Body(body)
                 .Build();
 
-            var response = await _payOSApiService.PostAsync<PayOSApiBody, PayOSApiResponse>(request, body);
+            var response = await _payOSApiService.PostAsync<PayOSApiBody, PayOSApiResponse>(apiRequest, body);
 
             return new BaseResponse<PayOSApiResponse>(
                 "Thanh toán thành công", 
