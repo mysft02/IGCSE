@@ -5,6 +5,7 @@ using BusinessObject.DTOs.Response.Categories;
 using BusinessObject.Model;
 using Common.Constants;
 using Repository.IRepositories;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace Service
 {
@@ -126,6 +127,30 @@ namespace Service
                 "Active categories retrieved successfully",
                 StatusCodeEnum.OK_200,
                 categoryResponses
+            );
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<CategoryResponse>>> GetCategoriesPagedAsync(CategoryListQuery query)
+        {
+            var page = query.Page <= 0 ? 1 : query.Page;
+            var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+
+            var (items, total) = await _categoryRepository.SearchAsync(page, pageSize, query.SearchByName, query.IsActive);
+            var responses = items.Select(i => _mapper.Map<CategoryResponse>(i)).ToList();
+
+            var paginated = new PaginatedResponse<CategoryResponse>
+            {
+                Items = responses,
+                TotalCount = total,
+                Page = page - 1, // PaginatedResponse uses 0-based page
+                Size = pageSize,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+            };
+
+            return new BaseResponse<PaginatedResponse<CategoryResponse>>(
+                "Categories retrieved successfully",
+                StatusCodeEnum.OK_200,
+                paginated
             );
         }
     }

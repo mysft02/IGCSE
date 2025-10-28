@@ -8,5 +8,6 @@ namespace Repository.IRepositories
         Task<Category?> GetByCategoryIdAsync(int categoryId);
         Task<IEnumerable<Category>> GetActiveCategoriesAsync();
         Task<IEnumerable<Category>> GetCategoriesWithCoursesAsync();
+        Task<(IEnumerable<Category> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, bool? isActive);
     }
 }
