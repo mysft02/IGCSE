@@ -30,6 +30,11 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Quizresult> Quizresults { get; set; }
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
+    public virtual DbSet<Mocktest> Mocktests { get; set; }
+
+    public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }
+
+    public virtual DbSet<Mocktestresult> Mocktestresults { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -188,6 +193,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
             entity.Property(e => e.CorrectAnswer).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.PictureUrl).HasMaxLength(255);
             entity.Property(e => e.QuestionContent).HasMaxLength(500);
             entity.Property(e => e.QuizId).HasColumnName("QuizID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -202,11 +208,10 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.TransactionId).HasColumnName("TransactionID");
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.ParentId)
+            entity.Property(e => e.TransactionDate).HasColumnType("datetime");
+            entity.Property(e => e.UserId)
                 .HasMaxLength(255)
-                .HasColumnName("ParentID");
-            entity.Property(e => e.VnpTransactionDate).HasMaxLength(255);
-            entity.Property(e => e.VnpTxnRef).HasMaxLength(255);
+                .HasColumnName("UserID");
         });
 
         modelBuilder.Entity<Useranswer>(entity =>
@@ -377,6 +382,47 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
             entity.HasIndex(e => e.UserId)
                 .HasDatabaseName("IX_TrelloToken_UserId");
+        });
+
+        modelBuilder.Entity<Mocktest>(entity =>
+        {
+            entity.HasKey(e => e.MockTestId).HasName("PRIMARY");
+
+            entity.ToTable("mocktest");
+
+            entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy).HasMaxLength(255);
+            entity.Property(e => e.MockTestDescription).HasColumnType("text");
+            entity.Property(e => e.MockTestTitle).HasMaxLength(255);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Mocktestquestion>(entity =>
+        {
+            entity.HasKey(e => e.MockTestQuestionId).HasName("PRIMARY");
+
+            entity.ToTable("mocktestquestion");
+
+            entity.Property(e => e.MockTestQuestionId).HasColumnName("MockTestQuestionID");
+            entity.Property(e => e.CorrectAnswer).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
+            entity.Property(e => e.QuestionContent).HasMaxLength(500);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Mocktestresult>(entity =>
+        {
+            entity.HasKey(e => e.MockTestResultId).HasName("PRIMARY");
+
+            entity.ToTable("mocktestresult");
+
+            entity.Property(e => e.MockTestResultId).HasColumnName("MockTestResultID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy).HasMaxLength(255);
+            entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
+            entity.Property(e => e.Score).HasPrecision(18, 2);
         });
 
         OnModelCreatingPartial(modelBuilder);

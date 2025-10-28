@@ -9,7 +9,7 @@ using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
 using OfficeOpenXml;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using OfficeOpenXml.Drawing;
 
 namespace Service
 {
@@ -260,6 +260,10 @@ namespace Service
                 throw new Exception("Excel file must have at least two rows");
             }
 
+            var imageFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "quiz", quiz.QuizId.ToString());
+            if (!Directory.Exists(imageFolderPath))
+                Directory.CreateDirectory(imageFolderPath);
+
             var questions = new List<Question>();
 
             // Process each row (skip header row)
@@ -273,11 +277,32 @@ namespace Service
                     continue;
                 }
 
+                string? imageUrl = null;
+
+                var drawings = worksheet.Drawings
+                    .Where(d => d.From.Row + 1 == row)
+                    .ToList();
+
+                if (drawings.Count > 0 && drawings[0] is ExcelPicture pic)
+                {
+                    var fileName = $"{row - 1}.png";
+                    var filePath = Path.Combine(imageFolderPath, fileName);
+
+                    var img = pic.Image; 
+                    if (img != null && img.ImageBytes != null)
+                    {
+                        await File.WriteAllBytesAsync(filePath, img.ImageBytes);
+                        imageUrl = $"/images/quiz/{quiz.QuizId}/{fileName}";
+                    }
+                }
+
+
                 var question = new Question
                 {
                     QuizId = quiz.QuizId,
                     QuestionContent = questionContent,
                     CorrectAnswer = correctAnswer,
+                    PictureUrl = imageUrl,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };

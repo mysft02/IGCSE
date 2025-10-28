@@ -1,10 +1,10 @@
 ﻿namespace BusinessObject.Model;
 
-public class Question
+public class Mocktestquestion
 {
-    public int QuestionId { get; set; }
+    public int MockTestQuestionId { get; set; }
 
-    public int QuizId { get; set; }
+    public int MockTestId { get; set; }
 
     public string QuestionContent { get; set; } = null!;
 
@@ -14,7 +14,5 @@ public class Question
 
     public DateTime UpdatedAt { get; set; }
 
-    public string? PictureUrl { get; set; }
-
-    public virtual Quiz Quiz { get; set; } = null!;
+    public virtual Mocktest MockTest { get; set; } = null!;
 }
