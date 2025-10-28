@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace DTOs.Request.CourseContent
+namespace BusinessObject.DTOs.Request.CourseContent
 {
     public class CourseSectionRequest
     {

@@ -2,7 +2,6 @@
 using BusinessObject;
 using Repository.BaseRepository;
 using Repository.IRepositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Repository.Repositories
 {

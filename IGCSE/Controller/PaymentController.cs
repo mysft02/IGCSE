@@ -1,7 +1,7 @@
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
-using DTOs.Response.Accounts;
-using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;

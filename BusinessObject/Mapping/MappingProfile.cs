@@ -1,15 +1,15 @@
 using AutoMapper;
 using BusinessObject.Model;
-using DTOs.Request.Categories;
-using DTOs.Request.Courses;
-using DTOs.Response.Categories;
-using DTOs.Response.Courses;
-using DTOs.Response.CourseRegistration;
-using DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Response.ParentStudentLink;
-using DTOs.Response.Accounts;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Accounts;
+using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.Categories;
+using BusinessObject.DTOs.Request.Categories;
+using BusinessObject.DTOs.Response.CourseRegistration;
+using BusinessObject.DTOs.Response.CourseContent;
 
 namespace BusinessObject.Mapping
 {

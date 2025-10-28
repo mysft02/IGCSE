@@ -1,4 +1,4 @@
-﻿namespace DTOs.Response.Accounts
+﻿namespace BusinessObject.DTOs.Response.Accounts
 {
     public class LoginResponse
     {

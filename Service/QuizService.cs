@@ -5,11 +5,11 @@ using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Request.OpenApi;
 using Common.Constants;
-using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
 using OfficeOpenXml;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using BusinessObject.DTOs.Response;
 
 namespace Service
 {

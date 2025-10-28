@@ -1,7 +1,6 @@
-﻿using BusinessObject.Model;
+﻿using BusinessObject.DTOs.Response;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Response.OpenAI;
-using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
 using Service.OpenAI;
 using Swashbuckle.AspNetCore.Annotations;
