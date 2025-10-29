@@ -3,6 +3,7 @@ using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -50,6 +51,19 @@ namespace IGCSE.Controller
                     null
                 ));
             }
+        }
+
+        [HttpPost("vnpay-callback")]
+        [SwaggerOperation(Summary = "Lấy thông tin giao dịch (Parent)")]
+        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
+        {
+            var currentUrl = Request.GetDisplayUrl();
+
+            var queryParams = Request.Query
+                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+            var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
+            return Ok(result);
         }
 
         [HttpGet("parent-coursekeys")]

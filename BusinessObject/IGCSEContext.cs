@@ -344,6 +344,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
+
         modelBuilder.Entity<Chapter>(entity =>
         {
             entity.HasKey(e => e.ChapterID).HasName("PRIMARY");
@@ -354,6 +355,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.ChapterDescription).HasColumnType("text");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<Parentstudentlink>(entity =>
         {
             entity.HasKey(e => e.LinkId).HasName("PRIMARY");
@@ -408,6 +411,5 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
         OnModelCreatingPartial(modelBuilder);
     }
-
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

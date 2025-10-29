@@ -10,6 +10,11 @@ using BusinessObject.DTOs.Response.Categories;
 using BusinessObject.DTOs.Request.Categories;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Response.Modules;
+using BusinessObject.DTOs.Response.Chapters;
+using BusinessObject.DTOs.Request.Chapters;
+using BusinessObject.DTOs.Request.Modules;
+using BusinessObject.DTOs.Request.CourseContent;
 
 namespace BusinessObject.Mapping
 {
