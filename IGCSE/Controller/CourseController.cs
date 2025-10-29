@@ -1,6 +1,7 @@
 using BusinessObject.DTOs.Request.Chapters;
 using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Request.Modules;
+using BusinessObject.DTOs.Response.Chapters;
 using BusinessObject.DTOs.Response.Modules;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
@@ -77,7 +78,7 @@ namespace IGCSE.Controller
         [HttpGet("all")]
         [Authorize(Roles = "Manager")]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromForm] CourseListQuery query)
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
             {
@@ -324,21 +325,21 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpGet("{courseId}/sections")]
-        [SwaggerOperation(Summary = "Lấy thông tin của các section (Teacher)")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
-        {
-            var result = await _courseService.GetCourseSectionsAsync(courseId);
-            return Ok(result);
-        }
+        //[HttpGet("{courseId}/sections")]
+        //[SwaggerOperation(Summary = "Lấy thông tin của các section (Teacher)")]
+        //public async Task<ActionResult<BaseResponse<IEnumerable<CourseSectionResponse>>>> GetCourseSections(long courseId)
+        //{
+        //    var result = await _courseService.GetCourseSectionsAsync(courseId);
+        //    return Ok(result);
+        //}
 
-        [HttpGet("lesson/{lessonId}/items")]
-        [SwaggerOperation(Summary = "Lấy thông tin Lessonitem của Lesson (Teacher)")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
-        {
-            var result = await _courseService.GetLessonItemsAsync(lessonId);
-            return Ok(result);
-        }
+        //[HttpGet("lesson/{lessonId}/items")]
+        //[SwaggerOperation(Summary = "Lấy thông tin Lessonitem của Lesson (Teacher)")]
+        //public async Task<ActionResult<BaseResponse<IEnumerable<LessonItemResponse>>>> GetLessonItems(long lessonId)
+        //{
+        //    var result = await _courseService.GetLessonItemsAsync(lessonId);
+        //    return Ok(result);
+        //}
 
         [HttpPost("redeem-key")]
         [Authorize(Roles = "Student")]

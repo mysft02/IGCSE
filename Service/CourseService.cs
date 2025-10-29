@@ -369,32 +369,58 @@ namespace Service
         {
             try
             {
+                // 1. Get course with category
                 var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
-                if (course == null) throw new Exception("Course not found");
+                if (course == null) 
+                    throw new Exception("Course not found");
+
+                // 2. Map course to DTO
                 var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
-                // Load all modules
+
+                // 3. Load and map modules
                 var modules = await _moduleRepository.GetByCourseIdAsync((int)courseId);
-                courseDetailResponse.Modules = _mapper.Map<List<ModuleDetailResponse>>(modules);
-                foreach (var moduleDto in courseDetailResponse.Modules)
+                if (modules != null && modules.Any())
                 {
-                    var chapters = await _chapterRepository.GetByModuleIdAsync(moduleDto.ModuleID);
-                    moduleDto.Chapters = _mapper.Map<List<ChapterDetailResponse>>(chapters);
-                    foreach(var chapterDto in moduleDto.Chapters)
+                    courseDetailResponse.Modules = _mapper.Map<List<ModuleDetailResponse>>(modules);
+
+                    // 4. For each module, load and map its chapters
+                    foreach (var module in courseDetailResponse.Modules)
                     {
-                        var sections = await _coursesectionRepository.GetByChapterIdAsync(chapterDto.ChapterID);
-                        chapterDto.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
-                        foreach(var sectionDto in chapterDto.Sections)
+                        var chapters = await _chapterRepository.GetByModuleIdAsync(module.ModuleID);
+                        if (chapters != null && chapters.Any())
                         {
-                            var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)sectionDto.CourseSectionId);
-                            sectionDto.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
-                            foreach(var lessonDto in sectionDto.Lessons)
+                            module.Chapters = _mapper.Map<List<ChapterDetailResponse>>(chapters);
+
+                            // 5. For each chapter, load and map its sections
+                            foreach (var chapter in module.Chapters)
                             {
-                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lessonDto.LessonId);
-                                lessonDto.LessonItems = _mapper.Map<List<LessonItemResponse>>(lessonItems);
+                                var sections = await _coursesectionRepository.GetByChapterIdAsync(chapter.ChapterID);
+                                if (sections != null && sections.Any())
+                                {
+                                    chapter.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
+
+                                    // 6. For each section, load and map its lessons
+                                    foreach (var section in chapter.Sections)
+                                    {
+                                        var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
+                                        if (lessons != null && lessons.Any())
+                                        {
+                                            section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+
+                                            // 7. For each lesson, load and map its items
+                                            foreach (var lesson in section.Lessons)
+                                            {
+                                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
+                                                lesson.LessonItems = _mapper.Map<List<LessonItemResponse>>(lessonItems ?? new List<Lessonitem>());
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+
                 return new BaseResponse<CourseDetailResponse>(
                     "Course detail retrieved successfully",
                     StatusCodeEnum.OK_200,
@@ -403,6 +429,7 @@ namespace Service
             }
             catch (Exception ex)
             {
+                // Log the exception here if you have a logging mechanism
                 throw new Exception($"Failed to get course detail: {ex.Message}");
             }
         }

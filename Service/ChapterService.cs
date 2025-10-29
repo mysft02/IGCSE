@@ -1,5 +1,6 @@
 using BusinessObject.DTOs.Request.Chapters;
-using BusinessObject.DTOs.Response.Chapters;
+// Using the full namespace for ChapterResponse to avoid ambiguity
+using ChapterResponse = BusinessObject.DTOs.Response.Chapters.ChapterResponse;
 using BusinessObject.Model;
 using Repository.IRepositories;
 using System.Collections.Generic;
@@ -29,10 +30,17 @@ namespace Service
         }
         public async Task<ChapterResponse> CreateAsync(ChapterRequest request)
         {
+            // Map the request to a Chapter entity
             var chapter = _mapper.Map<Chapter>(request);
-            chapter.CreatedAt = System.DateTime.UtcNow;
-            chapter.UpdatedAt = System.DateTime.UtcNow;
+            
+            // Set timestamps
+            chapter.CreatedAt = DateTime.UtcNow;
+            chapter.UpdatedAt = DateTime.UtcNow;
+            
+            // Save to database
             var created = await _chapterRepository.AddAsync(chapter);
+            
+            // Map the saved entity to the response DTO
             return _mapper.Map<ChapterResponse>(created);
         }
         public async Task<ChapterResponse> UpdateAsync(int chapterId, ChapterRequest request)
