@@ -1,17 +1,15 @@
 using AutoMapper;
 using BusinessObject.Model;
-using DTOs.Request.Categories;
-using DTOs.Request.Courses;
-using DTOs.Response.Categories;
-using DTOs.Response.Courses;
-using DTOs.Response.CourseRegistration;
-using DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.Quizzes;
-using BusinessObject.DTOs.Request.Modules;
-using BusinessObject.DTOs.Request.Chapters;
-using DTOs.Request.CourseContent;
-using BusinessObject.DTOs.Response.Chapters;
-using BusinessObject.DTOs.Response.Modules;
+using BusinessObject.DTOs.Response.ParentStudentLink;
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Accounts;
+using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.Categories;
+using BusinessObject.DTOs.Request.Categories;
+using BusinessObject.DTOs.Response.CourseRegistration;
+using BusinessObject.DTOs.Response.CourseContent;
 
 namespace BusinessObject.Mapping
 {
@@ -20,7 +18,10 @@ namespace BusinessObject.Mapping
         public MappingProfile()
         {
             // Account mappings
-            //CreateMap<Account, xxxx>().ReverseMap();
+            CreateMap<Account, AccountResponse>()
+                .ForMember(dest => dest.UserID, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(src => src.Status))
+                .ReverseMap();
 
             // Course mappings
             CreateMap<Course, CourseResponse>()
@@ -147,6 +148,17 @@ namespace BusinessObject.Mapping
 
             CreateMap<CourseSectionRequest, Coursesection>();
             CreateMap<Quiz, QuizResponse>().ReverseMap();
+
+            CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap()
+                .ForMember(dest => dest.Student, opt => opt.MapFrom(src => src.Student));
+
+            // TrelloToken mappings
+            CreateMap<TrelloToken, TrelloTokenResponse>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Name))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.Email))
+                .ReverseMap();
         }
     }
 }

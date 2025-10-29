@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Configuration;
 
+
 namespace BusinessObject;
 
 public partial class IGCSEContext : IdentityDbContext<Account>
@@ -26,22 +27,39 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Useranswer> Useranswers { get; set; }
     public virtual DbSet<Question> Questions { get; set; }
     public virtual DbSet<Quiz> Quizzes { get; set; }
-
     public virtual DbSet<Quizresult> Quizresults { get; set; }
     public virtual DbSet<Module> Modules { get; set; }
     public virtual DbSet<Chapter> Chapters { get; set; }
+    public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
+    public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148.
-        => optionsBuilder.UseMySql(GetConnectionString(), ServerVersion.Parse("8.0.43-mysql"));
-
-    private string GetConnectionString()
     {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json")
+        if (optionsBuilder.IsConfigured)
+        {
+            return;
+        }
+
+        // ?u ti�n bi?n m�i tr??ng (Jenkins truy?n v�o) r?i m?i t?i appsettings.json
+        var envConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
+        if (!string.IsNullOrWhiteSpace(envConnection))
+        {
+            optionsBuilder.UseMySql(envConnection, ServerVersion.Parse("8.0.43-mysql"));
+            return;
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
-        return configuration.GetConnectionString("DbConnection");
+
+        var fileConnection = configuration.GetConnectionString("DbConnection");
+        if (!string.IsNullOrWhiteSpace(fileConnection))
+        {
+            optionsBuilder.UseMySql(fileConnection, ServerVersion.Parse("8.0.43-mysql"));
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -336,6 +354,56 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.ChapterDescription).HasColumnType("text");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        modelBuilder.Entity<Parentstudentlink>(entity =>
+        {
+            entity.HasKey(e => e.LinkId).HasName("PRIMARY");
+
+            entity.ToTable("parentstudentlink");
+
+            entity.Property(e => e.LinkId).HasColumnName("LinkID");
+            entity.Property(e => e.ParentId)
+                .HasMaxLength(255)
+                .HasColumnName("ParentID");
+            entity.Property(e => e.StudentId)
+                .HasMaxLength(255)
+                .HasColumnName("StudentID");
+        });
+
+        modelBuilder.Entity<TrelloToken>(entity =>
+        {
+            entity.HasKey(e => new { e.TrelloId, e.UserId }).HasName("PRIMARY");
+
+            entity.ToTable("trello_token");
+
+            entity.Property(e => e.TrelloId)
+                .HasMaxLength(100)
+                .HasColumnName("trello_id");
+
+            entity.Property(e => e.TrelloApiToken)
+                .HasMaxLength(100)
+                .HasColumnName("trello_api_token");
+
+            entity.Property(e => e.UserId)
+                .HasMaxLength(100)
+                .HasColumnName("user_id");
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
+
+            entity.Property(e => e.IsSync)
+                .HasColumnType("tinyint(1)")
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("is_sync");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_TrelloToken_AspNetUsers_UserId");
+
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_TrelloToken_UserId");
         });
 
         OnModelCreatingPartial(modelBuilder);

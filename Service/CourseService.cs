@@ -1,14 +1,14 @@
 using Repository.IRepositories;
 using AutoMapper;
 using Common.Constants;
-using DTOs.Request.Courses;
-using DTOs.Response.Courses;
-using DTOs.Request.CourseContent;
-using DTOs.Response.CourseContent;
 using BusinessObject.Model;
-using DTOs.Response.Accounts;
 using Service.OpenAI;
 using Common.Utils;
+using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Request.CourseContent;
 
 namespace Service
 {
@@ -112,24 +112,25 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PagedResponse<CourseResponse>>> GetPendingCoursesPagedAsync(int page, int pageSize, string? searchByName)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetPendingCoursesPagedAsync(int page, int pageSize, string? searchByName)
         {
             var (items, total) = await _courseRepository.SearchAsync(page <= 0 ? 1 : page, pageSize <= 0 ? 10 : pageSize, searchByName, null, "Pending");
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             var totalPages = (int)Math.Ceiling(total / (double)(pageSize <= 0 ? 10 : pageSize));
-            var paged = new PagedResponse<CourseResponse>
+
+            var paginated = new PaginatedResponse<CourseResponse>
             {
-                CurrentPage = page <= 0 ? 1 : page,
-                PageSize = pageSize <= 0 ? 10 : pageSize,
-                TotalPages = totalPages,
-                TotalRecords = total,
-                Data = courseResponses
+                Items = courseResponses,
+                TotalCount = total,
+                Page = page - 1,
+                Size = pageSize <= 0 ? 10 : pageSize,
+                TotalPages = totalPages
             };
 
-            return new BaseResponse<PagedResponse<CourseResponse>>(
+            return new BaseResponse<PaginatedResponse<CourseResponse>>(
                 "Pending courses retrieved successfully",
                 StatusCodeEnum.OK_200,
-                paged
+                paginated
             );
         }
 
@@ -208,7 +209,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PagedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
         {
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
@@ -216,20 +217,19 @@ namespace Service
             var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
 
-            var totalPages = (int)Math.Ceiling(total / (double)pageSize);
-            var paged = new PagedResponse<CourseResponse>
+            var paginated = new PaginatedResponse<CourseResponse>
             {
-                CurrentPage = page,
-                PageSize = pageSize,
-                TotalPages = totalPages,
-                TotalRecords = total,
-                Data = courseResponses
+                Items = courseResponses,
+                TotalCount = total,
+                Page = page - 1,
+                Size = pageSize,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize)
             };
 
-            return new DTOs.Response.Accounts.BaseResponse<PagedResponse<CourseResponse>>(
+            return new BaseResponse<PaginatedResponse<CourseResponse>>(
                 "Courses retrieved successfully",
                 StatusCodeEnum.OK_200,
-                paged
+                paginated
             );
         }
 
@@ -343,27 +343,37 @@ namespace Service
 
         public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
         {
-            try
-            {
-                var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
+            var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
 
-                var courseResponses = new List<CourseResponse>();
-                foreach (var course in similarCourses)
-                {
-                    var courseResponse = _mapper.Map<CourseResponse>(course);
-                    courseResponses.Add(courseResponse);
-                }
-
-                return new BaseResponse<IEnumerable<CourseResponse>>(
-                    "Courses retrieved successfully",
-                    StatusCodeEnum.OK_200,
-                    courseResponses
-                );
-            }
-            catch (Exception ex)
+            var courseResponses = new List<CourseResponse>();
+            foreach (var course in similarCourses)
             {
-                throw new Exception($"Failed to get lesson items: {ex.Message}");
+                var courseResponse = _mapper.Map<CourseResponse>(course);
+                courseResponses.Add(courseResponse);
             }
+
+            return new BaseResponse<IEnumerable<CourseResponse>>(
+                "Courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                courseResponses
+            );
+        }
+
+        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync()
+        {
+            var courseAnalytics = await _courseRepository.GetCoursesSortedByStatus();
+
+            var result = new CourseAnalyticsResponse
+            {
+                TotalCourse = await _courseRepository.CountAsync(),
+                Partion = courseAnalytics
+            };
+
+            return new BaseResponse<CourseAnalyticsResponse>(
+                "Course analytics retrieved successfully",
+                StatusCodeEnum.OK_200,
+                result
+            );
         }
         public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(long courseId)
         {

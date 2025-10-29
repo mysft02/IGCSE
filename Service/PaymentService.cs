@@ -2,13 +2,14 @@ using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Common.Constants;
 using Common.Utils;
-using DTOs.Response.Accounts;
-using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Http;
 using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
 using Microsoft.AspNetCore.Identity;
+using BusinessObject.DTOs.Response.Payment;
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace Service
 {
@@ -254,6 +255,33 @@ namespace Service
 
                 var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
                 return response;
+        }
+
+        public async Task<BaseResponse<PaymentAnalyticsResponse>> GetPaymentAnalyticsAsync()
+        {
+            var analytics = await _paymentRepository.GetPaymentSortedByDate();
+
+            var response = new PaymentAnalyticsResponse
+            {
+                PaymentAnalytics = analytics
+            };
+
+            return new BaseResponse<PaymentAnalyticsResponse>(
+                    "Thành công",
+                    StatusCodeEnum.OK_200,
+                    response
+                );
+        }
+
+        public async Task<BaseResponse<IEnumerable<TransactionHistoryResponse>>> GetAllTransactionHistoriesByUserId(string userId)
+        {
+            var transactionHistories = await _paymentRepository.GetAllTransactionHistoriesByUserId(userId);
+
+            return new BaseResponse<IEnumerable<TransactionHistoryResponse>>(
+                "Thành công",
+                StatusCodeEnum.OK_200,
+                transactionHistories
+            );
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)

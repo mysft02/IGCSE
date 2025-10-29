@@ -1,6 +1,6 @@
 using System;
 
-namespace DTOs.Response.Categories
+namespace BusinessObject.DTOs.Response.Categories
 {
     public class CategoryResponse
     {

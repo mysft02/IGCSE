@@ -89,12 +89,12 @@ public class TrelloApiService
         }
     }
 
-    private string PrepareRequest(TrelloApiRequest request)
+    public string PrepareRequest(TrelloApiRequest request)
     {
         return PrepareRequest<object?>(request, default);
     }
 
-    private string PrepareRequest<TBody>(TrelloApiRequest request, TBody? body = default)
+    public string PrepareRequest<TBody>(TrelloApiRequest request, TBody? body = default)
     {
         if (body is not null)
         {

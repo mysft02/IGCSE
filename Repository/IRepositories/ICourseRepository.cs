@@ -1,6 +1,5 @@
 using Repository.IBaseRepository;
 using BusinessObject.Model;
-using Repository.IBaseRepository;
 
 namespace Repository.IRepositories
 {
@@ -11,5 +10,6 @@ namespace Repository.IRepositories
         Task<Course?> GetByCourseIdWithCategoryAsync(long courseId);
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId);
         Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status);
+        Task<Dictionary<string, int>> GetCoursesSortedByStatus();
     }
 }

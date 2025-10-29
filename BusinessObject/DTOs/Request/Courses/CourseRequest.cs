@@ -2,7 +2,7 @@
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 
-namespace DTOs.Request.Courses
+namespace BusinessObject.DTOs.Request.Courses
 {
     public class CourseRequest
     {

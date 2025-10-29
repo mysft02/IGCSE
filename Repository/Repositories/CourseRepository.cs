@@ -3,8 +3,6 @@ using BusinessObject;
 using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
-using System.Linq;
-using System.Threading.Tasks;
 using Common.Utils;
 
 namespace Repository.Repositories
@@ -87,6 +85,20 @@ namespace Repository.Repositories
                 .Select(c => c.c)
                 .ToListAsync();
             return courses;
+        }
+
+        public async Task<Dictionary<string, int>> GetCoursesSortedByStatus()
+        {
+            var result = await _context.Courses
+                .GroupBy(c => c.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToDictionaryAsync(x => x.Status, x => x.Count);
+            
+            return result;
         }
     }
 }

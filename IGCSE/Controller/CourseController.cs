@@ -3,16 +3,15 @@ using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Request.Modules;
 using BusinessObject.DTOs.Response.Chapters;
 using BusinessObject.DTOs.Response.Modules;
+using BusinessObject.DTOs.Request.CourseContent;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Response.CourseRegistration;
+using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
 using Common.Utils;
-using DTOs.Request.CourseContent;
-using DTOs.Request.CourseRegistration;
-using DTOs.Request.Courses;
-using DTOs.Response.Accounts;
-using DTOs.Response.CourseContent;
-using DTOs.Response.CourseRegistration;
-using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -78,7 +77,7 @@ namespace IGCSE.Controller
         [HttpGet("all")]
         [Authorize(Roles = "Manager")]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
             {
@@ -98,7 +97,7 @@ namespace IGCSE.Controller
         [HttpGet("pending")]
         [Authorize(Roles = "Manager")]
         [SwaggerOperation(Summary = "Lấy danh sách khóa học đang pending để duyệt/từ chối (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromForm] CourseListQuery query)
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetPendingCourses([FromQuery] CourseListQuery query)
         {
             try
             {

@@ -1,8 +1,11 @@
-using DTOs.Request.Accounts;
-using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Service;
+using BusinessObject.DTOs.Request.ParentStudentLink;
+using BusinessObject.DTOs.Response.ParentStudentLink;
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Accounts;
+using BusinessObject.DTOs.Request.Accounts;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace IGCSE.Controller
 {
@@ -29,11 +32,11 @@ namespace IGCSE.Controller
             return Ok(userProfile);
         }
 
-        [HttpGet]
-        [Route("get-all-account")]
-        public async Task<List<NewUserDto>> GetAllAccountsAsync()
+        [HttpGet("get-all-account")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<NewUserDto>>>> GetAllAccountsAsync([FromQuery] AccountListQuery query)
         {
-            return await _accountService.GetAllAccountsAsync();
+            var result = await _accountService.GetAccountsPagedAsync(query);
+            return Ok(result);
         }
 
         [HttpPost("login")]
@@ -102,6 +105,32 @@ namespace IGCSE.Controller
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             return await _accountService.ChangePassword(changePassword);
+        }
+
+        [HttpPost("link-student-to-parent")]
+        public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] ParentStudentLinkRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _accountService.LinkStudentToParentAsync(request);
+            return Ok(result);
+        }
+
+        [HttpGet("get-all-students-belong-to-parent")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<AccountResponse>>>> GetListStudentsBelongToParent([FromQuery] string parentId)
+        {
+            var result = await _accountService.GetAllStudentsByParentId(parentId);
+            return Ok(result);
         }
     }
 }

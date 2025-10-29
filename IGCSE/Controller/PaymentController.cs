@@ -1,7 +1,7 @@
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.Payload.Request.VnPay;
 using BusinessObject.Payload.Response.VnPay;
-using DTOs.Response.Accounts;
-using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
@@ -104,6 +104,13 @@ namespace IGCSE.Controller
                     null
                 ));
             }
+        }
+
+        [HttpGet("get-transaction-history")]
+        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllTransactionHistories([FromQuery] string userId)
+        {
+            var result = _paymentService.GetAllTransactionHistoriesByUserId(userId);
+            return Ok(result);
         }
     }
 }

@@ -7,6 +7,7 @@ using Service.Trello;
 using Service.OpenAI;
 using Service.VnPay;
 using BusinessObject.Mapping;
+using Service.OAuth;
 
 namespace IGCSE.Extensions
 {
@@ -33,6 +34,8 @@ namespace IGCSE.Extensions
             services.AddScoped<ModuleService>();
             services.AddScoped<IChapterRepository, ChapterRepository>();
             services.AddScoped<ChapterService>();
+            services.AddScoped<IParentStudentLinkRepository, ParentStudentLinkRepository>();
+            services.AddScoped<ITrelloTokenRepository, TrelloTokenRepository>();
 
             return services;
         }
@@ -55,6 +58,8 @@ namespace IGCSE.Extensions
             services.AddScoped<OpenAIEmbeddingsApiService>();
             services.AddScoped<TestService>();
             services.AddScoped<QuizService>();
+            services.AddScoped<TrelloOAuthService>();
+            services.AddScoped<TrelloTokenService>();
 
             return services;
         }

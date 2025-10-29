@@ -1,0 +1,28 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 27
+      author: dung-nt
+      changes:
+        - createTable:
+            tableName: parentstudentlink
+            columns:
+              - column:
+                  name: LinkID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ParentID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: StudentID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: parentstudentlink
