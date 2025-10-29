@@ -3,6 +3,7 @@ using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response.PayOS;
 using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -95,6 +96,28 @@ namespace IGCSE.Controller
             }
 
             var result = await _paymentService.GetPayOSPaymentUrlAsync(request, userId);
+            return Ok(result);
+        }
+
+        [HttpPost("payment-callback")]
+        [SwaggerOperation(Summary = "Xử lí giao dịch sau khi thanh toán")]
+        [Authorize]
+        public async Task<ActionResult<BaseResponse<PayOSPaymentReturnResponse>>> PaymentCallback()
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản học sinh.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var currentUrl = Request.GetDisplayUrl();
+
+            var queryParams = Request.Query
+                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
+            var result = await _paymentService.HandlePaymentAsync(queryParams, userId);
             return Ok(result);
         }
 

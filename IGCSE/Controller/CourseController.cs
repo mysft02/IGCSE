@@ -384,28 +384,6 @@ namespace IGCSE.Controller
             }
         }
 
-        [HttpPost("payment-callback")]
-        [SwaggerOperation(Summary = "Xử lí giao dịch sau khi thanh toán")]
-        [Authorize]
-        public async Task<ActionResult<BaseResponse<PayOSPaymentReturnResponse>>> PaymentCallback()
-        {
-            var user = HttpContext.User;
-            var userId = user.FindFirst("AccountID")?.Value;
-
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản học sinh.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
-            }
-
-            var currentUrl = Request.GetDisplayUrl();
-
-            var queryParams = Request.Query
-                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-
-            var result = await _paymentService.HandlePaymentAsync(queryParams, userId);
-            return Ok(result);
-        }
-
         [HttpGet("get-all-similar-courses")]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)

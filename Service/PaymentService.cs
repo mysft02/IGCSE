@@ -10,6 +10,7 @@ using BusinessObject.Payload.Response.PayOS;
 using Service.PayOS;
 using BusinessObject.DTOs.Response;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace Service
 {
@@ -57,10 +58,8 @@ namespace Service
 
             var desc = paymentResponse.Data.Transactions.First().Description;
 
-            int start = desc.IndexOf("(id:") + 4;
-            int end = desc.IndexOf(")", start);
-
-            var courseId = int.Parse(desc.Substring(start, end - start).Trim());
+            var m = Regex.Match(desc, @"Course\s*id\s*:\s*(\S+)", RegexOptions.IgnoreCase);
+            var courseId = int.Parse(m.Success ? m.Groups[1].Value : null);
 
             var transaction = new Transactionhistory
             {
@@ -199,7 +198,7 @@ namespace Service
                 OrderCode = CommonUtils.GenerateUniqueOrderCode(),
                 Amount = request.Amount,
                 BuyerName = userId,
-                Description = $"Course(id: {request.CourseId}) payment",
+                Description = $"Course id: {request.CourseId} payment",
                 CancelUrl = "https://yourdomain.com/cancel",
                 ReturnUrl = "https://localhost:7211/swagger/index.html"
             };
