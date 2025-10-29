@@ -20,6 +20,8 @@ namespace Service
         private readonly ILessonRepository _lessonRepository;
         private readonly ILessonitemRepository _lessonitemRepository;
         private readonly OpenAIEmbeddingsApiService _openAIEmbeddingsApiService;
+        private readonly IModuleRepository _moduleRepository;
+        private readonly IChapterRepository _chapterRepository;
 
         public CourseService(
             IMapper mapper,
@@ -27,7 +29,9 @@ namespace Service
             ICoursesectionRepository coursesectionRepository,
             ILessonRepository lessonRepository,
             ILessonitemRepository lessonitemRepository,
-            OpenAIEmbeddingsApiService openAIEmbeddingsApiService)
+            OpenAIEmbeddingsApiService openAIEmbeddingsApiService,
+            IModuleRepository moduleRepository,
+            IChapterRepository chapterRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -35,6 +39,8 @@ namespace Service
             _lessonRepository = lessonRepository;
             _lessonitemRepository = lessonitemRepository;
             _openAIEmbeddingsApiService = openAIEmbeddingsApiService;
+            _moduleRepository = moduleRepository;
+            _chapterRepository = chapterRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
@@ -231,16 +237,9 @@ namespace Service
 
         public async Task<BaseResponse<CourseSectionResponse>> CreateCourseSectionAsync(CourseSectionRequest request)
         {
-            var courseSection = new Coursesection
-            {
-                CourseId = request.CourseId,
-                Name = request.Name,
-                Description = request.Description,
-                Order = request.Order,
-                IsActive = request.IsActive,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var courseSection = _mapper.Map<Coursesection>(request);
+            courseSection.CreatedAt = DateTime.UtcNow;
+            courseSection.UpdatedAt = DateTime.UtcNow;
 
             var createdSection = await _coursesectionRepository.AddAsync(courseSection);
             var response = _mapper.Map<CourseSectionResponse>(createdSection);
@@ -380,83 +379,56 @@ namespace Service
         {
             try
             {
-                // Lấy thông tin khóa học
+                // 1. Get course with category
                 var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
-                if (course == null)
-                {
+                if (course == null) 
                     throw new Exception("Course not found");
-                }
 
-                var courseDetailResponse = new CourseDetailResponse
+                // 2. Map course to DTO
+                var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
+
+                // 3. Load and map modules
+                var modules = await _moduleRepository.GetByCourseIdAsync((int)courseId);
+                if (modules != null && modules.Any())
                 {
-                    CourseId = course.CourseId,
-                    Name = course.Name,
-                    Description = course.Description,
-                    Status = course.Status,
-                    Price = course.Price,
-                    ImageUrl = course.ImageUrl,
-                    CreatedAt = course.CreatedAt ?? DateTime.UtcNow,
-                    UpdatedAt = course.UpdatedAt ?? DateTime.UtcNow,
-                    CategoryId = course.CategoryId ?? 0,
-                    CategoryName = course.Category?.CategoryName ?? "Unknown",
-                    Sections = new List<CourseSectionDetailResponse>()
-                };
+                    courseDetailResponse.Modules = _mapper.Map<List<ModuleDetailResponse>>(modules);
 
-                // Lấy tất cả sections của khóa học
-                var sections = await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseId);
-                var sortedSections = sections.OrderBy(s => s.Order).ToList();
-
-                foreach (var section in sortedSections)
-                {
-                    var sectionDetail = new CourseSectionDetailResponse
+                    // 4. For each module, load and map its chapters
+                    foreach (var module in courseDetailResponse.Modules)
                     {
-                        CourseSectionId = section.CourseSectionId,
-                        CourseId = section.CourseId,
-                        Name = section.Name,
-                        Description = section.Description,
-                        Order = section.Order,
-                        IsActive = section.IsActive == 1,
-                        Lessons = new List<LessonDetailResponse>()
-                    };
-
-                    // Lấy tất cả lessons của section này
-                    var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync(section.CourseSectionId);
-                    var sortedLessons = lessons.OrderBy(l => l.Order).ToList();
-
-                    foreach (var lesson in sortedLessons)
-                    {
-                        var lessonDetail = new LessonDetailResponse
+                        var chapters = await _chapterRepository.GetByModuleIdAsync(module.ModuleID);
+                        if (chapters != null && chapters.Any())
                         {
-                            LessonId = lesson.LessonId,
-                            CourseSectionId = lesson.CourseSectionId,
-                            Name = lesson.Name,
-                            Description = lesson.Description,
-                            Order = lesson.Order,
-                            IsActive = lesson.IsActive == 1,
-                            LessonItems = new List<LessonItemResponse>()
-                        };
+                            module.Chapters = _mapper.Map<List<ChapterDetailResponse>>(chapters);
 
-                        // Lấy tất cả lesson items của lesson này
-                        var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lesson.LessonId);
-                        var sortedLessonItems = lessonItems.OrderBy(li => li.Order).ToList();
-
-                        foreach (var lessonItem in sortedLessonItems)
-                        {
-                            lessonDetail.LessonItems.Add(new LessonItemResponse
+                            // 5. For each chapter, load and map its sections
+                            foreach (var chapter in module.Chapters)
                             {
-                                LessonItemId = lessonItem.LessonItemId,
-                                Name = lessonItem.Name,
-                                Description = lessonItem.Description,
-                                Content = lessonItem.Content ?? "",
-                                ItemType = lessonItem.ItemType ?? "text",
-                                Order = lessonItem.Order
-                            });
+                                var sections = await _coursesectionRepository.GetByChapterIdAsync(chapter.ChapterID);
+                                if (sections != null && sections.Any())
+                                {
+                                    chapter.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
+
+                                    // 6. For each section, load and map its lessons
+                                    foreach (var section in chapter.Sections)
+                                    {
+                                        var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
+                                        if (lessons != null && lessons.Any())
+                                        {
+                                            section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+
+                                            // 7. For each lesson, load and map its items
+                                            foreach (var lesson in section.Lessons)
+                                            {
+                                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
+                                                lesson.LessonItems = _mapper.Map<List<LessonItemResponse>>(lessonItems ?? new List<Lessonitem>());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
-
-                        sectionDetail.Lessons.Add(lessonDetail);
                     }
-
-                    courseDetailResponse.Sections.Add(sectionDetail);
                 }
 
                 return new BaseResponse<CourseDetailResponse>(
@@ -467,6 +439,7 @@ namespace Service
             }
             catch (Exception ex)
             {
+                // Log the exception here if you have a logging mechanism
                 throw new Exception($"Failed to get course detail: {ex.Message}");
             }
         }

@@ -28,6 +28,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Question> Questions { get; set; }
     public virtual DbSet<Quiz> Quizzes { get; set; }
     public virtual DbSet<Quizresult> Quizresults { get; set; }
+    public virtual DbSet<Module> Modules { get; set; }
+    public virtual DbSet<Chapter> Chapters { get; set; }
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
 
@@ -259,9 +261,12 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("coursesection");
             entity.Property(e => e.CourseSectionId).HasColumnName("CourseSectionID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.ChapterId).HasColumnName("ChapterID"); // Foreign key to chapter
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.Order).HasColumnName("Order");
+            entity.Property(e => e.IsActive).HasColumnName("IsActive");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
@@ -327,6 +332,28 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Score).HasPrecision(18, 2);
         });
 
+        modelBuilder.Entity<Module>(entity =>
+        {
+            entity.HasKey(e => e.ModuleID).HasName("PRIMARY");
+            entity.ToTable("module");
+            entity.Property(e => e.ModuleID).HasColumnName("ModuleID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID"); // map khoá ngoại
+            entity.Property(e => e.ModuleName).HasMaxLength(255);
+            entity.Property(e => e.Description).HasColumnType("text");
+            entity.Property(e => e.IsActive).HasColumnType("tinyint(1)").IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+        modelBuilder.Entity<Chapter>(entity =>
+        {
+            entity.HasKey(e => e.ChapterID).HasName("PRIMARY");
+            entity.ToTable("chapter");
+            entity.Property(e => e.ChapterID).HasColumnName("ChapterID");
+            entity.Property(e => e.ModuleID).IsRequired();
+            entity.Property(e => e.ChapterName).HasMaxLength(255);
+            entity.Property(e => e.ChapterDescription).HasColumnType("text");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         modelBuilder.Entity<Parentstudentlink>(entity =>
         {
             entity.HasKey(e => e.LinkId).HasName("PRIMARY");
