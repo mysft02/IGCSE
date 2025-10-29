@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Reflection;
+using System.Web;
+using System.Collections;
 
 namespace Common.Utils
 {
@@ -262,30 +264,83 @@ namespace Common.Utils
             return int.Parse(combined.Substring(0, Math.Min(combined.Length, 9)));
         }
 
-        public static string CreatePayoutSignature(object body, string checksumKey)
+        private static object DeepSortObj(object obj, bool sortArrays = false)
         {
-            var json = JsonSerializer.Serialize(body, new JsonSerializerOptions
+            if (obj is IDictionary<string, object> dict)
             {
-                IgnoreNullValues = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+                var sorted = dict.OrderBy(kvp => kvp.Key)
+                                 .ToDictionary(kvp => kvp.Key, kvp => DeepSortObj(kvp.Value, sortArrays));
+                return sorted;
+            }
+            else if (obj is JsonElement jsonElem)
+            {
+                if (jsonElem.ValueKind == JsonValueKind.Object)
+                {
+                    var temp = jsonElem.EnumerateObject()
+                        .ToDictionary(p => p.Name, p => (object)p.Value);
+                    return DeepSortObj(temp, sortArrays);
+                }
+                if (jsonElem.ValueKind == JsonValueKind.Array)
+                {
+                    var list = jsonElem.EnumerateArray().Select(x => (object)x).ToList();
+                    return sortArrays ? list.OrderBy(x => JsonSerializer.Serialize(x)).ToList()
+                                      : list.Select(x => DeepSortObj(x, sortArrays)).ToList();
+                }
+                return jsonElem.ValueKind switch
+                {
+                    JsonValueKind.String => jsonElem.GetString(),
+                    JsonValueKind.Number => jsonElem.GetDecimal().ToString(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => "",
+                    _ => ""
+                };
+            }
+            else if (obj is IEnumerable list && !(obj is string))
+            {
+                var arr = list.Cast<object>().ToList();
+                return sortArrays ? arr.OrderBy(x => JsonSerializer.Serialize(x)).ToList()
+                                  : arr.Select(x => DeepSortObj(x, sortArrays)).ToList();
+            }
+            return obj ?? "";
+        }
 
-            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+        private static string ToQueryString(object obj)
+        {
+            if (obj is IDictionary<string, object> dict)
+            {
+                return string.Join("&", dict.Select(kvp =>
+                {
+                    var value = kvp.Value;
+                    string valueStr;
 
-            var sorted = new SortedDictionary<string, object>(
-                dict.Where(kv => kv.Value != null)
-                    .ToDictionary(kv => kv.Key, kv => kv.Value)
-            );
+                    if (value is IDictionary<string, object> nestedDict)
+                        valueStr = JsonSerializer.Serialize(nestedDict);
+                    else if (value is IEnumerable list && !(value is string))
+                        valueStr = JsonSerializer.Serialize(list);
+                    else
+                        valueStr = value?.ToString() ?? "";
 
-            var rawData = string.Join("&", sorted.Select(kv => $"{kv.Key}={kv.Value}"));
+                    return $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(valueStr)}";
+                }));
+            }
+            return "";
+        }
 
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey));
-            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+        public static string CreatePayoutSignature(string secretKey, object jsonData)
+        {
+            var sorted = DeepSortObj(jsonData, false);
+            var queryString = ToQueryString((IDictionary<string, object>)sorted);
 
+            var keyBytes = Encoding.UTF8.GetBytes(secretKey);
+            var messageBytes = Encoding.UTF8.GetBytes(queryString);
+
+            using var hmac = new HMACSHA256(keyBytes);
+            var hash = hmac.ComputeHash(messageBytes);
             return BitConverter.ToString(hash).Replace("-", "").ToLower();
         }
 
-        public static bool isEmtyString(string? str)
+        public static bool IsEmptyString(string? str)
         {
             if (str == null)
             {
@@ -294,7 +349,7 @@ namespace Common.Utils
             return string.IsNullOrWhiteSpace(str);
         }
         
-        public static bool isEmtyObject(object? obj)
+        public static bool IsEmptyObject(object? obj)
         {
             if (obj == null)
             {

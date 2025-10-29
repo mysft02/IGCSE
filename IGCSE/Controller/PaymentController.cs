@@ -137,7 +137,7 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
-        [HttpPost("craete-or-udpate-webhook-url")]
+        [HttpPost("create-or-update-webhook-url")]
         //[Authorize]
         public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> CreateOrUpdateWebhookurl([FromForm] string url)
         {
