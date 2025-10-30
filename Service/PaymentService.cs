@@ -198,8 +198,8 @@ namespace Service
                 Amount = request.Amount,
                 BuyerName = userId,
                 Description = $"Course id: {request.CourseId} payment",
-                CancelUrl = "https://yourdomain.com/cancel",
-                ReturnUrl = "https://localhost:7211/swagger/index.html"
+                CancelUrl = "http://localhost:5173/my-courses",
+                ReturnUrl = "http://localhost:5173/my-courses"
             };
 
             var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
