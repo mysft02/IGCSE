@@ -20,6 +20,9 @@ namespace BusinessObject.Payload.Request.PayOS
         [JsonPropertyName("toAccountNumber")]
         public string? ToAccountNumber { get; set; }
 
+        [JsonPropertyName("category")]
+        public List<string>? Category { get; set; }
+
         public IDictionary<string, IEnumerable<object>> ProcessBody()
         {
             return new Dictionary<string, IEnumerable<object>>
@@ -29,6 +32,7 @@ namespace BusinessObject.Payload.Request.PayOS
                 { "description", new object[] { Description } },
                 { "toBin", new object[] { ToBin } },
                 { "toAccountNumber", new object[] { ToAccountNumber } },
+                { "category", new object[] { Category } },
             };
         }
     }
