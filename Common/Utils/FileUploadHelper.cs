@@ -1,15 +1,11 @@
 using Microsoft.AspNetCore.Http;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Common.Utils
 {
     public static class FileUploadHelper
     {
         private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        private static readonly long MaxFileSize = 5 * 1024 * 1024; // 5MB
+        private static readonly long MaxFileSize = 5 * 1024 * 1024; 
         private static readonly string[] AllowedDocumentExtensions = { ".pdf" };
         private static readonly string[] AllowedVideoExtensions = { ".mp4", ".webm", ".ogg" };
         private const string ImagesFolder = "wwwroot/images/courses";

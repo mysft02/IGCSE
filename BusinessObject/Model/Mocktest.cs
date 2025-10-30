@@ -13,4 +13,6 @@ public class Mocktest
     public DateTime UpdatedAt { get; set; }
 
     public string CreatedBy { get; set; } = null!;
+
+    public List<Mocktestquestion> MockTestQuestions { get; set; } = new List<Mocktestquestion>();
 }

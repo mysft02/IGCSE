@@ -14,5 +14,12 @@ namespace Repository.Repositories
         {
             _context = context;
         }
+
+        public async Task<Quiz?> GetByQuizIdAsync(int quizId)
+        {
+            return _context.Quizzes
+                .Include(x => x.Questions)
+                .FirstOrDefault(x => x.QuizId == quizId);
+        }
     }
 }

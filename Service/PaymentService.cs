@@ -9,7 +9,6 @@ using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response.PayOS;
 using Service.PayOS;
 using BusinessObject.DTOs.Response;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Service
@@ -232,9 +231,10 @@ namespace Service
                 Description = $"Payout for {payoutRequest.TeacherID}",
                 ToBin = payoutRequest.BankBin,
                 ToAccountNumber = payoutRequest.BankAccountNumber,
+                Category = new List<string> { "payout" }
             };
 
-            var signature = CommonUtils.CreatePayoutSignature(body, CommonUtils.GetApiKey("PAYOS_PAYOUT_CHECKSUMKEY"));
+            var signature = CommonUtils.CreatePayoutSignature(CommonUtils.GetApiKey("PAYOS_PAYOUT_CHECKSUMKEY"), body.ProcessBody());
 
             var request = PayOSApiRequest.Builder()
                 .CallUrl("/v1/payouts")

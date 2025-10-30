@@ -1,4 +1,6 @@
-﻿using BusinessObject.Model;namespace BusinessObject.DTOs.Response.MockTest
+﻿using BusinessObject.DTOs.Response.MockTestQuestion;
+
+namespace BusinessObject.DTOs.Response.MockTest
 {
     public class MockTestResponse
     {
@@ -14,6 +16,6 @@
 
         public string CreatedBy { get; set; }
 
-        public List<Mocktestquestion> MockTestQuestions { get; set; }
+        public List<MockTestQuestionResponse> MockTestQuestions { get; set; }
     }
 }

@@ -3,7 +3,6 @@ using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Request.OpenApi;
 using Common.Constants;
-using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
 using OfficeOpenXml;
@@ -13,10 +12,9 @@ using BusinessObject.DTOs.Response.MockTest;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response;
-using Org.BouncyCastle.Asn1.Ocsp;
-using Repository.Repositories;
 using BusinessObject.Payload.Request.MockTest;
 using BusinessObject.Payload.Response.MockTest;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Service
 {
@@ -27,19 +25,25 @@ namespace Service
         private readonly OpenAIApiService _openAIApiService;
         private readonly IMockTestQuestionRepository _questionRepository;
         private readonly IMockTestResultRepository _mockTestResultRepository;
+        private readonly MediaService _mediaService;
+        private readonly IWebHostEnvironment _env;
 
         public MockTestService(
             IMapper mapper, 
             IMockTestRepository mockTestRepository,
             OpenAIApiService openAIApiService,
             IMockTestQuestionRepository questionRepository,
-            IMockTestResultRepository mockTestResultRepository)
+            IMockTestResultRepository mockTestResultRepository,
+            MediaService mediaService,
+            IWebHostEnvironment env)
         {
             _mapper = mapper;
             _mockTestRepository = mockTestRepository;
             _openAIApiService = openAIApiService;
             _questionRepository = questionRepository;
             _mockTestResultRepository = mockTestResultRepository;
+            _mediaService = mediaService;
+            _env = env;
         }
 
         public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)
@@ -80,13 +84,24 @@ namespace Service
 
         public async Task<BaseResponse<MockTestResponse>> GetMockTestByIdAsync(int mockTestId)
         {
-            var mockTest = await _mockTestRepository.GetByIdAsync(mockTestId);
+            var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
             if (mockTest == null)
             {
                 throw new Exception("Mock test not found");
             }
 
             var mockTestResponse = _mapper.Map<MockTestResponse>(mockTest);
+
+            foreach (var c in mockTestResponse.MockTestQuestions)
+            {
+                if (c.ImageUrl == null)
+                {
+                    continue;
+                }
+
+                var imageResponse = await _mediaService.GetImageAsync(_env.WebRootPath, c.ImageUrl);
+                c.Image = imageResponse.Data;
+            }
 
             return new BaseResponse<MockTestResponse>(
                 "Mock test retrieved successfully",

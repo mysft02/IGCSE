@@ -1,5 +1,6 @@
 ﻿using BusinessObject;
 using BusinessObject.Model;
+using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
 
@@ -12,6 +13,13 @@ namespace Repository.Repositories
         public MockTestRepository(IGCSEContext context) : base(context)
         {
             _context = context;
+        }
+
+        public async Task<Mocktest?> GetByMockTestIdAsync(int mockTestId)
+        {
+            return _context.Mocktests
+                .Include(x => x.MockTestQuestions)
+                .FirstOrDefault(x => x.MockTestId == mockTestId);
         }
     }
 }

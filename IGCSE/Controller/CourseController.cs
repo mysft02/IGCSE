@@ -1,6 +1,5 @@
 using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Response;
-using BusinessObject.Payload.Response.PayOS;
 using Common.Utils;
 using DTOs.Request.CourseContent;
 using DTOs.Request.Courses;
@@ -8,7 +7,6 @@ using DTOs.Response.CourseContent;
 using DTOs.Response.CourseRegistration;
 using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -23,13 +21,23 @@ namespace IGCSE.Controller
         private readonly CourseRegistrationService _courseRegistrationService;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly PaymentService _paymentService;
+        private readonly MediaService _mediaService;
+        private readonly IWebHostEnvironment _environment;
 
-        public CourseController(CourseService courseService, CourseRegistrationService courseRegistrationService, IWebHostEnvironment webHostEnvironment, PaymentService paymentService)
+        public CourseController(
+            CourseService courseService, 
+            CourseRegistrationService courseRegistrationService, 
+            IWebHostEnvironment webHostEnvironment, 
+            PaymentService paymentService,
+            MediaService mediaService,
+            IWebHostEnvironment environment)
         {
             _courseService = courseService;
             _courseRegistrationService = courseRegistrationService;
             _webHostEnvironment = webHostEnvironment;
             _paymentService = paymentService;
+            _mediaService = mediaService;
+            _environment = environment;
         }
 
         [HttpPost("create")]
@@ -421,6 +429,15 @@ namespace IGCSE.Controller
                     null
                 ));
             }
+        }
+
+        [HttpGet("get-image")]
+        [SwaggerOperation(Summary = "Lấy hình ảnh từ server")]
+        public async Task<ActionResult<BaseResponse<string>>> GetImage([FromQuery] string imagePath)
+        {
+            var response = await _mediaService.GetImageAsync(_environment.WebRootPath,imagePath);
+
+            return Ok(response);
         }
     }
 }

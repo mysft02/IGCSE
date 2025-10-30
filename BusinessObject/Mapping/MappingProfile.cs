@@ -12,6 +12,8 @@ using DTOs.Response.Accounts;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.MockTest;
 using BusinessObject.Payload.Response.MockTest;
+using BusinessObject.DTOs.Response.MockTestQuestion;
+using BusinessObject.DTOs.Response.Questions;
 
 namespace BusinessObject.Mapping
 {
@@ -71,6 +73,8 @@ namespace BusinessObject.Mapping
 
             CreateMap<Quiz, QuizResponse>().ReverseMap();
 
+            CreateMap<Question, QuestionResponse>().ReverseMap();
+
             CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap()
                 .ForMember(dest => dest.Student, opt => opt.MapFrom(src => src.Student));
 
@@ -84,6 +88,8 @@ namespace BusinessObject.Mapping
 
             CreateMap<Mocktest, MockTestResponse>().ReverseMap();
             CreateMap<Mocktest, MockTestQueryResponse>().ReverseMap();
+
+            CreateMap<Mocktestquestion, MockTestQuestionResponse>().ReverseMap();
         }
     }
 }

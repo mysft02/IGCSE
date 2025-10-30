@@ -357,5 +357,23 @@ namespace Common.Utils
             }
             return false;
         }
+
+        public static string GetContentType(string path)
+        {
+            var ext = Path.GetExtension(path).ToLower();
+            return ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                ".mp4" => "video/mp4",
+                ".mov" => "video/quicktime",
+                ".pdf" => "application/pdf",
+                ".txt" => "text/plain",
+                ".json" => "application/json",
+                _ => "application/octet-stream"
+            };
+        }
     }
 }

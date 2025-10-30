@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BusinessObject.Model;
 
-public partial class Mocktestquestion
+public class Mocktestquestion
 {
     public int MockTestQuestionId { get; set; }
 

@@ -5,5 +5,6 @@ namespace Repository.IRepositories
 {
     public interface IMockTestRepository : IBaseRepository<Mocktest>
     {
+        Task<Mocktest?> GetByMockTestIdAsync(int mockTestId);
     }
 }
