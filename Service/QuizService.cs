@@ -5,12 +5,12 @@ using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Request.OpenApi;
 using Common.Constants;
-using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
 using BusinessObject.DTOs.Response;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Service
 {
@@ -21,25 +21,48 @@ namespace Service
         private readonly OpenAIApiService _openAIApiService;
         private readonly IQuestionRepository _questionRepository;
         private readonly IQuizResultRepository _quizResultRepository;
+        private readonly MediaService _mediaService;
+        private readonly IWebHostEnvironment _env;
 
-        public QuizService(IMapper mapper, IQuizRepository quizRepository, OpenAIApiService openAIApiService, IQuestionRepository questionRepository, IQuizResultRepository quizResultRepository)
+        public QuizService(
+            IMapper mapper, 
+            IQuizRepository quizRepository, 
+            OpenAIApiService openAIApiService,
+            IQuestionRepository questionRepository, 
+            IQuizResultRepository quizResultRepository,
+            MediaService mediaService,
+            IWebHostEnvironment env)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
             _openAIApiService = openAIApiService;
             _questionRepository = questionRepository;
             _quizResultRepository = quizResultRepository;
+            _mediaService = mediaService;
+            _env = env;
         }
 
         public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
         {
-            var quiz = await _quizRepository.GetByIdAsync(quizId);
+            var quiz = await _quizRepository.GetByQuizIdAsync(quizId);
+
             if (quiz == null)
             {
                 throw new Exception("Quiz not found");
             }
 
             var quizResponse = _mapper.Map<QuizResponse>(quiz);
+
+            foreach (var c in quizResponse.Questions)
+            {
+                if (c.PictureUrl == null)
+                {
+                    continue;
+                }
+
+                var imageResponse = await _mediaService.GetImageAsync(_env.WebRootPath, c.PictureUrl);
+                c.Image = imageResponse.Data;
+            }
 
             return new BaseResponse<QuizResponse>(
                 "Quiz retrieved successfully",
@@ -307,6 +330,7 @@ namespace Service
                     UpdatedAt = DateTime.UtcNow
                 };
 
+                await _questionRepository.AddAsync(question);
                 questions.Add(question);
             }
 
@@ -315,12 +339,7 @@ namespace Service
                 throw new Exception("No questions found in Excel file");
             }
 
-            // Add questions to database
-            foreach (var question in questions)
-            {
-                await _questionRepository.AddAsync(question);
-                response.Questions.Add(question);
-            }
+            response.Questions = questions;
 
             return new BaseResponse<QuizCreateResponse>(
                     "Quiz imported successfully",
