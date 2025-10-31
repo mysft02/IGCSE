@@ -329,7 +329,43 @@ namespace Common.Utils
 
         public static string CreatePayoutSignature(string secretKey, object jsonData)
         {
-            var sorted = DeepSortObj(jsonData, false);
+            // Chuẩn hóa jsonData về IDictionary<string, object>
+            IDictionary<string, object> normalized;
+
+            if (jsonData is IDictionary<string, IEnumerable<object>> dictEnum)
+            {
+                normalized = dictEnum.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp =>
+                    {
+                        if (kvp.Value == null) return (object)"";
+
+                        var materialized = kvp.Value.ToList();
+                        if (materialized.Count == 0) return (object)"";
+
+                        if (materialized.Count == 1)
+                        {
+                            var single = materialized[0];
+                            if (single == null) return (object)"";
+
+                            // Giữ nguyên scalar; nếu là JsonElement hoặc cấu trúc phức tạp thì để DeepSortObj xử lý tiếp
+                            return single;
+                        }
+
+                        // Nhiều phần tử: giữ nguyên danh sách và để DeepSortObj xử lý từng phần tử, không sắp xếp mảng
+                        return materialized;
+                    });
+            }
+            else if (jsonData is IDictionary<string, object> dictObj)
+            {
+                normalized = dictObj;
+            }
+            else
+            {
+                throw new ArgumentException("jsonData must be a dictionary of string to values");
+            }
+
+            var sorted = DeepSortObj(normalized, false);
             var queryString = ToQueryString((IDictionary<string, object>)sorted);
 
             var keyBytes = Encoding.UTF8.GetBytes(secretKey);
