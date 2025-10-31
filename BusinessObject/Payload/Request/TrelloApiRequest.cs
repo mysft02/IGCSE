@@ -1,6 +1,4 @@
 using Common.Utils;
-using System;
-using System.Collections.Generic;
 
 namespace BusinessObject.Payload.Request;
 

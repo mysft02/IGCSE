@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace DTOs.Request.CourseContent
+namespace BusinessObject.DTOs.Request.CourseContent
 {
     public class CourseSectionRequest
     {
@@ -15,6 +15,9 @@ namespace DTOs.Request.CourseContent
 
         [Required]
         public int CourseId { get; set; }
+
+        [Required]
+        public int ChapterId { get; set; }
 
         [Required]
         public int Order { get; set; }

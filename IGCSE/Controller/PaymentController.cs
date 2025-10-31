@@ -1,7 +1,7 @@
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response.PayOS;
-using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;

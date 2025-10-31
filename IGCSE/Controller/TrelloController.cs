@@ -1,13 +1,9 @@
 using BusinessObject.DTOs.Response;
-using BusinessObject.Model;
 using BusinessObject.Payload.Request.Filter;
-using Common.Constants;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Repository.IRepositories;
 using Service;
-using Service.OAuth;
 
 namespace IGCSE.Controller;
 

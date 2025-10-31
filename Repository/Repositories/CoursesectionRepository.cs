@@ -3,8 +3,6 @@ using BusinessObject;
 using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Repository.Repositories
 {
@@ -40,6 +38,11 @@ namespace Repository.Repositories
                 .Where(cs => cs.CourseId == courseId && cs.IsActive == 1)
                 .OrderBy(cs => cs.Order)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Coursesection>> GetByChapterIdAsync(int chapterId)
+        {
+            return await _context.Coursesections.Where(s => s.ChapterId == chapterId).ToListAsync();
         }
     }
 }

@@ -1,12 +1,11 @@
-using DTOs.Request.Accounts;
-using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Service;
 using BusinessObject.DTOs.Request.ParentStudentLink;
 using BusinessObject.DTOs.Response.ParentStudentLink;
-using BusinessObject.Model;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Accounts;
+using BusinessObject.DTOs.Request.Accounts;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IGCSE.Controller
 {
@@ -33,11 +32,11 @@ namespace IGCSE.Controller
             return Ok(userProfile);
         }
 
-        [HttpGet]
-        [Route("get-all-account")]
-        public async Task<List<NewUserDto>> GetAllAccountsAsync()
+        [HttpGet("get-all-account")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<NewUserDto>>>> GetAllAccountsAsync([FromQuery] AccountListQuery query)
         {
-            return await _accountService.GetAllAccountsAsync();
+            var result = await _accountService.GetAccountsPagedAsync(query);
+            return Ok(result);
         }
 
         [HttpPost("login")]

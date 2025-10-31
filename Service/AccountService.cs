@@ -6,10 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Repository.IBaseRepository;
 using Repository.IRepositories;
 using Common.Constants;
-using DTOs.Request.Accounts;
-using DTOs.Response.Accounts;
 using BusinessObject.DTOs.Request.ParentStudentLink;
 using BusinessObject.DTOs.Response.ParentStudentLink;
+using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Accounts;
+using BusinessObject.DTOs.Request.Accounts;
 using BusinessObject.DTOs.Response;
 
 namespace Service
@@ -71,7 +72,9 @@ namespace Service
                 UserID = user.Id,
                 UserName = user.UserName,
                 Email = user.Email,
-                Roles = roles.ToList(),
+                Roles = (roles?.FirstOrDefault() is string singleRoleLogin && !string.IsNullOrWhiteSpace(singleRoleLogin))
+                    ? new List<string> { singleRoleLogin }
+                    : new List<string>(),
                 Phone = user.Phone,
                 isActive = user.Status,
                 Name = user.Name,
@@ -146,7 +149,9 @@ namespace Service
                             Address = accountApp.Address,
                             Phone = accountApp.Phone,
                             DateOfBirth = accountApp.DateOfBirth,
-                            Roles = userRoles.ToList(), // Now contains "Student"
+                            Roles = (userRoles?.FirstOrDefault() is string singleRoleReg && !string.IsNullOrWhiteSpace(singleRoleReg))
+                                ? new List<string> { singleRoleReg }
+                                : new List<string>(),
                             Token = token.AccessToken,
                             RefreshToken = token.RefreshToken
                         };
@@ -242,7 +247,9 @@ namespace Service
                 Address = user.Address,
                 Phone = user.Phone,
                 isActive = user.Status,
-                Roles = roles.ToList()
+                Roles = (roles?.FirstOrDefault() is string singleRoleProf && !string.IsNullOrWhiteSpace(singleRoleProf))
+                    ? new List<string> { singleRoleProf }
+                    : new List<string>()
             };
 
             return userProfile;
@@ -338,10 +345,80 @@ namespace Service
                     Address = user.Address,
                     Phone = user.Phone,
                     isActive = user.Status,
-                    Roles = roles.ToList()
+                    Roles = (roles?.FirstOrDefault() is string singleRoleList && !string.IsNullOrWhiteSpace(singleRoleList))
+                        ? new List<string> { singleRoleList }
+                        : new List<string>()
                 });
             }
             return accountInfoList;
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<NewUserDto>>> GetAccountsPagedAsync(AccountListQuery query)
+        {
+            var page = query.Page <= 0 ? 1 : query.Page;
+            var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+
+            var usersQuery = _userManager.Users.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query.SearchByName))
+            {
+                var keyword = query.SearchByName.Trim();
+                usersQuery = usersQuery.Where(u => u.UserName.Contains(keyword) || u.Name.Contains(keyword));
+            }
+
+            if (query.IsActive.HasValue)
+            {
+                usersQuery = usersQuery.Where(u => u.Status == query.IsActive.Value);
+            }
+
+            var total = await usersQuery.CountAsync();
+            var skip = (page <= 1 ? 0 : (page - 1) * pageSize);
+            var users = await usersQuery
+                .OrderBy(u => u.UserName)
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = new List<NewUserDto>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                if (!string.IsNullOrWhiteSpace(query.Role))
+                {
+                    if (!roles.Contains(query.Role))
+                    {
+                        continue;
+                    }
+                }
+                items.Add(new NewUserDto
+                {
+                    UserID = user.Id,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    Name = user.Name,
+                    Address = user.Address,
+                    Phone = user.Phone,
+                    isActive = user.Status,
+                    Roles = (roles?.FirstOrDefault() is string singleRoleList && !string.IsNullOrWhiteSpace(singleRoleList))
+                        ? new List<string> { singleRoleList }
+                        : new List<string>()
+                });
+            }
+
+            var paginated = new PaginatedResponse<NewUserDto>
+            {
+                Items = items,
+                TotalCount = total,
+                Page = page - 1,
+                Size = pageSize,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+            };
+
+            return new BaseResponse<PaginatedResponse<NewUserDto>>(
+                "Accounts retrieved successfully",
+                StatusCodeEnum.OK_200,
+                paginated
+            );
         }
 
         public async Task<BaseResponse<ParentStudentLinkResponse>> LinkStudentToParentAsync(ParentStudentLinkRequest request)

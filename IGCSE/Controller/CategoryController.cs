@@ -1,6 +1,6 @@
+using BusinessObject.DTOs.Request.Categories;
 using BusinessObject.DTOs.Response;
-using DTOs.Request.Categories;
-using DTOs.Response.Categories;
+using BusinessObject.DTOs.Response.Categories;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -67,10 +67,10 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        [SwaggerOperation(Summary = "Lấy tất cả category")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CategoryResponse>>>> GetAllCategories()
+        [SwaggerOperation(Summary = "Lấy tất cả category (có phân trang)")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CategoryResponse>>>> GetAllCategories([FromQuery] CategoryListQuery query)
         {
-            var result = await _categoryService.GetAllCategoriesAsync();
+            var result = await _categoryService.GetCategoriesPagedAsync(query);
             return Ok(result);
         }
 
