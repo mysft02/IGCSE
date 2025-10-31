@@ -8,5 +8,6 @@ namespace Repository.IRepositories
         Task<IEnumerable<Coursesection>> GetByCourseIdAsync(long courseId);
         Task<Coursesection?> GetByCourseSectionIdAsync(long courseSectionId);
         Task<IEnumerable<Coursesection>> GetActiveSectionsByCourseAsync(long courseId);
+        Task<IEnumerable<Coursesection>> GetByChapterIdAsync(int chapterId);
     }
 }
