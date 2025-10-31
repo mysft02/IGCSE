@@ -15,23 +15,41 @@ public partial class IGCSEContext : IdentityDbContext<Account>
         : base(options) { }
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
+
     public virtual DbSet<Course> Courses { get; set; }
+
     public virtual DbSet<Coursekey> Coursekeys { get; set; }
+
     public virtual DbSet<Coursesection> Coursesections { get; set; }
+
     public virtual DbSet<Lesson> Lessons { get; set; }
+
     public virtual DbSet<Lessonitem> Lessonitems { get; set; }
+
     public virtual DbSet<Process> Processes { get; set; }
+
     public virtual DbSet<Processitem> Processitems { get; set; }
+
     public virtual DbSet<Transactionhistory> Transactionhistories { get; set; }
+
     public virtual DbSet<Useranswer> Useranswers { get; set; }
+
     public virtual DbSet<Question> Questions { get; set; }
+
     public virtual DbSet<Quiz> Quizzes { get; set; }
+
     public virtual DbSet<Quizresult> Quizresults { get; set; }
+
     public virtual DbSet<Module> Modules { get; set; }
+
     public virtual DbSet<Chapter> Chapters { get; set; }
+
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
+
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
+
     public virtual DbSet<Mocktest> Mocktests { get; set; }
 
     public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }

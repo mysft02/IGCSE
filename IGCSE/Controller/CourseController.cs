@@ -472,14 +472,5 @@ namespace IGCSE.Controller
             var result = await _chapterService.CreateAsync(request);
             return Created("chapter", result);
         }
-
-        [HttpGet("get-image")]
-        [SwaggerOperation(Summary = "Lấy hình ảnh từ server")]
-        public async Task<ActionResult<BaseResponse<string>>> GetImage([FromQuery] string imagePath)
-        {
-            var response = await _mediaService.GetImageAsync(_environment.WebRootPath,imagePath);
-
-            return Ok(response);
-        }
     }
 }
