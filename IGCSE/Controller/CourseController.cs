@@ -75,8 +75,8 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        //[Authorize(Roles = "Manager")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học (Manager)")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học")]
         public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
