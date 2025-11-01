@@ -40,7 +40,7 @@ namespace Service
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(Dictionary<string, string> request, string userId)
         {
-            if (request.GetValueOrDefault("code") != "00" || request.GetValueOrDefault("cancel") != "true")
+            if (request.GetValueOrDefault("code") != "00" || request.GetValueOrDefault("cancel") == "true")
             {
                 throw new Exception("Thanh toán thất bại.");
             }
