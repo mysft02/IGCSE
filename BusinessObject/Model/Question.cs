@@ -9,6 +9,8 @@ public class Question
     public string QuestionContent { get; set; } = null!;
 
     public string CorrectAnswer { get; set; } = null!;
+    
+    public string PictureUrl { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 

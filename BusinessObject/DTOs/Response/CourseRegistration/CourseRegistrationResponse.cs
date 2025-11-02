@@ -1,6 +1,6 @@
 using System;
 
-namespace DTOs.Response.CourseRegistration
+namespace BusinessObject.DTOs.Response.CourseRegistration
 {
     public class CourseRegistrationResponse
     {

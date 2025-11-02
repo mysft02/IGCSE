@@ -1,6 +1,6 @@
 ﻿using Swashbuckle.AspNetCore.Annotations;
 
-namespace DTOs.Request.Courses
+namespace BusinessObject.DTOs.Request.Courses
 {
     public class CourseListQuery
     {

@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Common.Utils
 {
@@ -195,6 +191,30 @@ namespace Common.Utils
 
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             return AllowedVideoExtensions.Contains(fileExtension) && file.Length <= 500 * 1024 * 1024;
+        }
+        
+        /// <summary>
+        /// Lấy file extension từ Content-Type
+        /// </summary>
+        public static string GetExtensionFromContentType(string? contentType)
+        {
+            if (string.IsNullOrEmpty(contentType))
+            {
+                return ".bin";
+            }
+
+            return contentType.ToLowerInvariant() switch
+            {
+                "image/jpeg" or "image/jpg" => ".jpg",
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/webp" => ".webp",
+                "application/pdf" => ".pdf",
+                "video/mp4" => ".mp4",
+                "video/webm" => ".webm",
+                "video/ogg" => ".ogg",
+                _ => Path.GetExtension(contentType) ?? ".bin"
+            };
         }
     }
 }

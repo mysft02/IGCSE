@@ -34,7 +34,6 @@ databaseChangeLog:
                   defaultValue: 0
                   constraints:
                     nullable: false
-            tableName: trello_token
       rollback:
         - dropTable:
             tableName: trello_token

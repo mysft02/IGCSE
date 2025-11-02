@@ -1,10 +1,9 @@
 ﻿using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response.Quizzes;
-using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
-using Common.Utils;
+using BusinessObject.DTOs.Response;
 
 namespace IGCSE.Controller
 {

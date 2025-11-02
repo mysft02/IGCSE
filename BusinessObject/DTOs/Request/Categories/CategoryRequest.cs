@@ -1,7 +1,7 @@
 ﻿using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 
-namespace DTOs.Request.Categories
+namespace BusinessObject.DTOs.Request.Categories
 {
     public class CategoryRequest
     {

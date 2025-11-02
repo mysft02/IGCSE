@@ -243,5 +243,15 @@ namespace Common.Utils
             }
             return false;
         }
+        
+        public static bool isEmtyList<T>(List<T>? list)
+        {
+            if (list == null || list.Count == 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }

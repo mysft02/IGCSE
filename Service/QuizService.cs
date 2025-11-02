@@ -5,11 +5,14 @@ using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Request.OpenApi;
 using Common.Constants;
-using DTOs.Response.Accounts;
 using Repository.IRepositories;
 using Service.OpenAI;
 using OfficeOpenXml;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using BusinessObject.DTOs.Response;
+using BusinessObject.Payload.Response.Trello;
+using Common.Utils;
+using Service.Trello;
 
 namespace Service
 {
@@ -20,14 +23,16 @@ namespace Service
         private readonly OpenAIApiService _openAIApiService;
         private readonly IQuestionRepository _questionRepository;
         private readonly IQuizResultRepository _quizResultRepository;
+        private readonly TrelloCardService _trelloCardService;
 
-        public QuizService(IMapper mapper, IQuizRepository quizRepository, OpenAIApiService openAIApiService, IQuestionRepository questionRepository, IQuizResultRepository quizResultRepository)
+        public QuizService(IMapper mapper, IQuizRepository quizRepository, OpenAIApiService openAIApiService, IQuestionRepository questionRepository, IQuizResultRepository quizResultRepository, TrelloCardService trelloCardService)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
             _openAIApiService = openAIApiService;
             _questionRepository = questionRepository;
             _quizResultRepository = quizResultRepository;
+            _trelloCardService = trelloCardService;
         }
 
         public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
@@ -301,6 +306,52 @@ namespace Service
                     "Quiz imported successfully",
                     StatusCodeEnum.OK_200,
                     response);
+        }
+        
+        public async Task CreateQuizForTrelloAsync(int courseId, int lessonId,string quizTitle ,List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
+        {
+            quizTitle = quizTitle.Replace("[Test]", "").Trim(); 
+            string quizDescription = "This is a quiz imported from Trello.";
+            List<Question> questions = new List<Question>();
+            foreach (var trelloCardResponse in trelloCardResponses)
+            {
+                if (trelloCardResponse.Name.Contains("[Description]"))
+                {
+                    quizDescription = trelloCardResponse.Description;
+                }
+                else
+                {
+                    var attachments = await _trelloCardService.GetTrelloCardAttachments(trelloCardResponse.Id, trelloToken);
+                    
+                    // get first attachment that is image
+                    var imageUrl = string.Empty;
+                    if (!CommonUtils.isEmtyList(attachments))
+                    {
+                        var imageAttachment = attachments.FirstOrDefault();
+                        imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                    }
+                    
+                    questions.Add(new Question
+                    {
+                        QuestionContent = trelloCardResponse.Name,
+                        CorrectAnswer = trelloCardResponse.Description,
+                        PictureUrl = imageUrl,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            Quiz quiz = new Quiz
+            {
+                CourseId = courseId,
+                LessonId = lessonId,
+                QuizTitle = quizTitle,
+                QuizDescription = quizDescription,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Questions = questions
+            }; 
+            await _quizRepository.AddAsync(quiz);
         }
     }
 }

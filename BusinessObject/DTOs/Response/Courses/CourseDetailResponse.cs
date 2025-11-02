@@ -1,7 +1,6 @@
-using DTOs.Response.CourseContent;
-using System.Collections.Generic;
+using BusinessObject.DTOs.Response.CourseContent;
 
-namespace DTOs.Response.Courses
+namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseDetailResponse
     {

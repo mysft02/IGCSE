@@ -1,6 +1,5 @@
 using Repository.IBaseRepository;
 using BusinessObject.Model;
-using Repository.IBaseRepository;
 
 namespace Repository.IRepositories
 {

@@ -3,9 +3,6 @@ using BusinessObject;
 using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace Repository.Repositories
 {

@@ -1,4 +1,3 @@
-
 using BusinessObject;
 using BusinessObject.Model;
 using MailKit.Net.Smtp;

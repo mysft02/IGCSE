@@ -43,7 +43,8 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
 builder.Services
     .AddRepositoryServices()
     .AddApplicationServices()
-    .AddInfrastructureServices();
+    .AddInfrastructureServices()
+    .AddBackgroundTaskServices();
 
 builder.Services.AddControllers();
 

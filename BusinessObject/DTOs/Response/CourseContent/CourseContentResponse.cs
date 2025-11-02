@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DTOs.Response.CourseContent
+namespace BusinessObject.DTOs.Response.CourseContent
 {
     public class CourseSectionResponse
     {
