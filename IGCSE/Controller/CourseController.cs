@@ -1,16 +1,12 @@
 using BusinessObject.DTOs.Request.Courses;
-using BusinessObject.Payload.Request.VnPay;
-using BusinessObject.Payload.Response.VnPay;
+using BusinessObject.DTOs.Response;
 using Common.Utils;
 using DTOs.Request.CourseContent;
-using DTOs.Request.CourseRegistration;
 using DTOs.Request.Courses;
-using DTOs.Response.Accounts;
 using DTOs.Response.CourseContent;
 using DTOs.Response.CourseRegistration;
 using DTOs.Response.Courses;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -61,9 +57,9 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        [Authorize(Roles = "Manager")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromForm] CourseListQuery query)
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học")]
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
             {
@@ -83,7 +79,7 @@ namespace IGCSE.Controller
         [HttpGet("pending")]
         [Authorize(Roles = "Manager")]
         [SwaggerOperation(Summary = "Lấy danh sách khóa học đang pending để duyệt/từ chối (Manager)")]
-        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromForm] CourseListQuery query)
+        public async Task<ActionResult<BaseResponse<PagedResponse<CourseResponse>>>> GetPendingCourses([FromQuery] CourseListQuery query)
         {
             try
             {
@@ -384,39 +380,6 @@ namespace IGCSE.Controller
                     null
                 ));
             }
-        }
-
-        [HttpPost("create-vnpay-url")]
-        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
-        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromForm] PaymentRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
-                ));
-            }
-
-            var result = await _paymentService.CreatePaymentUrlAsync(HttpContext, request);
-            return Ok(result);
-        }
-
-        [HttpPost("vnpay-callback")]
-        [SwaggerOperation(Summary = "Lấy thông tin giao dịch (Parent)")]
-        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
-        {
-            var currentUrl = Request.GetDisplayUrl();
-
-            var queryParams = Request.Query
-                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-
-            var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
-            return Ok(result);
         }
 
         [HttpGet("get-all-similar-courses")]

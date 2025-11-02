@@ -202,11 +202,10 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.TransactionId).HasColumnName("TransactionID");
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.ParentId)
+            entity.Property(e => e.TransactionDate).HasColumnType("datetime");
+            entity.Property(e => e.UserId)
                 .HasMaxLength(255)
-                .HasColumnName("ParentID");
-            entity.Property(e => e.VnpTransactionDate).HasMaxLength(255);
-            entity.Property(e => e.VnpTxnRef).HasMaxLength(255);
+                .HasColumnName("UserID");
         });
 
         modelBuilder.Entity<Useranswer>(entity =>

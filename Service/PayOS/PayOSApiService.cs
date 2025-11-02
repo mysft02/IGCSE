@@ -1,19 +1,15 @@
-﻿using BusinessObject.Payload.Request.VnPay;
+﻿using BusinessObject.Payload.Request;
+using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response;
 using System.Threading.RateLimiting;
 
-namespace Service.VnPay
+namespace Service.PayOS
 {
-    public class VnPayApiService
+    public class PayOSApiService
     {
-        private readonly string BaseUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-        private readonly ApiService _apiService;
+        private const string PayOSApiBaseUrl = "https://api-merchant.payos.vn";
 
-        public VnPayApiService(ApiService apiService)
-        {
-            _apiService = apiService;
-        }
-
+        // Default limiter ~10 req/sec to stay within Trello limits per token
         private readonly RateLimiter _rateLimiter = new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
         {
             PermitLimit = 10,
@@ -22,7 +18,14 @@ namespace Service.VnPay
             AutoReplenishment = true
         });
 
-        public async Task<T?> GetAsync<T>(VnPayApiRequest request)
+        private readonly ApiService _apiService;
+
+        public PayOSApiService(ApiService apiService)
+        {
+            _apiService = apiService;
+        }
+
+        public async Task<T?> GetAsync<T>(PayOSApiRequest request)
         {
             return await ExecuteWithRetry(async req =>
             {
@@ -31,35 +34,34 @@ namespace Service.VnPay
             }, request);
         }
 
-        public async Task<TResponse?> PostAsync<TRequest, TResponse>(VnPayApiRequest request, TRequest body)
+        public async Task<TResponse?> PostAsync<TRequest, TResponse>(PayOSApiRequest request, TRequest body)
         {
             return await ExecuteWithRetry(async req =>
             {
                 var url = PrepareRequest(req, body);
-                return await _apiService.PostAsync<TRequest, TResponse>(url, (TRequest)req.Body!, req.Headers);
+                return await _apiService.PostAsync<TRequest, TResponse>(url, body, req.Headers);
             }, request);
         }
 
-        public async Task<TResponse?> PutAsync<TRequest, TResponse>(VnPayApiRequest request, TRequest body)
+        public async Task<TResponse?> PutAsync<TRequest, TResponse>(PayOSApiRequest request, TRequest body)
         {
             return await ExecuteWithRetry(async req =>
             {
                 var url = PrepareRequest(req, body);
-                return await _apiService.PutAsync<TRequest, TResponse>(url, (TRequest)req.Body!, req.Headers);
+                return await _apiService.PutAsync<TRequest, TResponse>(url, body, req.Headers);
             }, request);
         }
 
-        public async Task<TResponse?> PatchAsync<TRequest, TResponse>(VnPayApiRequest request, TRequest body)
+        public async Task<TResponse?> PatchAsync<TRequest, TResponse>(PayOSApiRequest request, TRequest body)
         {
             return await ExecuteWithRetry(async req =>
             {
                 var url = PrepareRequest(req, body);
-                return await _apiService.PatchAsync<TRequest, TResponse>(url, (TRequest)req.Body!, req.Headers);
+                return await _apiService.PatchAsync<TRequest, TResponse>(url, body, req.Headers);
             }, request);
         }
 
-        private async Task<T?> ExecuteWithRetry<T>(Func<VnPayApiRequest, Task<T?>> executor, VnPayApiRequest request)
-
+        private async Task<T?> ExecuteWithRetry<T>(Func<PayOSApiRequest, Task<T?>> executor, PayOSApiRequest request)
         {
             int retryCount = 0;
             while (true)
@@ -78,7 +80,7 @@ namespace Service.VnPay
                 catch (HttpRequestException ex)
                 {
                     retryCount++;
-                    if (retryCount >= 2)
+                    if (retryCount >= Math.Max(1, request.Retry))
                     {
                         throw;
                     }
@@ -88,24 +90,25 @@ namespace Service.VnPay
             }
         }
 
-        private string PrepareRequest(VnPayApiRequest request)
+        private string PrepareRequest(PayOSApiRequest request)
         {
             return PrepareRequest<object?>(request, default);
         }
 
-        private string PrepareRequest<TBody>(VnPayApiRequest request, TBody? body = default)
+        private string PrepareRequest<TBody>(PayOSApiRequest request, TBody? body = default)
         {
             if (body is not null)
             {
                 request.Body = body;
             }
 
-            if (!string.IsNullOrWhiteSpace(request.BaseUrl))
+            // Normalize URL with base
+            if (!string.IsNullOrWhiteSpace(request.CallUrl))
             {
-                if (!request.BaseUrl!.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                if (!request.CallUrl!.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    var relative = request.BaseUrl!.StartsWith("/") ? request.BaseUrl! : "/" + request.BaseUrl!;
-                    request.BaseUrl = BaseUrl + relative;
+                    var relative = request.CallUrl!.StartsWith("/") ? request.CallUrl! : "/" + request.CallUrl!;
+                    request.CallUrl = PayOSApiBaseUrl + relative;
                 }
             }
 
@@ -113,10 +116,10 @@ namespace Service.VnPay
             ProcessRequestBody(request);
 
             // Build final URL with params and path replacements
-            return request.BuildVnPayUrl();
+            return request.BuildUrl();
         }
 
-        private void ProcessRequestBody(VnPayApiRequest request)
+        private void ProcessRequestBody(PayOSApiRequest request)
         {
             if (request.Body == null) return;
 

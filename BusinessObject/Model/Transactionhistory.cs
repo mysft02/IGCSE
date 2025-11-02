@@ -6,13 +6,11 @@ public class Transactionhistory
 
     public int CourseId { get; set; }
 
-    public string ParentId { get; set; } = null!;
+    public string UserId { get; set; } = null!;
 
     public decimal Amount { get; set; }
 
-    public string VnpTxnRef { get; set; } = null!;
-
-    public string VnpTransactionDate { get; set; } = null!;
+    public DateTime TransactionDate { get; set; }
 
     public virtual Course Course { get; set; } = null!;
 }

@@ -1,4 +1,5 @@
-﻿using BusinessObject.Model;
+﻿using BusinessObject.DTOs.Response;
+using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Response.OpenAI;
 using DTOs.Response.Accounts;

@@ -5,9 +5,9 @@ using Repository.IBaseRepository;
 using Service;
 using Service.Trello;
 using Service.OpenAI;
-using Service.VnPay;
 using BusinessObject.Mapping;
 using Service.OAuth;
+using Service.PayOS;
 
 namespace IGCSE.Extensions
 {
@@ -48,7 +48,6 @@ namespace IGCSE.Extensions
             services.AddScoped<CourseRegistrationService>();
             services.AddScoped<TrelloApiService>();
             services.AddHttpClient<ApiService>();
-            services.AddScoped<VnPayApiService>();
             services.AddScoped<OpenAIApiService>();
             services.AddScoped<PaymentService>();
             services.AddScoped<OpenAIEmbeddingsApiService>();
@@ -56,6 +55,7 @@ namespace IGCSE.Extensions
             services.AddScoped<QuizService>();
             services.AddScoped<TrelloOAuthService>();
             services.AddScoped<TrelloTokenService>();
+            services.AddScoped<PayOSApiService>();
 
             return services;
         }

@@ -18,7 +18,7 @@ namespace Repository.Repositories
         {
             var result = _context.Transactionhistories
                 .AsEnumerable()
-                .GroupBy(c => DateTime.ParseExact(c.VnpTransactionDate, "yyyyMMddHHmmss", null).ToString("yyyy-MM-dd"))
+                .GroupBy(c => c.TransactionDate.ToString("yyyy-MM-dd"))
                 .ToDictionary(
                 g => g.Key,
                 g => new PaymentSummary
@@ -33,12 +33,12 @@ namespace Repository.Repositories
         public async Task<IEnumerable<TransactionHistoryResponse>> GetAllTransactionHistoriesByUserId(string userId)
         {
             var transactionHistories = _context.Transactionhistories
-                .Where(c => c.ParentId == userId)
+                .Where(c => c.UserId == userId)
                 .Select(c => new TransactionHistoryResponse
                 {
                     Course = c.Course,
                     Amount = c.Amount,
-                    TransactionDate = DateTime.ParseExact(c.VnpTransactionDate, "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture)
+                    TransactionDate = c.TransactionDate
                 })
                 .ToList();
             

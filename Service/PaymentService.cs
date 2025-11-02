@@ -1,153 +1,96 @@
-using BusinessObject.Payload.Request.VnPay;
-using BusinessObject.Payload.Response.VnPay;
 using Common.Constants;
 using Common.Utils;
-using DTOs.Response.Accounts;
-using DTOs.Response.Courses;
-using Microsoft.AspNetCore.Http;
-using Service.VnPay;
 using Repository.IRepositories;
 using BusinessObject.Model;
+using BusinessObject.Payload.Request.PayOS;
+using BusinessObject.Payload.Response.PayOS;
+using Service.PayOS;
+using BusinessObject.DTOs.Response;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Response.Payment;
+using DTOs.Response.Courses;
 
 namespace Service
 {
     public class PaymentService
     {
-        private readonly VnPayApiService _apiService;
         private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
         private readonly ICourseRepository _courseRepository;
+        private readonly PayOSApiService _payOSApiService;
 
-        public PaymentService(VnPayApiService apiService, ICoursekeyRepository coursekeyRepository, IAccountRepository accountRepository, UserManager<Account> userManager, IPaymentRepository paymentRepository, ICourseRepository courseRepository)
+        public PaymentService(
+            ICoursekeyRepository coursekeyRepository,
+            IAccountRepository accountRepository,
+            UserManager<Account> userManager,
+            IPaymentRepository paymentRepository,
+            ICourseRepository courseRepository,
+            PayOSApiService payOSApiService)
         {
-            _apiService = apiService;
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
             _userManager = userManager;
             _paymentRepository = paymentRepository;
             _courseRepository = courseRepository;
+            _payOSApiService = payOSApiService;
         }
 
-        public async Task<BaseResponse<PaymentResponse>> CreatePaymentUrlAsync(HttpContext context, PaymentRequest req)
+        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(Dictionary<string, string> request, string userId)
         {
-                var user = context.User;
-                var parentId = user.FindFirst("AccountID")?.Value;
-                var parentRoles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
-                
-                if (string.IsNullOrEmpty(parentId))
-                {
-                    throw new Exception("Không tìm thấy thông tin người dùng trong token!");
-                }
+            if (request.GetValueOrDefault("code") != "00" || request.GetValueOrDefault("cancel") == "true")
+            {
+                throw new Exception("Thanh toán thất bại.");
+            }
+            var paymentId = request.GetValueOrDefault("id");
 
-                if (!parentRoles.Contains("Parent"))
-                {
-                    // Nếu không có role Parent, thử tạo lại token với role đúng
-                    var userAccount = await _accountRepository.GetByStringId(parentId);
-                    if (userAccount != null)
-                    {
-                        var currentRoles = await _userManager.GetRolesAsync(userAccount);
-                        if (!currentRoles.Contains("Parent"))
-                        {
-                            await _userManager.AddToRoleAsync(userAccount, "Parent");
-                        }
-                    }
-                    throw new Exception($"Phải đăng nhập bằng tài khoản phụ huynh để thanh toán khóa học! Current roles: {string.Join(", ", parentRoles)}. Vui lòng đăng nhập lại để nhận token mới.");
-                }
+            var apiRequest = PayOSApiRequest.Builder()
+                .CallUrl("/v2/payment-requests/{id}")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddPathVariable("id", paymentId)
+                .Build();
 
-                var course = await _courseRepository.GetByIdAsync(req.CourseId);
+            var paymentResponse = await _payOSApiService.GetAsync<PayOSPaymentReturnResponse>(apiRequest);
 
-                // Tạo transaction reference với thông tin course và parent
-                var txnRef = $"{req.CourseId}_{parentId}_{DateTime.Now.Ticks}";
+            var desc = paymentResponse.Data.Transactions.First().Description;
 
-                var request = VnPayApiRequest.Builder()
-                    .BaseUrl("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
-                    .AddParameter("vnp_Version", "2.1.0")
-                    .AddParameter("vnp_Command", "pay")
-                    .AddParameter("vnp_TmnCode", CommonUtils.GetApiKey("VNP_TMNCODE"))
-                    .AddParameter("vnp_Amount", (course.Price * 100).ToString())
-                    .AddParameter("vnp_CurrCode", "VND")
-                    .AddParameter("vnp_TxnRef", txnRef)
-                    .AddParameter("vnp_OrderInfo", $"Thanh toan khoa hoc {req.CourseId} cho Parent: {parentId}")
-                    .AddParameter("vnp_OrderType", "other")
-                    .AddParameter("vnp_Locale", "vn")
-                    .AddParameter("vnp_ReturnUrl", CommonUtils.GetApiKey("VNP_RETURN_URL"))
-                    .AddParameter("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"))
-                    .AddParameter("vnp_IpAddr", CommonUtils.GetIpAddress(context))
-                    .HashSecret(CommonUtils.GetApiKey("VNP_HASHSECRET"))
-                    .Build();
+            var m = Regex.Match(desc, @"Course\s*id\s*:\s*(\S+)", RegexOptions.IgnoreCase);
+            var courseId = int.Parse(m.Success ? m.Groups[1].Value : null);
 
-                var paymentUrl = request.BuildVnPayUrl();
-                var paymentQR = VnPayApiRequest.ToQrBase64(paymentUrl);
+            var transaction = new Transactionhistory
+            {
+                CourseId = courseId,
+                UserId = userId,
+                Amount = paymentResponse.Data.AmountPaid,
+                TransactionDate = DateTime.Parse(paymentResponse.Data.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind)
+            };
 
-                return new BaseResponse<PaymentResponse>(
-                    "Tạo URL thanh toán thành công. Vui lòng thanh toán để nhận mã khóa học.",
-                    StatusCodeEnum.OK_200,
-                    new PaymentResponse
-                    {
-                        PaymentUrl = paymentUrl,
-                        PaymentQR = paymentQR
-                    }
-                );
-        }
+            await _paymentRepository.AddAsync(transaction);
 
-        public async Task<BaseResponse<string>> HandlePaymentSuccessAsync(Dictionary<string, string> request)
-        {
-                // Kiểm tra response code từ VnPay
-                var responseCode = request.GetValueOrDefault("vnp_ResponseCode");
+            // Tạo CourseKey khi thanh toán thành công
+            var uniqueKeyValue = Guid.NewGuid().ToString("N");
+            var courseKey = new Coursekey
+            {
+                CourseId = courseId,
+                StudentId = null,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Status = "available",
+                KeyValue = uniqueKeyValue
+            };
+            await _coursekeyRepository.AddAsync(courseKey);
 
-                if (responseCode != "00")
-                {
-                    throw new Exception($"Thanh toán thất bại. Mã lỗi: {responseCode}");
-                }
+            // Gửi key cho Parent
+            await SendKeyToParentAsync(userId, uniqueKeyValue, courseId);
 
-                // Parse thông tin từ txnRef: CourseId_ParentId_Timestamp
-                var txnRef = request.GetValueOrDefault("vnp_TxnRef");
-
-                var txnRefParts = txnRef?.Split('_');
-                if (txnRefParts == null || txnRefParts.Length < 3)
-                {
-                    throw new Exception("Thông tin giao dịch không hợp lệ");
-                }
-
-                var courseId = int.Parse(txnRefParts[0]);
-                var parentId = txnRefParts[1];
-
-                var transaction = new Transactionhistory
-                {
-                    CourseId = courseId,
-                    ParentId = parentId,
-                    Amount = int.Parse(request.GetValueOrDefault("vnp_Amount")),
-                    VnpTxnRef = txnRef,
-                    VnpTransactionDate = request.GetValueOrDefault("vnp_TransactionDate"),
-                };
-
-                await _paymentRepository.AddAsync(transaction);
-
-                // Tạo CourseKey khi thanh toán thành công
-                var uniqueKeyValue = Guid.NewGuid().ToString("N");
-                var courseKey = new Coursekey
-                {
-                    CourseId = courseId,
-                    StudentId = null,
-                    CreatedBy = parentId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Status = "available",
-                    KeyValue = uniqueKeyValue
-                };
-                await _coursekeyRepository.AddAsync(courseKey);
-
-                // Gửi key cho Parent
-                await SendKeyToParentAsync(parentId, uniqueKeyValue, courseId);
-
-                return new BaseResponse<string>(
+            return new BaseResponse<PayOSPaymentReturnResponse>(
                     "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh.",
                     StatusCodeEnum.OK_200,
-                    uniqueKeyValue
+                    paymentResponse
                 );
         }
 
@@ -220,43 +163,6 @@ namespace Service
             }
         }
 
-        public async Task<VnPayQueryApiResponse> GetVnPayTransactionDetail(VnPayQueryApiRequest request, HttpContext context)
-        {
-                var body = new VnPayQueryApiBody
-                {
-                    VnpRequestId = Guid.NewGuid().ToString(),
-                    VnpVersion = "2.1.0",
-                    VnpCommand = "querydr",
-                    VnpTmnCode = CommonUtils.GetApiKey("VNP_TMNCODE"),
-                    VnpTxnRef = request.VnpTxnRef,
-                    VnpTransactionDate = request.VnpTransactionDate,
-                    VnpCreateDate = DateTime.Now.ToString("yyyyMMddHHmmss"),
-                    VnpIpAddr = CommonUtils.GetIpAddress(context),
-                };
-
-                var data = string.Join("|", new[]
-                {
-                    body.VnpRequestId,
-                    body.VnpVersion,
-                    body.VnpCommand,
-                    body.VnpTmnCode,
-                    body.VnpTxnRef,
-                    body.VnpTransactionDate,
-                    body.VnpCreateDate,
-                    body.VnpIpAddr,
-                    body.VnpOrderInfo
-                });
-
-                body.VnpSecureHash = CommonUtils.HmacSHA512(data, CommonUtils.GetApiKey("VNP_HASHSECRET"));
-
-                var apiRequest = VnPayApiRequest.Builder()
-                    .Body(body)
-                    .Build();
-
-                var response = await _apiService.PostAsync<VnPayQueryApiBody, VnPayQueryApiResponse>(apiRequest, body);
-                return response;
-        }
-
         public async Task<BaseResponse<PaymentAnalyticsResponse>> GetPaymentAnalyticsAsync()
         {
             var analytics = await _paymentRepository.GetPaymentSortedByDate();
@@ -282,6 +188,93 @@ namespace Service
                 StatusCodeEnum.OK_200,
                 transactionHistories
             );
+        }
+
+        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId)
+        {
+            var body = new PayOSApiBody
+            {
+                OrderCode = CommonUtils.GenerateUniqueOrderCode(),
+                Amount = request.Amount,
+                BuyerName = userId,
+                Description = $"Course id: {request.CourseId} payment",
+                CancelUrl = "http://localhost:5173/my-courses",
+                ReturnUrl = "http://localhost:5173/my-courses"
+            };
+
+            var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
+
+            body.Signature = signature;
+
+            var apiRequest = PayOSApiRequest.Builder()
+                .CallUrl("/v2/payment-requests")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .Body(body)
+                .Build();
+
+            var response = await _payOSApiService.PostAsync<PayOSApiBody, PayOSApiResponse>(apiRequest, body);
+
+            return new BaseResponse<PayOSApiResponse>(
+                "Thanh toán thành công",
+                StatusCodeEnum.OK_200,
+                response
+                );
+        }
+
+        public async Task<BaseResponse<PayOSPayoutApiResponse>> PayOSPayoutAsync(PayoutRequest payoutRequest, string userId)
+        {
+            var body = new PayOSPayoutApiBody
+            {
+                ReferenceId = DateTime.Now.Ticks.ToString() + "_" + userId,
+                Amount = payoutRequest.Amount,
+                Description = $"Payout for {payoutRequest.TeacherID}",
+                ToBin = payoutRequest.BankBin,
+                ToAccountNumber = payoutRequest.BankAccountNumber,
+                Category = new List<string> { "payout" }
+            };
+
+            var signature = CommonUtils.CreatePayoutSignature(CommonUtils.GetApiKey("PAYOS_PAYOUT_CHECKSUMKEY"), body.ProcessBody());
+
+            var request = PayOSApiRequest.Builder()
+                .CallUrl("/v1/payouts")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_PAYOUT_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_PAYOUT_API_KEY"))
+                .AddHeader("x-idempotency-key", DateTime.Now.Ticks.ToString())
+                .AddHeader("x-signature", signature)
+                .Body(body)
+                .Build();
+
+            var response = await _payOSApiService.PostAsync<PayOSPayoutApiBody, PayOSPayoutApiResponse>(request, body);
+
+            return new BaseResponse<PayOSPayoutApiResponse>(
+                "Thanh toán thành công",
+                StatusCodeEnum.OK_200,
+                response
+                );
+        }
+
+        public async Task<BaseResponse<PayOSWebhookApiResponse>> CreateOrUpdateWebhookUrl(string url)
+        {
+            var body = new PayOSWebhookApiBody
+            {
+                WebhookUrl = url
+            };
+
+            var request = PayOSApiRequest.Builder()
+                .CallUrl("/confirm-webhook")
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .Body(body)
+                .Build();
+
+            var response = await _payOSApiService.PostAsync<PayOSWebhookApiBody, PayOSWebhookApiResponse>(request, body);
+
+            return new BaseResponse<PayOSWebhookApiResponse>(
+                "Thanh toán thành công",
+                StatusCodeEnum.OK_200,
+                response
+                );
         }
 
         private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)

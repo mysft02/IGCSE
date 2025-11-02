@@ -1,4 +1,5 @@
-﻿using BusinessObject.DTOs.Response.Courses;
+﻿using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Response.Payment;
 using DTOs.Response.Accounts;
 using Microsoft.AspNetCore.Mvc;

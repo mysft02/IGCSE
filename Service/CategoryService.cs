@@ -10,6 +10,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using DTOs.Response.Accounts;
+using BusinessObject.DTOs.Response;
 
 namespace Service
 {
@@ -24,7 +25,7 @@ namespace Service
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<CategoryResponse>> CreateCategoryAsync(CategoryRequest request)
+        public async Task<BaseResponse<CategoryResponse>> CreateCategoryAsync(CategoryRequest request)
         {
             // Check if category name already exists
             var existingCategories = await _categoryRepository.GetAllAsync();
@@ -46,14 +47,14 @@ namespace Service
 
             var categoryResponse = _mapper.Map<CategoryResponse>(createdCategory);
 
-            return new DTOs.Response.Accounts.BaseResponse<CategoryResponse>(
+            return new BaseResponse<CategoryResponse>(
                 "Category created successfully",
                 StatusCodeEnum.Created_201,
                 categoryResponse
             );
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<CategoryResponse>> UpdateCategoryAsync(int categoryId, CategoryRequest request)
+        public async Task<BaseResponse<CategoryResponse>> UpdateCategoryAsync(int categoryId, CategoryRequest request)
         {
             // Get existing category
             var existingCategory = await _categoryRepository.GetByCategoryIdAsync(categoryId);
@@ -74,14 +75,14 @@ namespace Service
 
             var categoryResponse = _mapper.Map<CategoryResponse>(updatedCategory);
 
-            return new DTOs.Response.Accounts.BaseResponse<CategoryResponse>(
+            return new BaseResponse<CategoryResponse>(
                 "Category updated successfully",
                 StatusCodeEnum.OK_200,
                 categoryResponse
             );
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<CategoryResponse>> GetCategoryByIdAsync(int categoryId)
+        public async Task<BaseResponse<CategoryResponse>> GetCategoryByIdAsync(int categoryId)
         {
             var category = await _categoryRepository.GetByCategoryIdAsync(categoryId);
             if (category == null)
@@ -91,14 +92,14 @@ namespace Service
 
             var categoryResponse = _mapper.Map<CategoryResponse>(category);
 
-            return new DTOs.Response.Accounts.BaseResponse<CategoryResponse>(
+            return new BaseResponse<CategoryResponse>(
                 "Category retrieved successfully",
                 StatusCodeEnum.OK_200,
                 categoryResponse
             );
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<IEnumerable<CategoryResponse>>> GetAllCategoriesAsync()
+        public async Task<BaseResponse<IEnumerable<CategoryResponse>>> GetAllCategoriesAsync()
         {
             var categories = await _categoryRepository.GetAllAsync();
 
@@ -109,14 +110,14 @@ namespace Service
                 categoryResponses.Add(categoryResponse);
             }
 
-            return new DTOs.Response.Accounts.BaseResponse<IEnumerable<CategoryResponse>>(
+            return new BaseResponse<IEnumerable<CategoryResponse>>(
                 "Categories retrieved successfully",
                 StatusCodeEnum.OK_200,
                 categoryResponses
             );
         }
 
-        public async Task<DTOs.Response.Accounts.BaseResponse<IEnumerable<CategoryResponse>>> GetActiveCategoriesAsync()
+        public async Task<BaseResponse<IEnumerable<CategoryResponse>>> GetActiveCategoriesAsync()
         {
             var categories = await _categoryRepository.GetActiveCategoriesAsync();
 
@@ -127,7 +128,7 @@ namespace Service
                 categoryResponses.Add(categoryResponse);
             }
 
-            return new DTOs.Response.Accounts.BaseResponse<IEnumerable<CategoryResponse>>(
+            return new BaseResponse<IEnumerable<CategoryResponse>>(
                 "Active categories retrieved successfully",
                 StatusCodeEnum.OK_200,
                 categoryResponses
