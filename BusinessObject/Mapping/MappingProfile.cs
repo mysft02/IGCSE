@@ -2,7 +2,6 @@ using AutoMapper;
 using BusinessObject.Model;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Response.ParentStudentLink;
-using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Accounts;
 using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Request.Courses;
@@ -10,6 +9,9 @@ using BusinessObject.DTOs.Response.Categories;
 using BusinessObject.DTOs.Request.Categories;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Response.Trellos;
+using BusinessObject.Payload.Response.Trello;
+using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
 
 namespace BusinessObject.Mapping
 {
@@ -78,6 +80,11 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Name))
                 .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.Email))
+                .ReverseMap();
+            
+            CreateMap<TrelloBoardResponse, TrelloBoardDtoResponse>()
+                .ForMember(dest => dest.trelloBoardId, opt => opt.MapFrom(src => src.Id)) 
+                .ForMember(dest => dest.trelloBoardName, opt => opt.MapFrom(src => src.Name))
                 .ReverseMap();
         }
     }

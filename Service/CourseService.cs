@@ -9,6 +9,7 @@ using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Request.CourseContent;
+using BusinessObject.Payload.Response.Trello;
 
 namespace Service
 {
@@ -469,6 +470,41 @@ namespace Service
             {
                 throw new Exception($"Failed to get course detail: {ex.Message}");
             }
+        }
+
+        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses)
+        {
+            courseName = courseName.Replace("[Course]", "").Trim();
+            string description = "This is a course imported from Trello.";
+            decimal price = 0;
+            
+            foreach (var trelloCardResponse in trelloCardResponses)
+            {
+                if (trelloCardResponse.Name.Contains("Description"))
+                {
+                    description = trelloCardResponse.Description;
+                }
+                if (trelloCardResponse.Name.Contains("Price"))
+                {
+                    price = decimal.Parse(trelloCardResponse.Description);
+                }
+            }
+            
+            var course = new Course
+            {
+                Name = courseName,
+                Description = description,
+                Price = price,
+                ImageUrl = "",
+                CategoryId = null,
+                Status = "Open",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
+            course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+            var createdCourse = await _courseRepository.AddAsync(course);
+            return createdCourse;
         }
     }
 }

@@ -1,0 +1,30 @@
+# add column LessonId to table quiz
+# Delete ChaperID of coursesection can be null
+databaseChangeLog:
+  - changeSet:
+      id: 37
+      author: vudq
+      changes:
+        - addColumn:
+            tableName: quiz
+            columns:
+              - column:
+                  name: LessonId
+                  type: INT
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            tableName: quiz
+            columnName: LessonId
+      tags:
+        - quiz-lesson-id
+  - changeSet:
+      id: "delete-chapter-id-from-coursesection"
+      author: vudq
+      changes:
+        - dropColumn:
+            tableName: coursesection
+            columnName: ChapterId
+      tags:
+        - coursesection-chapter-id-nullable

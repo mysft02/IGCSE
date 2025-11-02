@@ -218,5 +218,11 @@ namespace Repository.BaseRepository
         }
 
         #endregion
+        
+        public async Task<T?> FindOneAsync(Expression<Func<T, bool>> filter)
+        {
+            return await _dbContext.Set<T>().FirstOrDefaultAsync(filter);
+        }
+
     }
 }

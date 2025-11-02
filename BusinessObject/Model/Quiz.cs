@@ -8,6 +8,8 @@ public class Quiz
     public int QuizId { get; set; }
 
     public int CourseId { get; set; }
+    
+    public int LessonId { get; set; }
 
     public string QuizTitle { get; set; } = null!;
 
