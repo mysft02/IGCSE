@@ -1,12 +1,10 @@
 ﻿namespace BusinessObject.Model;
 
-public class Quizresult
+public class Mocktestresult
 {
-    public int QuizResultId { get; set; }
+    public int MockTestResultId { get; set; }
 
-    public int QuizId { get; set; }
-
-    public bool IsPassed { get; set; }
+    public int MockTestId { get; set; }
 
     public decimal Score { get; set; }
 

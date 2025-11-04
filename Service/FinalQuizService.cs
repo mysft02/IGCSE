@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using BusinessObject.DTOs.Request.Quizzes;
-using BusinessObject.DTOs.Response.Quizzes;
+using BusinessObject.DTOs.Request.FinalQuizzes;
+using BusinessObject.DTOs.Response.FinalQuizzes;
 using BusinessObject.Model;
 using BusinessObject.Payload.Request.OpenAI;
 using BusinessObject.Payload.Request.OpenApi;
@@ -8,76 +8,85 @@ using Common.Constants;
 using Repository.IRepositories;
 using Service.OpenAI;
 using BusinessObject.DTOs.Response;
-using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
 
 namespace Service
 {
-    public class QuizService
+    public class FinalQuizService
     {
         private readonly IMapper _mapper;
-        private readonly IQuizRepository _quizRepository;
+        private readonly IFinalQuizRepository _finalQuizRepository;
         private readonly OpenAIApiService _openAIApiService;
         private readonly IQuestionRepository _questionRepository;
-        private readonly IQuizResultRepository _quizResultRepository;
+        private readonly IFinalQuizResultRepository _finalQuizResultRepository;
         private readonly TrelloCardService _trelloCardService;
         private readonly IWebHostEnvironment _env;
-        private readonly IQuizUserAnswerRepository _quizUserAnswerRepository;
+        private readonly IFinalQuizUserAnswerRepository _finalQuizUserAnswerRepository;
 
-        public QuizService(
-            IMapper mapper, 
-            IQuizRepository quizRepository, 
-            OpenAIApiService openAIApiService, 
-            IQuestionRepository questionRepository, 
-            IQuizResultRepository quizResultRepository, 
+        public FinalQuizService(
+            IMapper mapper,
+            IFinalQuizRepository finalQuizRepository,
+            OpenAIApiService openAIApiService,
+            IQuestionRepository questionRepository,
+            IFinalQuizResultRepository finalQuizResultRepository,
             TrelloCardService trelloCardService,
             IWebHostEnvironment env,
-            IQuizUserAnswerRepository quizUserAnswerRepository)
+            IFinalQuizUserAnswerRepository finalQuizUserAnswerRepository)
         {
             _mapper = mapper;
-            _quizRepository = quizRepository;
+            _finalQuizRepository = finalQuizRepository;
             _openAIApiService = openAIApiService;
             _questionRepository = questionRepository;
-            _quizResultRepository = quizResultRepository;
+            _finalQuizResultRepository = finalQuizResultRepository;
             _trelloCardService = trelloCardService;
             _env = env;
-            _quizUserAnswerRepository = quizUserAnswerRepository;
+            _finalQuizUserAnswerRepository = finalQuizUserAnswerRepository;
         }
 
-        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
+        public async Task<BaseResponse<FinalQuizResponse>> GetFinalQuizByIdAsync(int finalQuizId)
         {
-            var quiz = await _quizRepository.GetByIdAsync(quizId);
-            if (quiz == null)
+            var finalQuiz = await _finalQuizRepository.GetByIdAsync(finalQuizId);
+            if (finalQuiz == null)
             {
-                throw new Exception("Quiz not found");
+                throw new Exception("Final Quiz not found");
             }
 
-            var quizResponse = _mapper.Map<QuizResponse>(quiz);
+            var finalQuizResponse = _mapper.Map<FinalQuizResponse>(finalQuiz);
 
-            return new BaseResponse<QuizResponse>(
-                "Quiz retrieved successfully",
+            return new BaseResponse<FinalQuizResponse>(
+                "Final Quiz retrieved successfully",
                 StatusCodeEnum.OK_200,
-                quizResponse
+                finalQuizResponse
             );
         }
-        
-        public async Task<BaseResponse<List<QuizMarkResponse>>> MarkQuizAsync(QuizMarkRequest request, string userId)
+
+        public async Task<BaseResponse<List<FinalQuizMarkResponse>>> MarkFinalQuizAsync(FinalQuizMarkRequest request, string userId)
         {
-            List<QuizMarkResponse> result = new List<QuizMarkResponse>();
+            List<FinalQuizMarkResponse> result = new List<FinalQuizMarkResponse>();
 
             List<QuestionMarkRequest> questions = new List<QuestionMarkRequest>();
-            int? quizIdFromQuestions = null;
 
             // Validate input list
             if (request?.UserAnswers == null || request.UserAnswers.Count == 0)
             {
-                return new BaseResponse<List<QuizMarkResponse>>(
+                return new BaseResponse<List<FinalQuizMarkResponse>>(
                     "No answers to mark",
                     StatusCodeEnum.OK_200,
-                    new List<QuizMarkResponse>());
+                    new List<FinalQuizMarkResponse>());
             }
+
+            var finalQuizResult = new Finalquizresult
+            {
+                FinalQuizId = request.FinalQuizID,
+                Score = 0,
+                IsPassed = false,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var fquizResult = await _finalQuizResultRepository.AddAsync(finalQuizResult);
 
             foreach (var userAnswer in request.UserAnswers)
             {
@@ -92,11 +101,6 @@ namespace Service
                     continue;
                 }
 
-                if (quizIdFromQuestions == null)
-                {
-                    quizIdFromQuestions = questionText.QuizId;
-                }
-
                 var questionRequest = new QuestionMarkRequest
                 {
                     QuestionText = questionText.QuestionContent,
@@ -109,14 +113,14 @@ namespace Service
                     questionRequest.ImageBase64 = CommonUtils.GetBase64FromWwwRoot(_env.WebRootPath, questionText.PictureUrl);
                 }
 
-                var quizUserAnswer = new Quizuseranswer
+                var finalQuizUserAnswer = new Finalquizuseranswer
                 {
                     QuestionId = userAnswer.QuestionId,
-                    QuizId = questionText.QuizId,
-                    Answer = userAnswer.Answer
+                    FinalQuizResultId = fquizResult.FinalQuizResultId,
+                    Answer = userAnswer.Answer,
                 };
 
-                await _quizUserAnswerRepository.AddAsync(quizUserAnswer);
+                await _finalQuizUserAnswerRepository.AddAsync(finalQuizUserAnswer);
 
                 questions.Add(questionRequest);
             }
@@ -155,10 +159,10 @@ namespace Service
             var response = await _openAIApiService.PostAsync<OpenAIBody, OpenAIResponse>(apiRequest, body);
 
             if (response?.Output == null || response.Output.Count == 0)
-                return new BaseResponse<List<QuizMarkResponse>>(
+                return new BaseResponse<List<FinalQuizMarkResponse>>(
                     "Quiz mark successfully",
                     StatusCodeEnum.OK_200,
-                    new List<QuizMarkResponse>());
+                    new List<FinalQuizMarkResponse>());
 
             // 🧩 Ghép output text
             var outputText = string.Join("\n",
@@ -201,7 +205,7 @@ namespace Service
                 var q = questions[i];
                 var comment = parts[i];
                 bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
-                result.Add(new QuizMarkResponse
+                result.Add(new FinalQuizMarkResponse
                 {
                     Question = q.QuestionText,
                     Answer = q.Answer,
@@ -215,76 +219,65 @@ namespace Service
                 }
             }
 
-            var quizResult = new Quizresult
-            {
-                QuizId = (int)quizIdFromQuestions,
-                UserId = userId,
-                Score = finalScore,
-                IsPassed = true,
-                CreatedAt = DateTime.UtcNow
-            };
+            fquizResult.Score = finalScore;
 
-            if (finalScore <= questions.Count / 2)
+            if(finalScore <= questions.Count / 2)
             {
-                quizResult.IsPassed = false;
-            }
-            else
-            {
-                quizResult.IsPassed = true;
+                fquizResult.IsPassed = false;
             }
 
-            await _quizResultRepository.AddAsync(quizResult);
+            await _finalQuizResultRepository.UpdateAsync(fquizResult);
 
-            return new BaseResponse<List<QuizMarkResponse>>(
+            return new BaseResponse<List<FinalQuizMarkResponse>>(
                     "Chấm bài quiz thành công",
                     StatusCodeEnum.OK_200,
                     result);
         }
-        
-        public async Task CreateQuizForTrelloAsync(int courseId, int lessonId,string quizTitle ,List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
-        {
-            quizTitle = quizTitle.Replace("[Test]", "").Trim(); 
-            string quizDescription = "This is a quiz imported from Trello.";
-            List<Question> questions = new List<Question>();
-            foreach (var trelloCardResponse in trelloCardResponses)
-            {
-                if (trelloCardResponse.Name.Contains("[Description]"))
-                {
-                    quizDescription = trelloCardResponse.Description;
-                }
-                else
-                {
-                    var attachments = await _trelloCardService.GetTrelloCardAttachments(trelloCardResponse.Id, trelloToken);
-                    
-                    // get first attachment that is image
-                    var imageUrl = string.Empty;
-                    if (!CommonUtils.isEmtyList(attachments))
-                    {
-                        var imageAttachment = attachments.FirstOrDefault();
-                        imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
-                    }
-                    
-                    questions.Add(new Question
-                    {
-                        QuestionContent = trelloCardResponse.Name,
-                        CorrectAnswer = trelloCardResponse.Description,
-                        PictureUrl = imageUrl,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    });
-                }
-            }
-            Quiz quiz = new Quiz
-            {
-                CourseId = courseId,
-                LessonId = lessonId,
-                QuizTitle = quizTitle,
-                QuizDescription = quizDescription,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Questions = questions
-            }; 
-            await _quizRepository.AddAsync(quiz);
-        }
+
+        //public async Task CreateQuizForTrelloAsync(int courseId, int lessonId, string quizTitle, List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
+        //{
+        //    quizTitle = quizTitle.Replace("[Test]", "").Trim();
+        //    string quizDescription = "This is a quiz imported from Trello.";
+        //    List<Question> questions = new List<Question>();
+        //    foreach (var trelloCardResponse in trelloCardResponses)
+        //    {
+        //        if (trelloCardResponse.Name.Contains("[Description]"))
+        //        {
+        //            quizDescription = trelloCardResponse.Description;
+        //        }
+        //        else
+        //        {
+        //            var attachments = await _trelloCardService.GetTrelloCardAttachments(trelloCardResponse.Id, trelloToken);
+
+        //            // get first attachment that is image
+        //            var imageUrl = string.Empty;
+        //            if (!CommonUtils.isEmtyList(attachments))
+        //            {
+        //                var imageAttachment = attachments.FirstOrDefault();
+        //                imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+        //            }
+
+        //            questions.Add(new Question
+        //            {
+        //                QuestionContent = trelloCardResponse.Name,
+        //                CorrectAnswer = trelloCardResponse.Description,
+        //                PictureUrl = imageUrl,
+        //                CreatedAt = DateTime.UtcNow,
+        //                UpdatedAt = DateTime.UtcNow
+        //            });
+        //        }
+        //    }
+        //    Quiz quiz = new Quiz
+        //    {
+        //        CourseId = courseId,
+        //        LessonId = lessonId,
+        //        QuizTitle = quizTitle,
+        //        QuizDescription = quizDescription,
+        //        CreatedAt = DateTime.UtcNow,
+        //        UpdatedAt = DateTime.UtcNow,
+        //        Questions = questions
+        //    };
+        //    await _quizRepository.AddAsync(quiz);
+        //}
     }
 }

@@ -1,6 +1,4 @@
-﻿using BusinessObject.DTOs.Response;
-using Common.Constants;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

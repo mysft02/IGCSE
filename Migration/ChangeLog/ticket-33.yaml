@@ -1,0 +1,132 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 33
+      author: dungnt
+      changes:
+        - addColumn:
+            tableName: question
+            columns:
+              - column:
+                  name: PictureUrl
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+        - createTable:
+            tableName: mocktest
+            columns:
+              - column:
+                  name: MockTestID
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: MockTestTitle
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: MockTestDescription
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedBy
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: mocktestquestion
+            columns:
+              - column:
+                  name: MockTestQuestionID
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: MockTestID
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: QuestionContent
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CorrectAnswer
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ImageUrl
+                  type: varchar(255)
+              - column:
+                  name: CreatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: mocktestresult
+            columns:
+              - column:
+                  name: MockTestResultID
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: MockTestID
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsPassed
+                  type: tinyint(1)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Score
+                  type: decimal(18,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedBy
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropColumn:
+            tableName: question
+            columnName: PictureUrl
+        - dropTable:
+            tableName: mocktestresult
+        - dropTable:
+            tableName: mocktestquestion
+        - dropTable:
+            tableName: mocktest

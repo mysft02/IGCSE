@@ -12,6 +12,10 @@ using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.Trellos;
 using BusinessObject.Payload.Response.Trello;
 using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
+using BusinessObject.DTOs.Response.MockTest;
+using BusinessObject.DTOs.Response.MockTestQuestion;
+using BusinessObject.Payload.Response.MockTest;
+using BusinessObject.Payload.Request;
 
 namespace BusinessObject.Mapping
 {
@@ -86,6 +90,14 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.trelloBoardId, opt => opt.MapFrom(src => src.Id)) 
                 .ForMember(dest => dest.trelloBoardName, opt => opt.MapFrom(src => src.Name))
                 .ReverseMap();
+
+            CreateMap<Mocktest, MockTestResponse>().ReverseMap();
+            CreateMap<Mocktest, MockTestQueryResponse>().ReverseMap();
+
+            CreateMap<Mocktestquestion, MockTestQuestionResponse>().ReverseMap();
+
+            CreateMap<Package, PackageCreateRequest>().ReverseMap();
+            CreateMap<Package, PackageUpdateRequest>().ReverseMap();
         }
     }
 }

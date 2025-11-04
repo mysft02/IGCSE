@@ -1,0 +1,10 @@
+﻿using BusinessObject.Model;
+using Repository.IBaseRepository;
+
+namespace Repository.IRepositories
+{
+    public interface IMockTestRepository : IBaseRepository<Mocktest>
+    {
+        Task<Mocktest?> GetByMockTestIdAsync(int mockTestId);
+    }
+}

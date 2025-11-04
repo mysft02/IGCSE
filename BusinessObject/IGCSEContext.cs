@@ -24,12 +24,21 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Process> Processes { get; set; }
     public virtual DbSet<Processitem> Processitems { get; set; }
     public virtual DbSet<Transactionhistory> Transactionhistories { get; set; }
-    public virtual DbSet<Useranswer> Useranswers { get; set; }
+    public virtual DbSet<Finalquiz> Finalquizzes { get; set; }
+    public virtual DbSet<Finalquizresult> Finalquizresults { get; set; }
+    public virtual DbSet<Finalquizuseranswer> Finalquizuseranswers { get; set; }
     public virtual DbSet<Question> Questions { get; set; }
     public virtual DbSet<Quiz> Quizzes { get; set; }
     public virtual DbSet<Quizresult> Quizresults { get; set; }
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
+    public virtual DbSet<Mocktest> Mocktests { get; set; }
+    public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }
+    public virtual DbSet<Mocktestresult> Mocktestresults { get; set; }
+    public virtual DbSet<Mocktestuseranswer> Mocktestuseranswers { get; set; }
+    public virtual DbSet<Package> Packages { get; set; }
+    public virtual DbSet<Userpackage> Userpackages { get; set; }
+    public virtual DbSet<Quizuseranswer> Quizuseranswers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -79,6 +88,47 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                 dt => DateOnly.FromDateTime(dt));
 
             b.Property(a => a.DateOfBirth).HasConversion(dateOnlyConverter);
+        });
+
+        modelBuilder.Entity<Finalquiz>(entity =>
+        {
+            entity.HasKey(e => e.FinalQuizId).HasName("PRIMARY");
+
+            entity.ToTable("finalquiz");
+
+            entity.Property(e => e.FinalQuizId).HasColumnName("FinalQuizID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.Title).HasMaxLength(255);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Finalquizresult>(entity =>
+        {
+            entity.HasKey(e => e.FinalQuizResultId).HasName("PRIMARY");
+
+            entity.ToTable("finalquizresult");
+
+            entity.Property(e => e.FinalQuizResultId).HasColumnName("FinalQuizResultID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.FinalQuizId).HasColumnName("FinalQuizID");
+            entity.Property(e => e.Score).HasPrecision(18, 2);
+            entity.Property(e => e.UserId)
+                .HasMaxLength(255)
+                .HasColumnName("UserID");
+        });
+
+        modelBuilder.Entity<Finalquizuseranswer>(entity =>
+        {
+            entity.HasKey(e => e.FinalQuizUserAnswerId).HasName("PRIMARY");
+
+            entity.ToTable("finalquizuseranswer");
+
+            entity.Property(e => e.FinalQuizUserAnswerId).HasColumnName("FinalQuizUserAnswerID");
+            entity.Property(e => e.Answer).HasMaxLength(255);
+            entity.Property(e => e.FinalQuizResultId).HasColumnName("FinalQuizResultID");
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
@@ -209,34 +259,16 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.VnpTxnRef).HasMaxLength(255);
         });
 
-        modelBuilder.Entity<Useranswer>(entity =>
+        modelBuilder.Entity<Quizuseranswer>(entity =>
         {
-            entity.HasKey(e => e.UserAnswerId).HasName("PRIMARY");
+            entity.HasKey(e => e.QuizUserAnswerId).HasName("PRIMARY");
 
-            entity.ToTable("useranswer");
+            entity.ToTable("quizuseranswer");
 
-            entity.Property(e => e.UserAnswerId).HasColumnName("UserAnswerID");
+            entity.Property(e => e.QuizUserAnswerId).HasColumnName("QuizUserAnswerID");
             entity.Property(e => e.Answer).HasMaxLength(500);
             entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
-            entity.Property(e => e.UserId).HasColumnName("UserID");
-
-            entity.HasOne(d => d.Question)
-                  .WithMany()
-                  .HasForeignKey(d => d.QuestionId)
-                  .OnDelete(DeleteBehavior.Cascade)
-                  .HasConstraintName("FK_Useranswer_Question_QuestionID");
-
-            entity.HasOne(d => d.User)
-                  .WithMany()
-                  .HasForeignKey(d => d.UserId)
-                  .OnDelete(DeleteBehavior.Cascade)
-                  .HasConstraintName("FK_Useranswer_AspNetUsers_UserID");
-
-            entity.HasIndex(e => e.QuestionId)
-                  .HasDatabaseName("IX_Useranswer_QuestionID");
-
-            entity.HasIndex(e => e.UserId)
-                  .HasDatabaseName("IX_Useranswer_UserID");
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
         });
 
         modelBuilder.Entity<Quiz>(entity =>
@@ -322,9 +354,11 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
             entity.Property(e => e.QuizResultId).HasColumnName("QuizResultID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
-            entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.QuizId).HasColumnName("QuizID");
             entity.Property(e => e.Score).HasPrecision(18, 2);
+            entity.Property(e => e.UserId)
+                .HasMaxLength(255)
+                .HasColumnName("UserID");
         });
 
         modelBuilder.Entity<Parentstudentlink>(entity =>
@@ -377,6 +411,94 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
             entity.HasIndex(e => e.UserId)
                 .HasDatabaseName("IX_TrelloToken_UserId");
+        });
+
+        modelBuilder.Entity<Mocktest>(entity =>
+        {
+            entity.HasKey(e => e.MockTestId).HasName("PRIMARY");
+
+            entity.ToTable("mocktest");
+
+            entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy).HasMaxLength(255);
+            entity.Property(e => e.MockTestDescription).HasColumnType("text");
+            entity.Property(e => e.MockTestTitle).HasMaxLength(255);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Mocktestquestion>(entity =>
+        {
+            entity.HasKey(e => e.MockTestQuestionId).HasName("PRIMARY");
+
+            entity.ToTable("mocktestquestion");
+
+            entity.Property(e => e.MockTestQuestionId).HasColumnName("MockTestQuestionID");
+            entity.Property(e => e.CorrectAnswer).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
+            entity.Property(e => e.Mark).HasPrecision(18, 2);
+            entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
+            entity.Property(e => e.PartialMark).HasMaxLength(255);
+            entity.Property(e => e.QuestionContent).HasMaxLength(500);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Mocktestresult>(entity =>
+        {
+            entity.HasKey(e => e.MockTestResultId).HasName("PRIMARY");
+
+            entity.ToTable("mocktestresult");
+
+            entity.Property(e => e.MockTestResultId).HasColumnName("MockTestResultID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.MockTestId).HasColumnName("MockTestID");
+            entity.Property(e => e.Score).HasPrecision(18, 2);
+            entity.Property(e => e.UserId)
+                .HasMaxLength(255)
+                .HasColumnName("UserID");
+        });
+
+        modelBuilder.Entity<Mocktestuseranswer>(entity =>
+        {
+            entity.HasKey(e => e.MockTestUserAnswerId).HasName("PRIMARY");
+
+            entity.ToTable("mocktestuseranswer");
+
+            entity.Property(e => e.MockTestUserAnswerId).HasColumnName("MockTestUserAnswerID");
+            entity.Property(e => e.Answer).HasMaxLength(255);
+            entity.Property(e => e.MockTestQuestionId).HasColumnName("MockTestQuestionID");
+            entity.Property(e => e.MockTestResultId).HasColumnName("MockTestResultID");
+            entity.Property(e => e.Score).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Package>(entity =>
+        {
+            entity.HasKey(e => e.PackageId).HasName("PRIMARY");
+
+            entity.ToTable("package");
+
+            entity.Property(e => e.PackageId).HasColumnName("PackageID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.Price).HasPrecision(18, 2);
+            entity.Property(e => e.Title).HasMaxLength(255);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Userpackage>(entity =>
+        {
+            entity.HasKey(e => new { e.PackageId, e.UserId })
+                .HasName("PRIMARY")
+                .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+
+            entity.ToTable("userpackage");
+
+            entity.Property(e => e.PackageId).HasColumnName("PackageID");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Price).HasPrecision(18, 2);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
         OnModelCreatingPartial(modelBuilder);

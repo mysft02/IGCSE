@@ -1,6 +1,6 @@
-﻿namespace BusinessObject.DTOs.Response.Quizzes
+﻿namespace BusinessObject.DTOs.Response.FinalQuizzes
 {
-    public class QuizMarkResponse
+    public class FinalQuizMarkResponse
     {
         public string Question { get; set; }
 

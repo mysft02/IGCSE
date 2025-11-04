@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BusinessObject.Payload.Request.OpenAI
+﻿namespace BusinessObject.Payload.Request.OpenAI
 {
     public class QuestionMarkRequest
     {
@@ -13,5 +7,7 @@ namespace BusinessObject.Payload.Request.OpenAI
         public string Answer { get; set; }
 
         public string RightAnswer { get; set; }
+
+        public string ImageBase64 { get; set; }
     }
 }

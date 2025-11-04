@@ -253,5 +253,34 @@ namespace Common.Utils
 
             return false;
         }
+
+        public static string GetBase64FromWwwRoot(string webRootPath, string fileName)
+        {
+            // Xác định thư mục wwwroot (tự tìm trong dự án)
+            var filePath = Path.Combine(webRootPath, fileName.TrimStart('/', '\\'));
+
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"Không tìm thấy file: {filePath}");
+            }
+
+            // Đọc bytes của file
+            var fileBytes = File.ReadAllBytes(filePath);
+
+            // Xác định loại MIME dựa theo đuôi file
+            var extension = Path.GetExtension(filePath).ToLower();
+            string mimeType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                ".pdf" => "application/pdf",
+                _ => "application/octet-stream"
+            };
+
+            // Trả về chuỗi base64 đầy đủ để gửi qua API
+            return $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
+        }
     }
 }

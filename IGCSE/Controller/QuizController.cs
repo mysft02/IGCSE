@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
 using BusinessObject.DTOs.Response;
+using Microsoft.AspNetCore.Authorization;
+using Common.Utils;
 
 namespace IGCSE.Controller
 {
@@ -27,17 +29,18 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("mark-quiz")]
+        [Authorize]
         [SwaggerOperation(Summary = "Chấm bài quiz")]
         public async Task<ActionResult<BaseResponse<List<QuizMarkResponse>>>> MarkQuiz([FromBody] QuizMarkRequest request)
         {
-            var result = await _quizService.MarkQuizAsync(request);
-            return Ok(result);
-        }
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-        [HttpPost("import-from-excel")]
-        public async Task<ActionResult<BaseResponse<QuizCreateResponse>>> ImportFromExcel([FromForm] QuizCreateRequest request)
-        {
-            var result = await _quizService.ImportQuizFromExcelAsync(request);
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _quizService.MarkQuizAsync(request, userId);
             return Ok(result);
         }
     }
