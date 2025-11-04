@@ -6,6 +6,8 @@ namespace BusinessObject.Payload.Request
 {
     public class PackageQueryRequest : BaseQueryRequest
     {
+        public int PackageId { get; set; }
+
         public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
         {
             if (typeof(T) != typeof(Package))
@@ -64,6 +66,11 @@ namespace BusinessObject.Payload.Request
         private Expression<Func<Package, bool>>? BuildPackageFilter()
         {
             var predicates = new List<Expression<Func<Package, bool>>>();
+
+            if (PackageId != null)
+            {
+                predicates.Add(x => x.PackageId == PackageId);
+            }
 
             // Combine all predicates with AND
             if (!predicates.Any())

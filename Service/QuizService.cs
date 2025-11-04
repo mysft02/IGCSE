@@ -12,6 +12,11 @@ using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
+using BusinessObject.Payload.Request.MockTest;
+using BusinessObject.Payload.Response.MockTest;
+using Repository.Repositories;
+using BusinessObject.Payload.Response.Quizzes;
+using BusinessObject.Payload.Request.Quizzes;
 
 namespace Service
 {
@@ -44,6 +49,42 @@ namespace Service
             _trelloCardService = trelloCardService;
             _env = env;
             _quizUserAnswerRepository = quizUserAnswerRepository;
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<QuizQueryResponse>>> GetAllQuizAsync(QuizQueryRequest request)
+        {
+            // Build filter expression
+            var filter = request.BuildFilter<Quiz>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _quizRepository.CountAsync(filter);
+
+            // Get filtered data with pagination
+            var items = await _quizRepository.FindWithPagingAsync(
+                filter,
+                request.Page,
+                request.GetPageSize()
+            );
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items);
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<QuizQueryResponse>>
+            {
+                Data = new PaginatedResponse<QuizQueryResponse>
+                {
+                    Items = sortedItems.Select(token => _mapper.Map<QuizQueryResponse>(token)).ToList(),
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy danh sách quiz thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
         }
 
         public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)

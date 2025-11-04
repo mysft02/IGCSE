@@ -78,7 +78,7 @@ namespace Service
                     Size = request.GetPageSize(),
                     TotalPages = totalPages
                 },
-                Message = "Mock tests retrieved successfully",
+                Message = "Lấy mock test thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
         }

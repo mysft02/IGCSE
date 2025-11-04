@@ -6,6 +6,8 @@ using Swashbuckle.AspNetCore.Annotations;
 using BusinessObject.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Common.Utils;
+using BusinessObject.Model;
+using BusinessObject.Payload.Request.Quizzes;
 
 namespace IGCSE.Controller
 {
@@ -18,6 +20,14 @@ namespace IGCSE.Controller
         public QuizController(QuizService quizService)
         {
             _quizService = quizService;
+        }
+
+        [HttpGet("get-all-quiz")]
+        [SwaggerOperation(Summary = "Lấy toàn bộ danh sách quiz (có phân trang)")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<Quiz>>>> GetAllQuizAsync([FromQuery] QuizQueryRequest request)
+        {
+            var result = await _quizService.GetAllQuizAsync(request);
+            return Ok(result);
         }
 
         [HttpGet("get-quiz-by-id")]

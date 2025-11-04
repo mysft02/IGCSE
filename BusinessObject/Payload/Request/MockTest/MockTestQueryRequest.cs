@@ -6,6 +6,8 @@ namespace BusinessObject.Payload.Request.MockTest
 {
     public class MockTestQueryRequest : BaseQueryRequest
     {
+        public int MockTestId { get; set; }
+
         public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
         {
             if (typeof(T) != typeof(Mocktest))
@@ -58,6 +60,11 @@ namespace BusinessObject.Payload.Request.MockTest
         private Expression<Func<Mocktest, bool>>? BuildMockTestFilter()
         {
             var predicates = new List<Expression<Func<Mocktest, bool>>>();
+
+            if (MockTestId != null)
+            {
+                predicates.Add(x => x.MockTestId == MockTestId);
+            }
 
             // Combine all predicates with AND
             if (!predicates.Any())
