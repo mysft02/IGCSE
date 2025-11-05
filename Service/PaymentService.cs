@@ -57,38 +57,68 @@ namespace Service
 
             var desc = paymentResponse.Data.Transactions.First().Description;
 
-            var m = Regex.Match(desc, @"Course\s*id\s*:\s*(\S+)", RegexOptions.IgnoreCase);
-            var courseId = int.Parse(m.Success ? m.Groups[1].Value : null);
+            int? courseId = null;
+            int? packageId = null;
 
-            var transaction = new Transactionhistory
+            // Parse description để lấy CourseId hoặc PackageId
+            var courseMatch = Regex.Match(desc, @"khóa học\s+(\d+)", RegexOptions.IgnoreCase);
+            var packageMatch = Regex.Match(desc, @"gói đăng kí\s+(\d+)", RegexOptions.IgnoreCase);
+
+            if (courseMatch.Success)
             {
-                CourseId = courseId,
-                UserId = userId,
-                Amount = paymentResponse.Data.AmountPaid,
-                TransactionDate = DateTime.Parse(paymentResponse.Data.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind)
-            };
-
-            await _paymentRepository.AddAsync(transaction);
-
-            // Tạo CourseKey khi thanh toán thành công
-            var uniqueKeyValue = Guid.NewGuid().ToString("N");
-            var courseKey = new Coursekey
+                courseId = int.Parse(courseMatch.Groups[1].Value);
+            }
+            else if (packageMatch.Success)
             {
-                CourseId = courseId,
-                StudentId = null,
-                CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Status = "available",
-                KeyValue = uniqueKeyValue
-            };
-            await _coursekeyRepository.AddAsync(courseKey);
+                packageId = int.Parse(packageMatch.Groups[1].Value);
+            }
+            else
+            {
+                throw new Exception("Không thể xác định loại thanh toán từ description.");
+            }
 
-            // Gửi key cho Parent
-            await SendKeyToParentAsync(userId, uniqueKeyValue, courseId);
+            // Chỉ lưu transaction nếu có CourseId (vì model yêu cầu CourseId)
+            if (courseId.HasValue)
+            {
+                var transaction = new Transactionhistory
+                {
+                    CourseId = courseId.Value,
+                    UserId = userId,
+                    Amount = paymentResponse.Data.AmountPaid,
+                    TransactionDate = DateTime.Parse(paymentResponse.Data.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind)
+                };
+
+                await _paymentRepository.AddAsync(transaction);
+
+                // Tạo CourseKey khi thanh toán thành công cho khóa học
+                var uniqueKeyValue = Guid.NewGuid().ToString("N");
+                var courseKey = new Coursekey
+                {
+                    CourseId = courseId.Value,
+                    StudentId = null,
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    Status = "available",
+                    KeyValue = uniqueKeyValue
+                };
+                await _coursekeyRepository.AddAsync(courseKey);
+
+                // Gửi key cho Parent
+                await SendKeyToParentAsync(userId, uniqueKeyValue, courseId.Value);
+            }
+            else if (packageId.HasValue)
+            {
+                // Xử lý thanh toán cho gói đăng kí (không tạo CourseKey)
+                // TODO: Implement logic xử lý package payment
+            }
+
+            var successMessage = courseId.HasValue 
+                ? "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh."
+                : "Thanh toán thành công! Gói đăng kí đã được kích hoạt.";
 
             return new BaseResponse<PayOSPaymentReturnResponse>(
-                    "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh.",
+                    successMessage,
                     StatusCodeEnum.OK_200,
                     paymentResponse
                 );
@@ -197,10 +227,24 @@ namespace Service
                 OrderCode = CommonUtils.GenerateUniqueOrderCode(),
                 Amount = request.Amount,
                 BuyerName = userId,
-                Description = $"Course id: {request.CourseId} payment",
                 CancelUrl = "http://localhost:5173/my-courses",
                 ReturnUrl = "http://localhost:5173/my-courses"
             };
+
+            if (string.IsNullOrEmpty(request.CourseId.ToString())
+                && string.IsNullOrEmpty(request.PackageId.ToString()))
+            {
+                throw new Exception("Id Khóa học/ gói đăng kí trống.");
+            }
+
+            if (!string.IsNullOrEmpty(request.CourseId.ToString()))
+            {
+                body.Description = $"Thanh toán cho khóa học {request.CourseId}.";
+            }
+            else
+            {
+                body.Description = $"Thanh toán cho gói đăng kí {request.PackageId}.";
+            }
 
             var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
 
