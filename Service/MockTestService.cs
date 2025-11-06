@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using BusinessObject.DTOs.Request.MockTest;
 using Common.Utils;
 using System.Text.RegularExpressions;
+using BusinessObject.Payload.Response.Trello;
 
 namespace Service
 {
@@ -45,6 +46,33 @@ namespace Service
             _mediaService = mediaService;
             _env = env;
             _userAnswerRepository = userAnswerRepository;
+        }
+
+        public async Task<Mocktest> CreateMockTestForTrelloAsync(string mockTestName, List<TrelloCardResponse> trelloCardResponses, string userId)
+        {
+            mockTestName = mockTestName.Trim();
+            string description = "This is a mock test imported from Trello.";
+
+            foreach (var trelloCardResponse in trelloCardResponses)
+            {
+                if (trelloCardResponse.Name.Contains("Description"))
+                {
+                    var parts = trelloCardResponse.Name.Split(':', 2);
+                    description = parts.Length > 1 ? parts[1].Trim() : trelloCardResponse.Name.Trim();
+                }
+            }
+
+            var mockTest = new Mocktest
+            {
+                MockTestTitle = mockTestName,
+                MockTestDescription = description,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var createdMockTest = await _mockTestRepository.AddAsync(mockTest);
+            return createdMockTest;
         }
 
         public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)

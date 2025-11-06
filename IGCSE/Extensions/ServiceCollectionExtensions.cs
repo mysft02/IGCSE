@@ -76,6 +76,7 @@ namespace IGCSE.Extensions
             services.AddScoped<MockTestService>();
             services.AddScoped<PackageService>();
             services.AddScoped<FinalQuizService>();
+            services.AddScoped<MockTestQuestionService>();
 
             return services;
         }
