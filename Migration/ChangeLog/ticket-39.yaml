@@ -3,11 +3,20 @@
       id: 39
       author: dungnt
       changes:
+        - tagDatabase:
+          tag: MockTest-Package-FinalQuiz-Add
         # --- Đổi tên cột CreatedBy -> UserID trong bảng mocktestresult ---
         - renameColumn:
             tableName: mocktestresult
             oldColumnName: CreatedBy
             newColumnName: UserID
+            columnDataType: VARCHAR(255)
+
+        # --- Đổi tên cột CourseID -> ItemID trong bảng transactionhistory ---
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: CourseID
+            newColumnName: ItemID
             columnDataType: VARCHAR(255)
 
         # --- Xóa cột IsPassed ---
@@ -108,6 +117,9 @@
                   type: DECIMAL(18,2)
                   constraints:
                     nullable: false
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
               - column:
                   name: CreatedAt
                   type: DATETIME
@@ -346,5 +358,8 @@
         - dropTable:
             tableName: package
 
-      tags:
-        - MockTest-Package-FinalQuiz-Add
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: ItemID
+            newColumnName: CourseID
+            columnDataType: VARCHAR(255)

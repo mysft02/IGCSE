@@ -30,10 +30,18 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-mocktest-by-id")]
-        [SwaggerOperation(Summary = "Lấy danh sách mock test theo id")]
-        public async Task<ActionResult<BaseResponse<MockTestResponse>>> GetMockTestById([FromQuery] int id)
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi")]
+        public async Task<ActionResult<BaseResponse<MockTestResponse>>> GetMockTestForStudent([FromQuery] int id)
         {
-            var result = await _mockTestService.GetMockTestByIdAsync(id);
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _mockTestService.GetMockTestByIdAsync(id, userId);
             return Ok(result);
         }
 

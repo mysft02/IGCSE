@@ -19,4 +19,6 @@ public class Package
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public virtual ICollection<Userpackage> Userpackages { get; set; } = new List<Userpackage>();
 }

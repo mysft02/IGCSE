@@ -1,7 +1,6 @@
 using BusinessObject.DTOs.Request.Categories;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Categories;
-using BusinessObject.DTOs.Response.Courses;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;

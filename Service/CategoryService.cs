@@ -5,7 +5,6 @@ using BusinessObject.DTOs.Response.Categories;
 using BusinessObject.Model;
 using Common.Constants;
 using Repository.IRepositories;
-using BusinessObject.DTOs.Response.Courses;
 
 namespace Service
 {

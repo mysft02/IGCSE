@@ -6,7 +6,5 @@ namespace Repository.IRepositories
 {
     public interface IPaymentRepository : IBaseRepository<Transactionhistory>
     {
-        Task<Dictionary<string, PaymentSummary>> GetPaymentSortedByDate();
-        Task<IEnumerable<TransactionHistoryResponse>> GetAllTransactionHistoriesByUserId(string userId);
     }
 }

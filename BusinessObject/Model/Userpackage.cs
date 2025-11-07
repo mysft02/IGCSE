@@ -8,7 +8,11 @@ public class Userpackage
 
     public decimal Price { get; set; }
 
+    public bool? IsActive { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public virtual Package Package { get; set; } = null!;
 }

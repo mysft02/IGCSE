@@ -6,7 +6,7 @@ namespace BusinessObject.Payload.Request
 {
     public class PackageQueryRequest : BaseQueryRequest
     {
-        public int PackageId { get; set; }
+        public int? PackageId { get; set; }
 
         public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
         {
@@ -67,9 +67,14 @@ namespace BusinessObject.Payload.Request
         {
             var predicates = new List<Expression<Func<Package, bool>>>();
 
-            if (PackageId != null)
+            if (!string.IsNullOrEmpty(PackageId?.ToString()))
             {
                 predicates.Add(x => x.PackageId == PackageId);
+            }
+
+            if(userID != null)
+            {
+                predicates.Add(x => x.Userpackages.Any(up => up.UserId == userID));
             }
 
             // Combine all predicates with AND

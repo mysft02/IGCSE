@@ -1,0 +1,49 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 30
+      author: dungnt
+      changes:
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: ParentID
+            newColumnName: UserID
+            columnDataType: varchar(255) not null
+        - modifyDataType:
+            tableName: transactionhistory
+            columnName: VnpTransactionDate
+            newDataType: datetime not null
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: VnpTransactionDate
+            newColumnName: TransactionDate
+            columnDataType: datetime not null
+        - dropColumn:
+            tableName: transactionhistory
+            columnName: VnpTxnRef
+
+      rollback:
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: TransactionDate
+            newColumnName: VnpTransactionDate
+            columnDataType: datetime not null
+
+        - modifyDataType:
+            tableName: transactionhistory
+            columnName: VnpTransactionDate
+            newDataType: varchar(255) not null
+
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: UserID
+            newColumnName: ParentID
+            columnDataType: varchar(255) not null
+        - addColumn:
+            tableName: transactionhistory
+            columns:
+              - column:
+                  name: VnpTxnRef
+                  type: varchar(255)
+                  defaultValue: null
+        
+

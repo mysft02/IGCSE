@@ -27,6 +27,7 @@ namespace Service
         private readonly MediaService _mediaService;
         private readonly IWebHostEnvironment _env;
         private readonly IMockTestUserAnswerRepository _userAnswerRepository;
+        private readonly IPackageRepository _packageRepository;
 
         public MockTestService(
             IMapper mapper, 
@@ -36,7 +37,8 @@ namespace Service
             IMockTestResultRepository mockTestResultRepository,
             MediaService mediaService,
             IWebHostEnvironment env,
-            IMockTestUserAnswerRepository userAnswerRepository)
+            IMockTestUserAnswerRepository userAnswerRepository,
+            IPackageRepository packageRepository)
         {
             _mapper = mapper;
             _mockTestRepository = mockTestRepository;
@@ -46,6 +48,7 @@ namespace Service
             _mediaService = mediaService;
             _env = env;
             _userAnswerRepository = userAnswerRepository;
+            _packageRepository = packageRepository;
         }
 
         public async Task<Mocktest> CreateMockTestForTrelloAsync(string mockTestName, List<TrelloCardResponse> trelloCardResponses, string userId)
@@ -111,12 +114,19 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<MockTestResponse>> GetMockTestByIdAsync(int mockTestId)
+        public async Task<BaseResponse<MockTestResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
         {
+            var package = await _packageRepository.GetByUserId(userId);
+
+            if(package == null || package.IsMockTest == false)
+            {
+                throw new Exception("Bạn chưa đăng kí gói thi thử.");
+            }
+
             var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
             if (mockTest == null)
             {
-                throw new Exception("Mock test not found");
+                throw new Exception("Bài thi thử không tìm thấy");
             }
 
             var mockTestResponse = _mapper.Map<MockTestResponse>(mockTest);

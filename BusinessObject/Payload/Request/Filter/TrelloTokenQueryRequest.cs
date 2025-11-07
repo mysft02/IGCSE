@@ -6,6 +6,8 @@ namespace BusinessObject.Payload.Request.Filter;
 
 public class TrelloTokenQueryRequest : BaseQueryRequest
 {
+    public List<string>? TrelloTokensIds { get; set; }
+
     public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
     {
         // This method is generic but we only support TrelloToken
