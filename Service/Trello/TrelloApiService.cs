@@ -150,6 +150,11 @@ public class TrelloApiService
 
         try
         {
+            if (fileUrl.Contains("trello.com/1"))
+            {
+                fileUrl = fileUrl.Replace("trello.com/1", "api.trello.com/1");
+            }
+
             if (fileUrl.Contains("api.trello.com"))
             {
                 // add token and key
