@@ -36,6 +36,24 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
+        [HttpGet("get-mocktest-result")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy danh sách kết quả các bài thi mock test đã làm")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>>> GetAllMockTestResult([FromQuery] MockTestResultQueryRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            request.userID = userId;
+
+            var result = await _mockTestService.GetAllMockTestResultAsync(request);
+            return Ok(result);
+        }
+
         [HttpGet("get-mocktest-by-id")]
         [Authorize]
         [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi")]

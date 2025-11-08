@@ -11,4 +11,6 @@ public class Mocktestresult
     public DateTime CreatedAt { get; set; }
 
     public string UserId { get; set; } = null!;
+
+    public virtual Mocktest MockTest { get; set; } = null!;
 }

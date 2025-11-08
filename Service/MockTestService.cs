@@ -12,6 +12,10 @@ using BusinessObject.DTOs.Request.MockTest;
 using Common.Utils;
 using System.Text.RegularExpressions;
 using BusinessObject.Payload.Response.Trello;
+using BusinessObject.DTOs.Request.Packages;
+using BusinessObject.DTOs.Response.Packages;
+using Repository.Repositories;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Service
 {
@@ -121,6 +125,51 @@ namespace Service
                     TotalPages = totalPages
                 },
                 Message = "Lấy mock test thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>> GetAllMockTestResultAsync(MockTestResultQueryRequest request)
+        {
+            // Build filter expression
+            var filter = request.BuildFilter<Mocktestresult>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _mockTestResultRepository.CountAsync(filter);
+
+            // Get filtered data with pagination
+            var items = await _mockTestResultRepository.FindWithIncludePagingAndCountAsync(
+            filter,
+                request.Page,
+                request.GetPageSize(),
+                x => x.MockTest
+            );
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items.Items);
+
+            var itemList = sortedItems
+                .Select(token => new MockTestResultQueryResponse
+                {
+                    MockTest = token.MockTest,
+                    Score = token.Score,
+                    DateTaken = token.CreatedAt
+                }).ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>
+            {
+                Data = new PaginatedResponse<MockTestResultQueryResponse>
+                {
+                    Items = itemList,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy toàn bộ kết quả mock test thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
         }

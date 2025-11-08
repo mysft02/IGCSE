@@ -16,6 +16,6 @@ namespace BusinessObject.DTOs.Response.MockTest
 
         public string CreatedBy { get; set; }
 
-        public List<MockTestQuestionResponse> MockTestQuestions { get; set; }
+        public bool IsDone { get; set; }
     }
 }
