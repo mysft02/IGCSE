@@ -7,8 +7,6 @@ using Repository.IRepositories;
 using Service.OpenAI;
 using BusinessObject.DTOs.Response.MockTest;
 using BusinessObject.DTOs.Response;
-using BusinessObject.Payload.Request.MockTest;
-using BusinessObject.Payload.Response.MockTest;
 using Microsoft.AspNetCore.Hosting;
 using BusinessObject.DTOs.Request.MockTest;
 using Common.Utils;
@@ -78,7 +76,7 @@ namespace Service
             return createdMockTest;
         }
 
-        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request, string userId)
         {
             // Build filter expression
             var filter = request.BuildFilter<Mocktest>();
@@ -96,6 +94,19 @@ namespace Service
             // Apply sorting to the paged results
             var sortedItems = request.ApplySorting(items);
 
+            var itemList = sortedItems
+                .Select(token => new MockTestQueryResponse
+                {
+                    MockTestId = token.MockTestId,
+                    MockTestTitle = token.MockTestTitle,
+                    MockTestDescription = token.MockTestDescription,
+                    CreatedAt = token.CreatedAt,
+                    UpdatedAt = token.UpdatedAt,
+                    CreatedBy = token.CreatedBy,
+                    IsDone = _mockTestRepository.CheckMockTestDone(token.MockTestId, userId)
+                })
+                .ToList();
+
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
             // Map to response
@@ -103,7 +114,7 @@ namespace Service
             {
                 Data = new PaginatedResponse<MockTestQueryResponse>
                 {
-                    Items = sortedItems.Select(token => _mapper.Map<MockTestQueryResponse>(token)).ToList(),
+                    Items = itemList,
                     TotalCount = totalCount,
                     Page = request.Page,
                     Size = request.GetPageSize(),

@@ -2,7 +2,7 @@
 using BusinessObject.Payload.Request.Filter;
 using System.Linq.Expressions;
 
-namespace BusinessObject.Payload.Request.MockTest
+namespace BusinessObject.DTOs.Request.MockTest
 {
     public class MockTestQueryRequest : BaseQueryRequest
     {

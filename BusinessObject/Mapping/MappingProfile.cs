@@ -14,9 +14,7 @@ using BusinessObject.Payload.Response.Trello;
 using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
 using BusinessObject.DTOs.Response.MockTest;
 using BusinessObject.DTOs.Response.MockTestQuestion;
-using BusinessObject.Payload.Response.MockTest;
-using BusinessObject.Payload.Request;
-using BusinessObject.Payload.Response.Quizzes;
+using BusinessObject.DTOs.Request.Packages;
 
 namespace BusinessObject.Mapping
 {

@@ -1,7 +1,6 @@
 ﻿using BusinessObject.DTOs.Request.MockTest;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.MockTest;
-using BusinessObject.Payload.Request.MockTest;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,10 +21,18 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-mocktest")]
+        [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách mock test")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResponse>>>> GetAllMockTests([FromQuery] MockTestQueryRequest request)
         {
-            var result = await _mockTestService.GetAllMockTestAsync(request);
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _mockTestService.GetAllMockTestAsync(request, userId);
             return Ok(result);
         }
 

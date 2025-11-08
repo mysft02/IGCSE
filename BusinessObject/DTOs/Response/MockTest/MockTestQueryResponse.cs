@@ -1,6 +1,6 @@
 ﻿using BusinessObject.Model;
 
-namespace BusinessObject.Payload.Response.MockTest
+namespace BusinessObject.DTOs.Response.MockTest
 {
     public class MockTestQueryResponse
     {
@@ -16,6 +16,6 @@ namespace BusinessObject.Payload.Response.MockTest
 
         public string CreatedBy { get; set; }
 
-        public List<Mocktestquestion> MockTestQuestions { get; set; }
+        public bool IsDone { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using BusinessObject.Model;
 
-namespace BusinessObject.Payload.Response.Quizzes
+namespace BusinessObject.DTOs.Response.Quizzes
 {
     public class QuizQueryResponse
     {

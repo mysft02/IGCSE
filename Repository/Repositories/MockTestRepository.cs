@@ -21,5 +21,10 @@ namespace Repository.Repositories
                 .Include(x => x.MockTestQuestions)
                 .FirstOrDefault(x => x.MockTestId == mockTestId);
         }
+
+        public bool CheckMockTestDone(int mockTestId, string userId)
+        {
+            return _context.Mocktestresults.Any(x => x.MockTestId == mockTestId && x.UserId == userId);
+        }
     }
 }

@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
 using BusinessObject.Model;
-using BusinessObject.Payload.Request;
+using Microsoft.AspNetCore.Authorization;
+using Common.Utils;
+using BusinessObject.DTOs.Request.Packages;
+using BusinessObject.DTOs.Response.Packages;
 
 namespace IGCSE.Controller
 {
@@ -31,6 +34,24 @@ namespace IGCSE.Controller
         public async Task<ActionResult<BaseResponse<Package>>> GetPackageById([FromQuery] int id)
         {
             var result = await _packageService.GetPackageByIdAsync(id);
+            return Ok(result);
+        }
+
+        [HttpGet("get-owned-package")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy toàn bộ package người dùng đã mua")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<PackageOwnedQueryResponse>>>> GetOwnedPackage([FromQuery] PackageOwnedQueryRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            request.userID = userId;
+
+            var result = await _packageService.GetOwnedPackageAsync(request);
             return Ok(result);
         }
 

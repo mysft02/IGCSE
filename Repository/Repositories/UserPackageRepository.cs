@@ -1,12 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using BusinessObject;
+using BusinessObject.Model;
+using Repository.BaseRepository;
+using Repository.IRepositories;
 
 namespace Repository.Repositories
 {
-    internal class UserPackageRepository
+    public class UserPackageRepository : BaseRepository<Userpackage>, IUserPackageRepository
     {
+        private readonly IGCSEContext _context;
+
+        public UserPackageRepository(IGCSEContext context) : base(context)
+        {
+            _context = context;
+        }
     }
 }

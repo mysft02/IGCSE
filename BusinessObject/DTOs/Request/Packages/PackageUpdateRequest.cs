@@ -1,6 +1,6 @@
 ﻿using Swashbuckle.AspNetCore.Annotations;
 
-namespace BusinessObject.Payload.Request
+namespace BusinessObject.DTOs.Request.Packages
 {
     public class PackageUpdateRequest
     {

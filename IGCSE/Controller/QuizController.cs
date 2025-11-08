@@ -7,7 +7,6 @@ using BusinessObject.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Common.Utils;
 using BusinessObject.Model;
-using BusinessObject.Payload.Request.Quizzes;
 
 namespace IGCSE.Controller
 {

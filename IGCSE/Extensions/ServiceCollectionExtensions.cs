@@ -11,6 +11,7 @@ using Service.Background;
 using Service.Background.Interfaces;
 using Service.Background.Executors;
 using Service.PayOS;
+using BusinessObject.Model;
 
 namespace IGCSE.Extensions
 {
@@ -44,6 +45,7 @@ namespace IGCSE.Extensions
             services.AddScoped<IFinalQuizRepository, FinalQuizRepository>();
             services.AddScoped<IQuizUserAnswerRepository, QuizUserAnswerRepository>();
             services.AddScoped<IMockTestUserAnswerRepository, MockTestUserAnswerRepository>();
+            services.AddScoped<IUserPackageRepository, UserPackageRepository>();
 
             return services;
         }

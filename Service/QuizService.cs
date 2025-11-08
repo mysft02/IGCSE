@@ -12,11 +12,6 @@ using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
-using BusinessObject.Payload.Request.MockTest;
-using BusinessObject.Payload.Response.MockTest;
-using Repository.Repositories;
-using BusinessObject.Payload.Response.Quizzes;
-using BusinessObject.Payload.Request.Quizzes;
 
 namespace Service
 {

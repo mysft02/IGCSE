@@ -2,7 +2,7 @@
 using BusinessObject.Payload.Request.Filter;
 using System.Linq.Expressions;
 
-namespace BusinessObject.Payload.Request.Quizzes
+namespace BusinessObject.DTOs.Request.Quizzes
 {
     public class QuizQueryRequest : BaseQueryRequest
     {

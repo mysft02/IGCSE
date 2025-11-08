@@ -2,7 +2,7 @@
 using BusinessObject.Payload.Request.Filter;
 using System.Linq.Expressions;
 
-namespace BusinessObject.Payload.Request
+namespace BusinessObject.DTOs.Request.Packages
 {
     public class PackageQueryRequest : BaseQueryRequest
     {
