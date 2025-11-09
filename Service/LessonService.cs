@@ -21,7 +21,7 @@ public class LessonService
 
     public async Task CreateLessonForTrelloAsync(int sectionId, string lessonName, int lessonOrder, List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
     {
-        lessonName = lessonName.Replace("[Lesson]", "").Trim();
+        lessonName = lessonName.Replace("[lesson]", "").Trim();
         string description = "This is a lesson imported from Trello.";
         List<Lessonitem> lessonItems = new List<Lessonitem>();
         int itemOrder = 1;
