@@ -21,7 +21,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-mocktest")]
-        [Authorize]
+        [AllowAnonymous]
         [SwaggerOperation(Summary = "Lấy danh sách mock test", Description = "Lấy danh sách mock test với các trạng thái: " +
             "`1` là `Completed`(đã hoàn thành bài thi trước đó); " +
             "`2` là `Open`(đã mua gói nhưng chưa hoàn thành bài thi trước đó); " + 
@@ -30,12 +30,9 @@ namespace IGCSE.Controller
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-            if (CommonUtils.isEmtyString(userId))
-            {
-                throw new Exception("Không tìm thấy thông tin người dùng");
-            }
+            request.userID = userId;
 
-            var result = await _mockTestService.GetAllMockTestAsync(request, userId);
+            var result = await _mockTestService.GetAllMockTestAsync(request);
             return Ok(result);
         }
 
@@ -60,7 +57,7 @@ namespace IGCSE.Controller
         [HttpGet("get-mocktest-by-id")]
         [Authorize]
         [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi")]
-        public async Task<ActionResult<BaseResponse<MockTestResponse>>> GetMockTestForStudent([FromQuery] int id)
+        public async Task<ActionResult<BaseResponse<MockTestForStudentResponse>>> GetMockTestForStudent([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 

@@ -80,7 +80,7 @@ namespace Service
             return createdMockTest;
         }
 
-        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request, string userId)
+        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)
         {
             // Build filter expression
             var filter = request.BuildFilter<Mocktest>();
@@ -107,7 +107,7 @@ namespace Service
                     CreatedAt = token.CreatedAt,
                     UpdatedAt = token.UpdatedAt,
                     CreatedBy = token.CreatedBy,
-                    Status = _mockTestRepository.CheckMockTestDone(token.MockTestId, userId)
+                    Status = request.userID == null ? MockTestStatusEnum.Locked : _mockTestRepository.CheckMockTestDone(token.MockTestId, request.userID)
                 })
                 .ToList();
 
@@ -174,7 +174,7 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<MockTestResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
+        public async Task<BaseResponse<MockTestForStudentResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
         {
             var package = await _packageRepository.GetByUserId(userId);
 
@@ -189,10 +189,10 @@ namespace Service
                 throw new Exception("Bài thi thử không tìm thấy");
             }
 
-            var mockTestResponse = _mapper.Map<MockTestResponse>(mockTest);
+            var mockTestResponse = _mapper.Map<MockTestForStudentResponse>(mockTest);
 
-            return new BaseResponse<MockTestResponse>(
-                "Mock test retrieved successfully",
+            return new BaseResponse<MockTestForStudentResponse>(
+                "Lấy mock test thành công",
                 StatusCodeEnum.OK_200,
                 mockTestResponse
             );

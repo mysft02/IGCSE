@@ -1,3 +1,4 @@
+using BusinessObject.DTOs.Request.Payments;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.Payload.Request.PayOS;
@@ -94,7 +95,7 @@ namespace IGCSE.Controller
         [HttpPost("payment-callback")]
         [SwaggerOperation(Summary = "Xử lí giao dịch sau khi thanh toán PayOS")]
         [Authorize]
-        public async Task<ActionResult<BaseResponse<PayOSPaymentReturnResponse>>> PaymentCallback([FromBody] Dictionary<string, string>? queryParams = null)
+        public async Task<ActionResult<BaseResponse<PayOSPaymentReturnResponse>>> PaymentCallback([FromBody] PaymentCallBackRequest request)
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;
@@ -104,18 +105,7 @@ namespace IGCSE.Controller
                 return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
             }
 
-            if (queryParams == null || queryParams.Count == 0)
-            {
-                queryParams = Request.Query
-                    .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-            }
-
-            if (queryParams == null || queryParams.Count == 0)
-            {
-                return BadRequest(new BaseResponse<string>("Không tìm thấy thông tin thanh toán từ PayOS.", Common.Constants.StatusCodeEnum.BadRequest_400, null));
-            }
-
-            var result = await _paymentService.HandlePaymentAsync(queryParams, userId);
+            var result = await _paymentService.HandlePaymentAsync(request, userId);
             return Ok(result);
         }
 
