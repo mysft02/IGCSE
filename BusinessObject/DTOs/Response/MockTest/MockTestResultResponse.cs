@@ -1,6 +1,6 @@
 ﻿namespace BusinessObject.DTOs.Response.MockTest
 {
-    public class MockTestResponse
+    public class MockTestResultResponse
     {
         public int MockTestId { get; set; }
 
@@ -13,7 +13,5 @@
         public DateTime UpdatedAt { get; set; }
 
         public string CreatedBy { get; set; }
-
-        public bool IsDone { get; set; }
     }
 }

@@ -151,7 +151,7 @@ namespace Service
             var itemList = sortedItems
                 .Select(token => new MockTestResultQueryResponse
                 {
-                    MockTest = token.MockTest,
+                    MockTest = _mapper.Map<MockTestResultResponse>(token.MockTest),
                     Score = token.Score,
                     DateTaken = token.CreatedAt
                 }).ToList();
