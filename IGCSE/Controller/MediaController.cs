@@ -19,10 +19,17 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-media")]
-        [SwaggerOperation(Summary = "Lấy hình ảnh, video hoặc pdf từ server")]
+        [SwaggerOperation(Summary = "Lấy hình ảnh, video hoặc pdf từ server", Description = "Sử dụng api `get-media-url` trước để lấy url hình ảnh rồi dùng url đó để gọi api này")]
         public async Task<IActionResult> GetMedia([FromQuery] string imagePath)
         {
             return await _mediaService.GetMediaAsync(_environment.WebRootPath, imagePath);
+        }
+
+        [HttpGet("get-media-url")]
+        [SwaggerOperation(Summary = "Lấy media url từ server", Description = "Sử dụng api này để lấy đường dẫn hình ảnh, video hoặc pdf rồi dùng trực tiếp đường dẫn đó để lấy media")]
+        public async Task<BaseResponse<string>> GetMediaUrl([FromQuery] string imagePath)
+        {
+            return await _mediaService.GetMediaUrlAsync(imagePath);
         }
     }
 }
