@@ -101,7 +101,7 @@ namespace Repository.Repositories
             return result;
         }
 
-        public async Task<bool> CheckDuplicate(int courseId, string userId)
+        public async Task<bool> CheckDuplicate(int? courseId, string userId)
         {
             var course = _context.Coursekeys
                 .FirstOrDefault(c => c.CourseId == courseId && c.CreatedBy == userId);

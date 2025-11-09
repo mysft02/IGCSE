@@ -9,6 +9,7 @@ using BusinessObject.DTOs.Response;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Request.Payments;
 
 namespace Service
 {
@@ -40,13 +41,18 @@ namespace Service
             _packageRepository = packageRepository;
         }
 
-        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(Dictionary<string, string> request, string userId)
+        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
         {
-            if (request.GetValueOrDefault("code") != "00" || request.GetValueOrDefault("cancel") == "true")
+            if(request == null)
+            {
+                throw new Exception("Thông tin thanh toán không có.");
+            }
+
+            if (request.Code != "00" || request.Cancel == "true")
             {
                 throw new Exception("Thanh toán thất bại.");
             }
-            var paymentId = request.GetValueOrDefault("id");
+            var paymentId = request.Id;
 
             var apiRequest = PayOSApiRequest.Builder()
                 .CallUrl("/v2/payment-requests/{id}")
@@ -63,8 +69,9 @@ namespace Service
             int? packageId = null;
 
             // Parse description để lấy CourseId hoặc PackageId
-            var courseMatch = Regex.Match(desc, @"khóa học\s+(\d+)", RegexOptions.IgnoreCase);
-            var packageMatch = Regex.Match(desc, @"gói đăng kí\s+(\d+)", RegexOptions.IgnoreCase);
+            var courseMatch = Regex.Match(desc, @"khoa hoc\s*(\d+)", RegexOptions.IgnoreCase);
+            var packageMatch = Regex.Match(desc, @"go[iíìỉĩ]\s*(\d+)", RegexOptions.IgnoreCase);
+
 
             if (courseMatch.Success)
             {
@@ -117,6 +124,7 @@ namespace Service
                     UserId = userId,
                     PackageId = packageId.Value,
                     Price = paymentResponse.Data.AmountPaid,
+                    IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -223,7 +231,7 @@ namespace Service
                 throw new Exception("Id Khóa học/ gói đăng kí trống.");
             }
 
-            if (!string.IsNullOrEmpty(request.CourseId.ToString()))
+            if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
                 var courseCheck = await _courseRepository.CheckDuplicate(request.CourseId, userId);
                 if (courseCheck)
@@ -241,7 +249,7 @@ namespace Service
                     throw new Exception("Bạn đã mua gói đăng kí này rồi.");
                 }
 
-                body.Description = $"Thanh toán cho gói đăng kí {request.PackageId}.";
+                body.Description = $"Thanh toán cho gói {request.PackageId}.";
             }
 
             var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));

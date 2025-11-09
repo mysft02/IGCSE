@@ -57,7 +57,7 @@ namespace IGCSE.Controller
         [HttpGet("get-mocktest-by-id")]
         [Authorize]
         [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi")]
-        public async Task<ActionResult<BaseResponse<MockTestResponse>>> GetMockTestForStudent([FromQuery] int id)
+        public async Task<ActionResult<BaseResponse<MockTestForStudentResponse>>> GetMockTestForStudent([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 

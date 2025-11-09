@@ -174,7 +174,7 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<MockTestResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
+        public async Task<BaseResponse<MockTestForStudentResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
         {
             var package = await _packageRepository.GetByUserId(userId);
 
@@ -189,10 +189,10 @@ namespace Service
                 throw new Exception("Bài thi thử không tìm thấy");
             }
 
-            var mockTestResponse = _mapper.Map<MockTestResponse>(mockTest);
+            var mockTestResponse = _mapper.Map<MockTestForStudentResponse>(mockTest);
 
-            return new BaseResponse<MockTestResponse>(
-                "Mock test retrieved successfully",
+            return new BaseResponse<MockTestForStudentResponse>(
+                "Lấy mock test thành công",
                 StatusCodeEnum.OK_200,
                 mockTestResponse
             );
