@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using BusinessObject.DTOs.Response;
+using Common.Constants;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +9,12 @@ namespace Service
     public class MediaService
     {
         private readonly IWebHostEnvironment _env;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MediaService(IWebHostEnvironment env)
+        public MediaService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
         {
             _env = env;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<IActionResult> GetMediaAsync(string webRootPath, string relativePath)
@@ -54,5 +58,36 @@ namespace Service
 
             return new FileStreamResult(fileStream, contentType);
         }
+
+        public async Task<BaseResponse<string>> GetMediaUrlAsync(string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+                throw new Exception("Thiếu đường dẫn file");
+
+            var webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
+
+            // loại bỏ / hoặc \
+            var cleanRelativePath = relativePath.TrimStart('/', '\\');
+
+            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
+
+            if (!File.Exists(fullPath))
+                throw new FileNotFoundException($"Không tìm thấy file: {cleanRelativePath}");
+
+            var request = _httpContextAccessor.HttpContext?.Request;
+
+            // ✅ Encode relativePath để Swagger hiển thị đúng images%2F...
+            var encodedPath = Uri.EscapeDataString(cleanRelativePath);
+
+            var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
+
+            return new BaseResponse<string>
+            {
+                Data = result,
+                StatusCode = StatusCodeEnum.OK_200,
+                Message = "Lấy URL thành công"
+            };
+        }
+
     }
 }
