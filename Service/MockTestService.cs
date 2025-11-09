@@ -107,7 +107,7 @@ namespace Service
                     CreatedAt = token.CreatedAt,
                     UpdatedAt = token.UpdatedAt,
                     CreatedBy = token.CreatedBy,
-                    IsDone = _mockTestRepository.CheckMockTestDone(token.MockTestId, userId)
+                    Status = _mockTestRepository.CheckMockTestDone(token.MockTestId, userId)
                 })
                 .ToList();
 
