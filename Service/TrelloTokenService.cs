@@ -98,7 +98,14 @@ public class TrelloTokenService
             throw new Exception("Không tìm thấy token Trello cho người dùng này");
         }
         var trelloBoard = _trelloBoardService.GetTrelloBoard(trelloToken);
-        var boards = trelloBoard.Result.Select(board => _mapper.Map<TrelloBoardResponse, TrelloBoardDtoResponse>(board)).ToList();
+        var boards = trelloBoard.Result
+            .Select(board =>
+            {
+                var dto = _mapper.Map<TrelloBoardDtoResponse>(board);
+                dto.trelloId = trelloId;
+                return dto;
+            })
+            .ToList();
         return boards;
     }
     
@@ -153,12 +160,12 @@ public class TrelloTokenService
                 if (ExtractTypeTrelloListContent(list.Name) == "Course")
                 {
                     //create course
-                    course = await _courseService.CreateCourseForTrelloAsync(list.Name(), trelloCardResponses);
+                    course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Section")
                 {
                     //create section
-                    section = await _sectionService.CreateCourseSectionForTrelloAsync(course.CourseId, list.Name(),
+                    section = await _sectionService.CreateCourseSectionForTrelloAsync(course.CourseId, list.Name,
                         countSection, trelloCardResponses);
                     countSection++;
                     countLesson = 1;
@@ -166,13 +173,13 @@ public class TrelloTokenService
                 else if (ExtractTypeTrelloListContent(list.Name) == "Lesson")
                 {
                     //create lesson
-                    await _lessonService.CreateLessonForTrelloAsync(section.CourseSectionId, list.Name(), countLesson,
+                    await _lessonService.CreateLessonForTrelloAsync(section.CourseSectionId, list.Name, countLesson,
                         trelloCardResponses, trelloToken);
                     countLesson++;
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Test")
                 {
-                    await _quizService.CreateQuizForTrelloAsync(course.CourseId, lesson.LessonId, list.Name(),
+                    await _quizService.CreateQuizForTrelloAsync(course.CourseId, lesson.LessonId, list.Name,
                         trelloCardResponses, trelloToken);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Other")
@@ -206,10 +213,10 @@ public class TrelloTokenService
         
         return normalizedName switch
         {
-            var name when name.Contains("[course]") => "Course",
-            var name when name.Contains("[section]") => "Section",
-            var name when name.Contains("[lesson]") => "Lesson",
-            var name when name.Contains("[test]") => "Test",
+            var name when name.ToLower().Contains("[course]") => "Course",
+            var name when name.ToLower().Contains("[section]") => "Section",
+            var name when name.ToLower().Contains("[lesson]") => "Lesson",
+            var name when name.ToLower().Contains("[test]") => "Test",
             _ => "Other"
         };
     }

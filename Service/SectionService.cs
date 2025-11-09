@@ -15,7 +15,7 @@ public class SectionService
     
     public async Task<Coursesection> CreateCourseSectionForTrelloAsync(int courseId, string sectionName, int sectionOrder, List<TrelloCardResponse> trelloCardResponses)
     {
-        sectionName = sectionName.Replace("[Section]", "").Trim();
+        sectionName = sectionName.Replace("[section]", "").Trim();
         string description = "This is a section imported from Trello.";
         foreach (var trelloCardResponse in trelloCardResponses)
         {
