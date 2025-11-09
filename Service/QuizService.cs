@@ -310,7 +310,7 @@ namespace Service
         
         public async Task CreateQuizForTrelloAsync(int courseId, int lessonId,string quizTitle ,List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
         {
-            quizTitle = quizTitle.Replace("[Test]", "").Trim(); 
+            quizTitle = quizTitle.Replace("[test]", "").Trim(); 
             string quizDescription = "This is a quiz imported from Trello.";
             List<Question> questions = new List<Question>();
             foreach (var trelloCardResponse in trelloCardResponses)

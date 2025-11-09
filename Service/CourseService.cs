@@ -474,7 +474,7 @@ namespace Service
 
         public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses)
         {
-            courseName = courseName.Replace("[Course]", "").Trim();
+            courseName = courseName.Replace("[course]", "").Trim();
             string description = "This is a course imported from Trello.";
             decimal price = 0;
             
