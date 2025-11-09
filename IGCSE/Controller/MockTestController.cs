@@ -22,7 +22,10 @@ namespace IGCSE.Controller
 
         [HttpGet("get-all-mocktest")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy danh sách mock test")]
+        [SwaggerOperation(Summary = "Lấy danh sách mock test", Description = "Lấy danh sách mock test với các trạng thái: " +
+            "`1` là `Completed`(đã hoàn thành bài thi trước đó); " +
+            "`2` là `Open`(đã mua gói nhưng chưa hoàn thành bài thi trước đó); " + 
+            "`3` là `Locked`(chưa mua gói bài thi)")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResponse>>>> GetAllMockTests([FromQuery] MockTestQueryRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;

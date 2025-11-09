@@ -1,5 +1,6 @@
 ﻿using BusinessObject;
 using BusinessObject.Model;
+using Common.Constants;
 using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
@@ -22,9 +23,22 @@ namespace Repository.Repositories
                 .FirstOrDefault(x => x.MockTestId == mockTestId);
         }
 
-        public bool CheckMockTestDone(int mockTestId, string userId)
+        public MockTestStatusEnum CheckMockTestDone(int mockTestId, string userId)
         {
-            return _context.Mocktestresults.Any(x => x.MockTestId == mockTestId && x.UserId == userId);
+            var package = _context.Userpackages.FirstOrDefault(x => x.UserId == userId && x.IsActive == true);
+
+            if(package == null)
+            {
+                return MockTestStatusEnum.Locked;
+            }
+
+            var result = _context.Mocktestresults.Any(x => x.MockTestId == mockTestId && x.UserId == userId);
+
+            if(result)
+            {
+                return MockTestStatusEnum.Completed;
+            }
+            return MockTestStatusEnum.Open;
         }
     }
 }
