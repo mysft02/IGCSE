@@ -80,7 +80,7 @@ namespace Service
             return createdMockTest;
         }
 
-        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request, string userId)
+        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)
         {
             // Build filter expression
             var filter = request.BuildFilter<Mocktest>();
@@ -107,7 +107,7 @@ namespace Service
                     CreatedAt = token.CreatedAt,
                     UpdatedAt = token.UpdatedAt,
                     CreatedBy = token.CreatedBy,
-                    Status = _mockTestRepository.CheckMockTestDone(token.MockTestId, userId)
+                    Status = request.userID == null ? MockTestStatusEnum.Locked : _mockTestRepository.CheckMockTestDone(token.MockTestId, request.userID)
                 })
                 .ToList();
 
