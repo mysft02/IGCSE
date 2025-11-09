@@ -1,5 +1,4 @@
-﻿using System;
-namespace BusinessObject.Model;
+﻿namespace BusinessObject.Model;
 
 public class Quizresult
 {
@@ -7,13 +6,11 @@ public class Quizresult
 
     public int QuizId { get; set; }
 
+    public bool IsPassed { get; set; }
+
     public decimal Score { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    public string CreatedBy { get; set; } = null!;
-
-    public bool? IsPassed { get; set; }
-
-    public virtual Quiz Quiz { get; set; } = null!;
+    public string UserId { get; set; } = null!;
 }

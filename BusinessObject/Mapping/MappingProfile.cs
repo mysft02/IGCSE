@@ -12,6 +12,9 @@ using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.Trellos;
 using BusinessObject.Payload.Response.Trello;
 using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
+using BusinessObject.DTOs.Response.MockTest;
+using BusinessObject.DTOs.Response.MockTestQuestion;
+using BusinessObject.DTOs.Request.Packages;
 
 namespace BusinessObject.Mapping
 {
@@ -70,6 +73,7 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.LessonItemName, opt => opt.MapFrom(src => src.LessonItem.Name));
 
             CreateMap<Quiz, QuizResponse>().ReverseMap();
+            CreateMap<Quiz, QuizQueryResponse>().ReverseMap();
 
             CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap()
                 .ForMember(dest => dest.Student, opt => opt.MapFrom(src => src.Student));
@@ -86,6 +90,15 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.trelloBoardId, opt => opt.MapFrom(src => src.Id)) 
                 .ForMember(dest => dest.trelloBoardName, opt => opt.MapFrom(src => src.Name))
                 .ReverseMap();
+
+            CreateMap<Mocktest, MockTestResponse>().ReverseMap();
+            CreateMap<Mocktest, MockTestQueryResponse>().ReverseMap();
+            CreateMap<Mocktest, MockTestResultResponse>().ReverseMap();
+
+            CreateMap<Mocktestquestion, MockTestQuestionResponse>().ReverseMap();
+
+            CreateMap<Package, PackageCreateRequest>().ReverseMap();
+            CreateMap<Package, PackageUpdateRequest>().ReverseMap();
         }
     }
 }

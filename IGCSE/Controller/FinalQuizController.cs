@@ -1,0 +1,47 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Service;
+using Swashbuckle.AspNetCore.Annotations;
+using BusinessObject.DTOs.Response;
+using Microsoft.AspNetCore.Authorization;
+using Common.Utils;
+using BusinessObject.DTOs.Request.FinalQuizzes;
+using BusinessObject.DTOs.Response.FinalQuizzes;
+
+namespace IGCSE.Controller
+{
+    [Route("api/final-quiz")]
+    [ApiController]
+    public class FinalQuizController : ControllerBase
+    {
+        private readonly FinalQuizService _FinalQuizService;
+
+        public FinalQuizController(FinalQuizService FinalQuizService)
+        {
+            _FinalQuizService = FinalQuizService;
+        }
+
+        [HttpGet("get-final-quiz-by-id")]
+        [SwaggerOperation(Summary = "Lấy danh sách Final Quiz theo id")]
+        public async Task<ActionResult<BaseResponse<FinalQuizResponse>>> GetFinalQuizById([FromQuery] int id)
+        {
+            var result = await _FinalQuizService.GetFinalQuizByIdAsync(id);
+            return Ok(result);
+        }
+
+        [HttpPost("mark-final-quiz")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Chấm bài Final Quiz")]
+        public async Task<ActionResult<BaseResponse<List<FinalQuizMarkResponse>>>> MarkFinalQuiz([FromBody] FinalQuizMarkRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _FinalQuizService.MarkFinalQuizAsync(request, userId);
+            return Ok(result);
+        }
+    }
+}

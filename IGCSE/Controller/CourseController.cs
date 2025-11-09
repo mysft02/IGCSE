@@ -4,11 +4,8 @@ using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.Courses;
-using BusinessObject.Payload.Request.VnPay;
-using BusinessObject.Payload.Response.VnPay;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -382,39 +379,6 @@ namespace IGCSE.Controller
                     null
                 ));
             }
-        }
-
-        [HttpPost("create-vnpay-url")]
-        [SwaggerOperation(Summary = "Tạo thanh toán khóa học (Parent)")]
-        public async Task<ActionResult<BaseResponse<PaymentResponse>>> CreatePaymentUrl([FromForm] PaymentRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
-                ));
-            }
-
-            var result = await _paymentService.CreatePaymentUrlAsync(HttpContext, request);
-            return Ok(result);
-        }
-
-        [HttpPost("vnpay-callback")]
-        [SwaggerOperation(Summary = "Lấy thông tin giao dịch (Parent)")]
-        public async Task<ActionResult<BaseResponse<string>>> VnPayCallback()
-        {
-            var currentUrl = Request.GetDisplayUrl();
-
-            var queryParams = Request.Query
-                .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
-
-            var result = await _paymentService.HandlePaymentSuccessAsync(queryParams);
-            return Ok(result);
         }
 
         [HttpGet("get-all-similar-courses")]

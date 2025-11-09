@@ -79,4 +79,24 @@ public class TrelloController : ControllerBase
         await _trelloTokenService.AutoUploadFromTrelloAsync(userId, id, boardId);
         return Ok(BaseResponse<List<TrelloBoardDtoResponse>>.Success(null, "Đang tiến hành upload bài giảng của bạn"));
     }
+
+    [HttpPost("mock-test/{id}/boards/{boardId}")]
+    [Authorize(Roles = "Teacher, Admin")]
+    [SwaggerOperation(
+        Summary = "Tiến hành tự động upload bài thi thử từ Trello",
+        Description = "API này cho phép tự động upload dữ liệu bài thi thử từ một board Trello cụ thể sang hệ thống. " +
+                      "Yêu cầu quyền Teacher hoặc Admin. Tham số `id` là ID của bài thi thử trong hệ thống, " +
+                      "`boardId` là ID của board Trello chứa dữ liệu cần upload."
+    )]
+    public async Task<IActionResult> AutoUploadMockTestFromTrello(string id, string boardId)
+    {
+        var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+        if (CommonUtils.isEmtyString(userId))
+        {
+            throw new Exception("Không tìm thấy thông tin người dùng");
+        }
+
+        await _trelloTokenService.AutoUploadMockTestFromTrelloAsync(userId, id, boardId);
+        return Ok(BaseResponse<List<TrelloBoardDtoResponse>>.Success(null, "Đang tiến hành upload bài thi thử của bạn"));
+    }
 }

@@ -217,8 +217,40 @@ namespace Repository.BaseRepository
             return (items, totalCount);
         }
 
+        public async Task<(List<T> Items, int TotalCount)> FindWithIncludePagingAndCountAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10, params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbContext.Set<T>();
+
+            // Apply includes
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            // Apply filter
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            // Count
+            var totalCount = await query.CountAsync();
+
+            // Paging
+            var items = await query
+                .Skip(page * size)
+                .Take(size)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+
         #endregion
-        
+
         public async Task<T?> FindOneAsync(Expression<Func<T, bool>> filter)
         {
             return await _dbContext.Set<T>().FirstOrDefaultAsync(filter);

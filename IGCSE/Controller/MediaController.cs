@@ -18,19 +18,11 @@ namespace IGCSE.Controller
             _environment = environment;
         }
 
-        [HttpGet("get-image")]
-        [SwaggerOperation(Summary = "Lấy hình ảnh từ server")]
-        public async Task<IActionResult> GetImage([FromQuery] string imagePath)
+        [HttpGet("get-media")]
+        [SwaggerOperation(Summary = "Lấy hình ảnh, video hoặc pdf từ server")]
+        public async Task<IActionResult> GetMedia([FromQuery] string imagePath)
         {
-            return await _mediaService.GetImageOrPdfAsync(_environment.WebRootPath, imagePath);
-        }
-
-        [HttpGet("get-video")]
-        [SwaggerOperation(Summary = "Lấy video từ server")]
-        public async Task<IActionResult> GetVideo([FromQuery] string videoPath)
-        {
-            var request = HttpContext.Request;
-            return await _mediaService.GetVideoAsync(videoPath, request);
+            return await _mediaService.GetMediaAsync(_environment.WebRootPath, imagePath);
         }
     }
 }

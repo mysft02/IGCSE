@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using BusinessObject.DTOs.Response;
 using BusinessObject.Model;
 using BusinessObject.Payload.Request.Filter;
@@ -19,12 +18,13 @@ public class TrelloTokenService
     private readonly ITrelloTokenRepository _trelloTokenRepository;
     private readonly TrelloBoardService _trelloBoardService;
     private readonly TrelloListService _trelloListService;
-
+    private readonly MockTestService _mockTestService;
     private readonly CourseService _courseService;
     private readonly SectionService _sectionService;
     private readonly LessonService _lessonService;
     private readonly QuizService _quizService;
     private readonly IMapper _mapper;
+    private readonly MockTestQuestionService _mockTestQuestionService;
     private readonly IBackgroundTaskInvoker? _backgroundTaskInvoker;
 
     public TrelloTokenService(
@@ -36,6 +36,8 @@ public class TrelloTokenService
         SectionService sectionService,
         LessonService lessonService,
         QuizService quizService,
+        MockTestService mockTestService,
+        MockTestQuestionService mockTestQuestionService,
         IBackgroundTaskInvoker? backgroundTaskInvoker = null)
     {
         _trelloTokenRepository = trelloTokenRepository;
@@ -46,6 +48,8 @@ public class TrelloTokenService
         _sectionService = sectionService;
         _lessonService = lessonService;
         _quizService = quizService;
+        _mockTestService = mockTestService;
+        _mockTestQuestionService = mockTestQuestionService;
         _backgroundTaskInvoker = backgroundTaskInvoker;
     }
 
@@ -215,5 +219,72 @@ public class TrelloTokenService
             var name when name.ToLower().Contains("[test]") => "Test",
             _ => "Other"
         };
+    }
+
+    public async Task<string> AutoUploadMockTestFromTrelloAsync(string userId, string trelloId, string boardId)
+    {
+        var trelloToken = await _trelloTokenRepository.FindOneAsync(token =>
+            token.TrelloId == trelloId &&
+            token.UserId == userId
+        );
+        if (CommonUtils.isEmtyObject(trelloToken))
+        {
+            throw new Exception("Không tìm thấy token Trello cho người dùng này");
+        }
+
+        if (trelloToken.IsSync)
+        {
+            throw new Exception("Tài khoản trello này đang được đồng bộ hóa. Vui lòng thử lại sau.");
+        }
+        // Invoke background task to sync and upload course
+        await _backgroundTaskInvoker.InvokeBackgroundTaskAsync(
+            this,
+            nameof(SyncAndUploadMockTest),
+            trelloToken,
+            boardId
+            );
+        return "Upload bài thi thử từ Trello đang được tiến hành trong nền. Vui lòng kiểm tra lại sau.";
+    }
+
+    [BackgroundTask("syncExecutor")]
+    public async Task<string> SyncAndUploadMockTest(TrelloToken trelloToken, string boardId)
+    {
+        try
+        {
+            trelloToken.IsSync = true;
+            await _trelloTokenRepository.UpdateAsync(trelloToken);
+            // step 1: get all lists from board
+            List<TrelloListResponse> trelloListResponses =
+                await _trelloBoardService.GetTrelloLists(boardId, trelloToken);
+
+            Mocktest mocktest = new Mocktest();
+
+            // Step 2: get all card of each list
+            foreach (var list in trelloListResponses)
+            {
+                List<TrelloCardResponse> trelloCardResponses =
+                    await _trelloListService.GetTrelloCardByList(list.Id, trelloToken);
+
+                if (!list.Name.Contains("Question"))
+                {
+                    mocktest = await _mockTestService.CreateMockTestForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId);
+                }
+                else
+                {
+                    await _mockTestQuestionService.CreateMockTestQuestionForTrelloAsync(mocktest.MockTestId, list.Name, trelloCardResponses, trelloToken);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            throw new Exception("Đồng bộ hóa và tải lên từ Trello thất bại: " + e.Message);
+        }
+        finally
+        {
+            trelloToken.IsSync = false;
+            await _trelloTokenRepository.UpdateAsync(trelloToken);
+        }
+
+        return "";
     }
 }
