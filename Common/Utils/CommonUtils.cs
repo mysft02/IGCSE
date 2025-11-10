@@ -7,9 +7,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Reflection;
-using System.Web;
+using System.Text.Json.Serialization;
 using System.Collections;
 
 namespace Common.Utils
@@ -394,22 +393,207 @@ namespace Common.Utils
             return false;
         }
 
-        public static string GetContentType(string path)
+        public static string GeneratePayOSSignature(object body, string checksumKey)
         {
-            var ext = Path.GetExtension(path).ToLower();
-            return ext switch
+            var props = body.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.GetValue(body) != null)
+                .Select(p =>
+                {
+                    var jsonPropertyName = p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name;
+                    return new { Key = jsonPropertyName, Value = p.GetValue(body)!.ToString() };
+                })
+                .Where(x => x.Key != "buyerName" && x.Key != "signature") // Loại bỏ buyerName và signature
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            var sorted = props.OrderBy(p => p.Key, StringComparer.Ordinal);
+
+            var rawData = string.Join("&", sorted.Select(p => $"{p.Key}={p.Value}"));
+
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
+        public static int GenerateUniqueOrderCode()
+        {
+            // Lấy số mili-giây trong ngày (0–86,399,999)
+            int timePart = (int)(DateTime.UtcNow.TimeOfDay.TotalMilliseconds % 1000000);
+            int randomPart = Random.Shared.Next(100, 999); // 3 số ngẫu nhiên
+
+            // Ghép lại, đảm bảo không vượt giới hạn int
+            string combined = $"{timePart}{randomPart}";
+
+            return int.Parse(combined.Substring(0, Math.Min(combined.Length, 9)));
+        }
+
+        private static object DeepSortObj(object obj, bool sortArrays = false)
+        {
+            if (obj is IDictionary<string, object> dict)
+            {
+                var sorted = dict.OrderBy(kvp => kvp.Key)
+                                 .ToDictionary(kvp => kvp.Key, kvp => DeepSortObj(kvp.Value, sortArrays));
+                return sorted;
+            }
+            else if (obj is JsonElement jsonElem)
+            {
+                if (jsonElem.ValueKind == JsonValueKind.Object)
+                {
+                    var temp = jsonElem.EnumerateObject()
+                        .ToDictionary(p => p.Name, p => (object)p.Value);
+                    return DeepSortObj(temp, sortArrays);
+                }
+                if (jsonElem.ValueKind == JsonValueKind.Array)
+                {
+                    var list = jsonElem.EnumerateArray().Select(x => (object)x).ToList();
+                    return sortArrays ? list.OrderBy(x => JsonSerializer.Serialize(x)).ToList()
+                                      : list.Select(x => DeepSortObj(x, sortArrays)).ToList();
+                }
+                return jsonElem.ValueKind switch
+                {
+                    JsonValueKind.String => jsonElem.GetString(),
+                    JsonValueKind.Number => jsonElem.GetDecimal().ToString(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => "",
+                    _ => ""
+                };
+            }
+            else if (obj is IEnumerable list && !(obj is string))
+            {
+                var arr = list.Cast<object>().ToList();
+                return sortArrays ? arr.OrderBy(x => JsonSerializer.Serialize(x)).ToList()
+                                  : arr.Select(x => DeepSortObj(x, sortArrays)).ToList();
+            }
+            return obj ?? "";
+        }
+
+        private static string ToQueryString(object obj)
+        {
+            if (obj is IDictionary<string, object> dict)
+            {
+                return string.Join("&", dict.Select(kvp =>
+                {
+                    var value = kvp.Value;
+                    string valueStr;
+
+                    if (value is IDictionary<string, object> nestedDict)
+                        valueStr = JsonSerializer.Serialize(nestedDict);
+                    else if (value is IEnumerable list && !(value is string))
+                        valueStr = JsonSerializer.Serialize(list);
+                    else
+                        valueStr = value?.ToString() ?? "";
+
+                    return $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(valueStr)}";
+                }));
+            }
+            return "";
+        }
+
+        public static string CreatePayoutSignature(string secretKey, object jsonData)
+        {
+            // Chuẩn hóa jsonData về IDictionary<string, object>
+            IDictionary<string, object> normalized;
+
+            if (jsonData is IDictionary<string, IEnumerable<object>> dictEnum)
+            {
+                normalized = dictEnum.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp =>
+                    {
+                        if (kvp.Value == null) return (object)"";
+
+                        var materialized = kvp.Value.ToList();
+                        if (materialized.Count == 0) return (object)"";
+
+                        if (materialized.Count == 1)
+                        {
+                            var single = materialized[0];
+                            if (single == null) return (object)"";
+
+                            // Giữ nguyên scalar; nếu là JsonElement hoặc cấu trúc phức tạp thì để DeepSortObj xử lý tiếp
+                            return single;
+                        }
+
+                        // Nhiều phần tử: giữ nguyên danh sách và để DeepSortObj xử lý từng phần tử, không sắp xếp mảng
+                        return materialized;
+                    });
+            }
+            else if (jsonData is IDictionary<string, object> dictObj)
+            {
+                normalized = dictObj;
+            }
+            else
+            {
+                throw new ArgumentException("jsonData must be a dictionary of string to values");
+            }
+
+            var sorted = DeepSortObj(normalized, false);
+            var queryString = ToQueryString((IDictionary<string, object>)sorted);
+
+            var keyBytes = Encoding.UTF8.GetBytes(secretKey);
+            var messageBytes = Encoding.UTF8.GetBytes(queryString);
+
+            using var hmac = new HMACSHA256(keyBytes);
+            var hash = hmac.ComputeHash(messageBytes);
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
+        public static bool IsEmptyString(string? str)
+        {
+            if (str == null)
+            {
+                return true;
+            }
+            return string.IsNullOrWhiteSpace(str);
+        }
+
+        public static bool IsEmptyObject(object? obj)
+        {
+            if (obj == null)
+            {
+                return true;
+            }
+            return false;
+        }
+        
+        public static bool isEmtyList<T>(List<T>? list)
+        {
+            if (list == null || list.Count == 0)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static string GetBase64FromWwwRoot(string webRootPath, string fileName)
+        {
+            // Xác định thư mục wwwroot (tự tìm trong dự án)
+            var filePath = Path.Combine(webRootPath, fileName.TrimStart('/', '\\'));
+
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"Không tìm thấy file: {filePath}");
+            }
+
+            // Đọc bytes của file
+            var fileBytes = File.ReadAllBytes(filePath);
+
+            // Xác định loại MIME dựa theo đuôi file
+            var extension = Path.GetExtension(filePath).ToLower();
+            string mimeType = extension switch
             {
                 ".jpg" or ".jpeg" => "image/jpeg",
                 ".png" => "image/png",
                 ".gif" => "image/gif",
                 ".webp" => "image/webp",
-                ".mp4" => "video/mp4",
-                ".mov" => "video/quicktime",
                 ".pdf" => "application/pdf",
-                ".txt" => "text/plain",
-                ".json" => "application/json",
                 _ => "application/octet-stream"
             };
+
+            // Trả về chuỗi base64 đầy đủ để gửi qua API
+            return $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
         }
     }
 }

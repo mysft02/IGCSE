@@ -1,0 +1,365 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 39
+      author: dungnt
+      changes:
+        - tagDatabase:
+          tag: MockTest-Package-FinalQuiz-Add
+        # --- Đổi tên cột CreatedBy -> UserID trong bảng mocktestresult ---
+        - renameColumn:
+            tableName: mocktestresult
+            oldColumnName: CreatedBy
+            newColumnName: UserID
+            columnDataType: VARCHAR(255)
+
+        # --- Đổi tên cột CourseID -> ItemID trong bảng transactionhistory ---
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: CourseID
+            newColumnName: ItemID
+            columnDataType: VARCHAR(255)
+
+        # --- Xóa cột IsPassed ---
+        - dropColumn:
+            tableName: mocktestresult
+            columnName: IsPassed
+
+        # --- Tạo bảng mocktestuseranswer ---
+        - createTable:
+            tableName: mocktestuseranswer
+            columns:
+              - column:
+                  name: MockTestUserAnswerID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: MockTestResultID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: MockTestQuestionID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Answer
+                  type: VARCHAR(255)
+              - column:
+                  name: Score
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: false
+
+        # --- Tạo bảng package ---
+        - createTable:
+            tableName: package
+            columns:
+              - column:
+                  name: PackageID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: Title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+              - column:
+                  name: Price
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Slot
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsMockTest
+                  type: TINYINT(1)
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # --- Tạo bảng userpackage ---
+        - createTable:
+            tableName: userpackage
+            columns:
+              - column:
+                  name: PackageID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UserID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Price
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+        # --- Thiết lập khóa chính ghép ---
+        - addPrimaryKey:
+            tableName: userpackage
+            columnNames: PackageID, UserID
+            constraintName: PK_UserPackage
+
+        # --- Đổi tên cột CreatedBy -> UserID trong bảng quizresult ---
+        - renameColumn:
+            tableName: quizresult
+            oldColumnName: CreatedBy
+            newColumnName: UserID
+            columnDataType: VARCHAR(255)
+
+        # --- Thêm cột PartialMark vào bảng mocktestquestion ---
+        - addColumn:
+            tableName: mocktestquestion
+            columns:
+              - column:
+                  name: PartialMark
+                  type: varchar(255)
+
+        # --- Thêm cột Mark vào bảng mocktestquestion ---
+        - addColumn:
+            tableName: mocktestquestion
+            columns:
+              - column:
+                  name: Mark
+                  type: decimal(18,2)
+        
+        # --- Thêm cột QuizID vào bảng useranswer ---
+        - addColumn:
+            tableName: useranswer
+            columns:
+              - column:
+                  name: QuizID
+                  type: INT
+                  constraints:
+                    nullable: false
+
+        # --- Đổi tên cột UserAnswerID -> QuizUserAnswerID ---
+        - renameColumn:
+            tableName: useranswer
+            oldColumnName: UserAnswerID
+            newColumnName: QuizUserAnswerID
+            columnDataType: INT
+
+        # --- Chuyển cột Answer trong useranswer thành nullable ---
+        - modifyDataType:
+            tableName: useranswer
+            columnName: Answer
+            newDataType: VARCHAR(255)
+        - dropNotNullConstraint:
+            tableName: useranswer
+            columnName: Answer
+            columnDataType: VARCHAR(255)
+
+        # --- Đổi tên bảng useranswer -> quizuseranswer ---
+        - renameTable:
+            oldTableName: useranswer
+            newTableName: quizuseranswer
+
+        # --- Tạo bảng finalquiz ---
+        - createTable:
+            tableName: finalquiz
+            columns:
+              - column:
+                  name: FinalQuizID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+
+        # --- Tạo bảng finalquizresult ---
+        - createTable:
+            tableName: finalquizresult
+            columns:
+              - column:
+                  name: FinalQuizResultID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: FinalQuizID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Score
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsPassed
+                  type: TINYINT(1)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UserID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+        # --- Tạo bảng finalquizuseranswer ---
+        - createTable:
+            tableName: finalquizuseranswer
+            columns:
+              - column:
+                  name: FinalQuizUserAnswerID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: FinalQuizResultID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: QuestionID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Answer
+                  type: VARCHAR(255)
+      rollback:
+        # --- Rollback 3 bảng finalquiz ---
+        - dropTable:
+            tableName: finalquizuseranswer
+        - dropTable:
+            tableName: finalquizresult
+        - dropTable:
+            tableName: finalquiz
+
+        # --- Rollback đổi tên bảng quizuseranswer -> useranswer ---
+        - renameTable:
+            oldTableName: quizuseranswer
+            newTableName: useranswer
+
+        # --- Rollback đổi tên cột QuizUserAnswerID -> UserAnswerID ---
+        - renameColumn:
+            tableName: useranswer
+            oldColumnName: QuizUserAnswerID
+            newColumnName: UserAnswerID
+            columnDataType: INT
+
+        # --- Rollback cột Answer về non-nullable ---
+        - addNotNullConstraint:
+            tableName: useranswer
+            columnName: Answer
+            columnDataType: VARCHAR(255)
+
+        # --- Rollback xóa cột QuizID ---
+        - dropColumn:
+            tableName: useranswer
+            columnName: QuizID
+
+        # --- Rollback xóa cột PartialMark ---
+        - dropColumn:
+            tableName: mocktestquestion
+            columnName: PartialMark
+
+        # --- Rollback xóa cột Mark ---
+        - dropColumn:
+            tableName: mocktestquestion
+            columnName: Mark
+
+        # --- Rollback đổi tên cột quizresult UserID -> CreatedBy ---
+        - renameColumn:
+            tableName: quizresult
+            oldColumnName: UserID
+            newColumnName: CreatedBy
+            columnDataType: VARCHAR(255)
+
+        # --- Rollback đổi tên cột UserID -> CreatedBy trong mocktestresult ---
+        - renameColumn:
+            tableName: mocktestresult
+            oldColumnName: UserID
+            newColumnName: CreatedBy
+            columnDataType: VARCHAR(255)
+
+        # --- Rollback thêm lại cột IsPassed ---
+        - addColumn:
+            tableName: mocktestresult
+            columns:
+              - column:
+                  name: IsPassed
+                  type: TINYINT(1)
+
+        # --- Rollback xóa các bảng mới tạo ---
+        - dropTable:
+            tableName: mocktestuseranswer
+        - dropTable:
+            tableName: userpackage
+        - dropTable:
+            tableName: package
+
+        - renameColumn:
+            tableName: transactionhistory
+            oldColumnName: ItemID
+            newColumnName: CourseID
+            columnDataType: VARCHAR(255)

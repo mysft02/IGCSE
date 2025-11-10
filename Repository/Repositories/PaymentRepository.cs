@@ -3,6 +3,7 @@ using BusinessObject.DTOs.Response.Payment;
 using BusinessObject.Model;
 using Repository.BaseRepository;
 using Repository.IRepositories;
+using System.Globalization;
 namespace Repository.Repositories
 {
     public class PaymentRepository : BaseRepository<Transactionhistory>, IPaymentRepository
@@ -12,37 +13,6 @@ namespace Repository.Repositories
         public PaymentRepository(IGCSEContext context) : base(context)
         {
             _context = context;
-        }
-
-        public async Task<Dictionary<string, PaymentSummary>> GetPaymentSortedByDate()
-        {
-            var result = _context.Transactionhistories
-                .AsEnumerable()
-                .GroupBy(c => c.TransactionDate.ToString())
-                .ToDictionary(
-                g => g.Key,
-                g => new PaymentSummary
-                {
-                    TotalAmount = g.Sum(x => x.Amount),
-                    TotalCount = g.Count(),
-                }
-            );
-            return result;
-        }
-
-        public async Task<IEnumerable<TransactionHistoryResponse>> GetAllTransactionHistoriesByUserId(string userId)
-        {
-            var transactionHistories = _context.Transactionhistories
-                .Where(c => c.UserId == userId)
-                .Select(c => new TransactionHistoryResponse
-                {
-                    Course = c.Course,
-                    Amount = c.Amount,
-                    TransactionDate = c.TransactionDate
-                })
-                .ToList();
-            
-            return transactionHistories;
         }
     }
 }

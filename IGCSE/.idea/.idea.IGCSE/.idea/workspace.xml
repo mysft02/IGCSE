@@ -8,7 +8,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="" />
+    <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Trellos/TrelloBoardDtoResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Trellos/TrelloBoardDtoResponse.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/indexLayout.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/indexLayout.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/CourseService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/CourseService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/LessonService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/LessonService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/QuizService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/QuizService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/SectionService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/SectionService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/TrelloTokenService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/TrelloTokenService.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -17,22 +26,43 @@
   <component name="DpaMonitoringSettings">
     <option name="firstShow" value="false" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///Dummy.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/3ec93589f9c64e22b96b232895e2861037000/95/1e449594/ServiceProvider.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/10821a7c6456595b62433c59889dfe462fca7a3fa6fa981c1dcd3204ff3c210/UriBuilder.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/1d872bc46057829e348ade299703f677f13aaa7d76c6e8792dc97bf195968/HttpContext.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/20f65e79ceaad992a4c25241d6bf3582951761f90e6c362e79667f19afc/Queryable.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/3ccd5471bcfa956aa7e0c547d6795895a1919119dc282d9d4fec3766fd8df/AuthorizeAttribute.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/60038225224a9318597b3232280390933d3c3fe85d9ed859a7e4825915eb1c/HttpClient.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/661861d2f496c2dbfec4ea5554546fc42e67528c7f93c28d0c05b814a7991/PhysicalFileProvider.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/7690ca67887e5f5ab3c8f485deddef5a437f7f2ae3ff89c8a8a65765d9298f4/LambdaExpression.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/8056cd3f452fefb9834f05cdb275b762dd41f27b7766cd71174e78592dc495b/Monitor.CoreCLR.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/af5c7838212cdea8a2d91d6c914534e35f3910c2fcdf8a959e1de55bc6f3154/Mapper.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/bf9021a960b74107a7e141aa06bc9d8a0a53c929178c2fb95b1597be8af8dc/ExceptionDispatchInfo.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 2
+}]]></component>
+  <component name="ProjectId" id="351ASg3uvftP3kCbPyN6hvkrRGT" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     ".NET Launch Settings Profile.IGCSE: http.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "XThreadsFramesViewSplitterKey": "0.6432866",
-    "node.js.selected.package.tslint": "(autodetect)"
+    "git-widget-placeholder": "main",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RunManager">
@@ -57,26 +87,25 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="" />
+      <created>1762267205239</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1762267205239</updated>
+      <workItem from="1762267206300" duration="3795000" />
+    </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/../Service/OAuth/TrelloOAuthService.cs</url>
-          <line>65</line>
-          <properties documentPath="$PROJECT_DIR$/../Service/OAuth/TrelloOAuthService.cs" containingFunctionPresentation="Method 'callbackTrello'">
-            <startOffsets>
-              <option value="2247" />
-            </startOffsets>
-            <endOffsets>
-              <option value="2351" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/../Repository/BaseRepository/BaseRepository.cs</url>
           <line>144</line>
@@ -90,6 +119,12 @@
           </properties>
           <option name="timeStamp" value="14" />
         </line-breakpoint>
+        <breakpoint enabled="true" type="DotNet Exception Breakpoints">
+          <properties exception="System.InvalidOperationException" isInternal="false" displayValue="InvalidOperationException" namespaceName="System">
+            <option name="internal" value="false" />
+          </properties>
+          <option name="timeStamp" value="15" />
+        </breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>

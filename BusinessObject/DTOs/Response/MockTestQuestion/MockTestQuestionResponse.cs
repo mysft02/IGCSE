@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace BusinessObject.DTOs.Response.MockTestQuestion
+﻿namespace BusinessObject.DTOs.Response.MockTestQuestion
 {
     public class MockTestQuestionResponse
     {
@@ -10,9 +8,6 @@ namespace BusinessObject.DTOs.Response.MockTestQuestion
 
         public string CorrectAnswer { get; set; } = null!;
 
-        public string? Image { get; set; }
-
-        [JsonIgnore] 
         public string? ImageUrl { get; set; }
 
         public DateTime CreatedAt { get; set; }

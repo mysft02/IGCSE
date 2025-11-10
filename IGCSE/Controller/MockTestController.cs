@@ -1,9 +1,7 @@
 ﻿using BusinessObject.DTOs.Request.MockTest;
-using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.MockTest;
-using BusinessObject.DTOs.Response.Quizzes;
-using BusinessObject.Payload.Request.MockTest;
+using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
@@ -23,45 +21,69 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-mocktest")]
-        [SwaggerOperation(Summary = "Lấy danh sách mock test")]
+        [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lấy danh sách mock test", Description = "Lấy danh sách mock test với các trạng thái: " +
+            "`1` là `Completed`(đã hoàn thành bài thi trước đó); " +
+            "`2` là `Open`(đã mua gói nhưng chưa hoàn thành bài thi trước đó); " + 
+            "`3` là `Locked`(chưa mua gói bài thi)")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResponse>>>> GetAllMockTests([FromQuery] MockTestQueryRequest request)
         {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            request.userID = userId;
+
             var result = await _mockTestService.GetAllMockTestAsync(request);
             return Ok(result);
         }
 
-        [HttpGet("get-mocktest-by-id")]
-        [SwaggerOperation(Summary = "Lấy danh sách mock test theo id")]
-        public async Task<ActionResult<BaseResponse<MockTestResponse>>> GetMockTestById([FromQuery] int id)
+        [HttpGet("get-mocktest-result")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy danh sách kết quả các bài thi mock test đã làm")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>>> GetAllMockTestResult([FromQuery] MockTestResultQueryRequest request)
         {
-            var result = await _mockTestService.GetMockTestByIdAsync(id);
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            request.userID = userId;
+
+            var result = await _mockTestService.GetAllMockTestResultAsync(request);
+            return Ok(result);
+        }
+
+        [HttpGet("get-mocktest-by-id")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi")]
+        public async Task<ActionResult<BaseResponse<MockTestForStudentResponse>>> GetMockTestForStudent([FromQuery] int id)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.isEmtyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _mockTestService.GetMockTestByIdAsync(id, userId);
             return Ok(result);
         }
 
         [HttpPost("mark-mocktest")]
+        [Authorize]
         [SwaggerOperation(Summary = "Chấm bài mock test")]
-        public async Task<ActionResult<BaseResponse<List<QuizMarkResponse>>>> MarkMockTest([FromBody] QuizMarkRequest request)
+        public async Task<ActionResult<BaseResponse<List<MockTestMarkResponse>>>> MarkMockTest([FromBody] MockTestMarkRequest request)
         {
-            var result = await _mockTestService.MarkMockTestAsync(request);
-            return Ok(result);
-        }
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-        [HttpPost("import-from-excel")]
-        [Authorize(Roles = "Admin")]
-        [SwaggerOperation(Summary = "Import mock test từ file Excel")]
-        public async Task<ActionResult<BaseResponse<MockTestCreateResponse>>> ImportFromExcel([FromForm] MockTestCreateRequest request)
-        {
-            var user = HttpContext.User;
-            var userId = user.FindFirst("AccountID")?.Value;
-
-            if (string.IsNullOrEmpty(userId))
+            if (CommonUtils.isEmtyString(userId))
             {
-                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+                throw new Exception("Không tìm thấy thông tin người dùng");
             }
 
-            var result = await _mockTestService.ImportMockTestFromExcelAsync(request, userId);
+            var result = await _mockTestService.MarkMockTestAsync(request, userId);
             return Ok(result);
         }
-
     }
 }

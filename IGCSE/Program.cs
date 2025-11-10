@@ -43,7 +43,8 @@ builder.Services.AddDbContext<IGCSEContext>(options =>
 builder.Services
     .AddRepositoryServices()
     .AddApplicationServices()
-    .AddInfrastructureServices();
+    .AddInfrastructureServices()
+    .AddBackgroundTaskServices();
 
 builder.Services.AddControllers();
 
@@ -63,7 +64,7 @@ builder.Services.AddSwaggerGen(c =>
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
-        Scheme = "bearer"
+        Scheme = "Bearer"
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement

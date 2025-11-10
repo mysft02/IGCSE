@@ -1,4 +1,4 @@
-﻿using BusinessObject.DTOs.Response.MockTestQuestion;
+using Common.Constants;
 
 namespace BusinessObject.DTOs.Response.MockTest
 {
@@ -16,6 +16,6 @@ namespace BusinessObject.DTOs.Response.MockTest
 
         public string CreatedBy { get; set; }
 
-        public List<MockTestQuestionResponse> MockTestQuestions { get; set; }
+        public MockTestStatusEnum IsDone { get; set; }
     }
 }

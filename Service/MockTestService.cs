@@ -5,16 +5,17 @@ using BusinessObject.Payload.Request.OpenApi;
 using Common.Constants;
 using Repository.IRepositories;
 using Service.OpenAI;
-using OfficeOpenXml;
-using OfficeOpenXml.Drawing;
-using BusinessObject.DTOs.Request.MockTest;
 using BusinessObject.DTOs.Response.MockTest;
-using BusinessObject.DTOs.Response.Quizzes;
-using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response;
-using BusinessObject.Payload.Request.MockTest;
-using BusinessObject.Payload.Response.MockTest;
 using Microsoft.AspNetCore.Hosting;
+using BusinessObject.DTOs.Request.MockTest;
+using Common.Utils;
+using System.Text.RegularExpressions;
+using BusinessObject.Payload.Response.Trello;
+using BusinessObject.DTOs.Request.Packages;
+using BusinessObject.DTOs.Response.Packages;
+using Repository.Repositories;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Service
 {
@@ -27,6 +28,8 @@ namespace Service
         private readonly IMockTestResultRepository _mockTestResultRepository;
         private readonly MediaService _mediaService;
         private readonly IWebHostEnvironment _env;
+        private readonly IMockTestUserAnswerRepository _userAnswerRepository;
+        private readonly IPackageRepository _packageRepository;
 
         public MockTestService(
             IMapper mapper, 
@@ -35,7 +38,9 @@ namespace Service
             IMockTestQuestionRepository questionRepository,
             IMockTestResultRepository mockTestResultRepository,
             MediaService mediaService,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IMockTestUserAnswerRepository userAnswerRepository,
+            IPackageRepository packageRepository)
         {
             _mapper = mapper;
             _mockTestRepository = mockTestRepository;
@@ -44,6 +49,35 @@ namespace Service
             _mockTestResultRepository = mockTestResultRepository;
             _mediaService = mediaService;
             _env = env;
+            _userAnswerRepository = userAnswerRepository;
+            _packageRepository = packageRepository;
+        }
+
+        public async Task<Mocktest> CreateMockTestForTrelloAsync(string mockTestName, List<TrelloCardResponse> trelloCardResponses, string userId)
+        {
+            mockTestName = mockTestName.Trim();
+            string description = "This is a mock test imported from Trello.";
+
+            foreach (var trelloCardResponse in trelloCardResponses)
+            {
+                if (trelloCardResponse.Name.Contains("Description"))
+                {
+                    var parts = trelloCardResponse.Name.Split(':', 2);
+                    description = parts.Length > 1 ? parts[1].Trim() : trelloCardResponse.Name.Trim();
+                }
+            }
+
+            var mockTest = new Mocktest
+            {
+                MockTestTitle = mockTestName,
+                MockTestDescription = description,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var createdMockTest = await _mockTestRepository.AddAsync(mockTest);
+            return createdMockTest;
         }
 
         public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)
@@ -64,6 +98,19 @@ namespace Service
             // Apply sorting to the paged results
             var sortedItems = request.ApplySorting(items);
 
+            var itemList = sortedItems
+                .Select(token => new MockTestQueryResponse
+                {
+                    MockTestId = token.MockTestId,
+                    MockTestTitle = token.MockTestTitle,
+                    MockTestDescription = token.MockTestDescription,
+                    CreatedAt = token.CreatedAt,
+                    UpdatedAt = token.UpdatedAt,
+                    CreatedBy = token.CreatedBy,
+                    Status = request.userID == null ? MockTestStatusEnum.Locked : _mockTestRepository.CheckMockTestDone(token.MockTestId, request.userID)
+                })
+                .ToList();
+
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
             // Map to response
@@ -71,59 +118,109 @@ namespace Service
             {
                 Data = new PaginatedResponse<MockTestQueryResponse>
                 {
-                    Items = sortedItems.Select(token => _mapper.Map<MockTestQueryResponse>(token)).ToList(),
+                    Items = itemList,
                     TotalCount = totalCount,
                     Page = request.Page,
                     Size = request.GetPageSize(),
                     TotalPages = totalPages
                 },
-                Message = "Mock tests retrieved successfully",
+                Message = "Lấy mock test thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
         }
 
-        public async Task<BaseResponse<MockTestResponse>> GetMockTestByIdAsync(int mockTestId)
+        public async Task<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>> GetAllMockTestResultAsync(MockTestResultQueryRequest request)
         {
+            // Build filter expression
+            var filter = request.BuildFilter<Mocktestresult>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _mockTestResultRepository.CountAsync(filter);
+
+            // Get filtered data with pagination
+            var items = await _mockTestResultRepository.FindWithIncludePagingAndCountAsync(
+            filter,
+                request.Page,
+                request.GetPageSize(),
+                x => x.MockTest
+            );
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items.Items);
+
+            var itemList = sortedItems
+                .Select(token => new MockTestResultQueryResponse
+                {
+                    MockTest = _mapper.Map<MockTestResultResponse>(token.MockTest),
+                    Score = token.Score,
+                    DateTaken = token.CreatedAt
+                }).ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>
+            {
+                Data = new PaginatedResponse<MockTestResultQueryResponse>
+                {
+                    Items = itemList,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy toàn bộ kết quả mock test thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
+        }
+
+        public async Task<BaseResponse<MockTestForStudentResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
+        {
+            var package = await _packageRepository.GetByUserId(userId);
+
+            if(package == null || package.IsMockTest == false)
+            {
+                throw new Exception("Bạn chưa đăng kí gói thi thử.");
+            }
+
             var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
             if (mockTest == null)
             {
-                throw new Exception("Mock test not found");
+                throw new Exception("Bài thi thử không tìm thấy");
             }
 
-            var mockTestResponse = _mapper.Map<MockTestResponse>(mockTest);
+            var mockTestResponse = _mapper.Map<MockTestForStudentResponse>(mockTest);
 
-            foreach (var c in mockTestResponse.MockTestQuestions)
-            {
-                if (c.ImageUrl == null)
-                {
-                    continue;
-                }
-
-                var imageResponse = await _mediaService.GetImageAsync(_env.WebRootPath, c.ImageUrl);
-                c.Image = imageResponse.Data;
-            }
-
-            return new BaseResponse<MockTestResponse>(
-                "Mock test retrieved successfully",
+            return new BaseResponse<MockTestForStudentResponse>(
+                "Lấy mock test thành công",
                 StatusCodeEnum.OK_200,
                 mockTestResponse
             );
         }
 
-        public async Task<BaseResponse<List<QuizMarkResponse>>> MarkMockTestAsync(QuizMarkRequest request)
+        public async Task<BaseResponse<List<MockTestMarkResponse>>> MarkMockTestAsync(MockTestMarkRequest request, string userId)
         {
-            List<QuizMarkResponse> result = new List<QuizMarkResponse>();
-            List<QuestionMarkRequest> questions = new List<QuestionMarkRequest>();
-            int? mockTestIdFromQuestions = null;
+            List<MockTestMarkResponse> result = new List<MockTestMarkResponse>();
+            List<MockTestQuestionMarkRequest> questions = new List<MockTestQuestionMarkRequest>();
 
             // Validate input
             if (request?.UserAnswers == null || request.UserAnswers.Count == 0)
             {
-                return new BaseResponse<List<QuizMarkResponse>>(
-                    "No answers to mark",
+                return new BaseResponse<List<MockTestMarkResponse>>(
+                    "Không có câu hỏi nào để chấm",
                     StatusCodeEnum.OK_200,
-                    new List<QuizMarkResponse>());
+                    new List<MockTestMarkResponse>());
             }
+
+            var mockTestResultCreate = new Mocktestresult
+            {
+                MockTestId = request.MockTestId,
+                UserId = userId,
+                Score = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var mocktestResult = await _mockTestResultRepository.AddAsync(mockTestResultCreate);
 
             foreach (var userAnswer in request.UserAnswers)
             {
@@ -134,21 +231,26 @@ namespace Service
                 if (questionText == null)
                     continue;
 
-                if (mockTestIdFromQuestions == null)
-                    mockTestIdFromQuestions = questionText.MockTestId;
-
-                var questionRequest = new QuestionMarkRequest
+                var questionRequest = new MockTestQuestionMarkRequest
                 {
                     QuestionText = questionText.QuestionContent,
                     Answer = userAnswer.Answer ?? string.Empty,
-                    RightAnswer = questionText.CorrectAnswer
+                    RightAnswer = questionText.CorrectAnswer,
+                    Mark = (decimal)questionText.Mark,
+                    PartialMark = questionText.PartialMark,
+                    QuestionId = questionText.MockTestQuestionId
                 };
+
+                if(questionText.ImageUrl != null)
+                {
+                    questionRequest.ImageBase64 = CommonUtils.GetBase64FromWwwRoot(_env.WebRootPath, questionText.ImageUrl);
+                }
 
                 questions.Add(questionRequest);
             }
 
             var contentText = string.Join("\n", questions.Select(q =>
-                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\n"));
+                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nImage: {q.ImageBase64}\nMark: {q.Mark}\nPartial mark: {q.PartialMark}"));
 
             var input = new[]
             {
@@ -160,7 +262,7 @@ namespace Service
                         new
                         {
                             type = "input_text",
-                            text = $"Với danh sách câu hỏi sau, hãy chấm đúng/sai bằng cách so sánh Answer với Right answer. Viết NHẬN XÉT ngắn (<100 chữ) cho mỗi câu THEO ĐÚNG THỨ TỰ. Chỉ trả về các đoạn comment, ngăn cách bằng chuỗi |||, KHÔNG thêm bất cứ văn bản nào khác.\n{contentText}\nChỉ in: comment1 ||| comment2 ||| ... ||| commentN"
+                            text = $"Bạn là hệ thống chấm điểm. Với danh sách câu hỏi dưới đây, hãy CHẤM ĐIỂM THEO Partial mark nếu có, còn nếu không thì chỉ cần chấm đúng sai rồi cho điểm theo Mark, xét cả câu trả lời và ảnh (nếu có). Với mỗi câu, hãy trả về đúng một mục theo định dạng máy đọc dễ dàng: score=<điểm>||comment=<nhận xét ngắn <100 chữ>. Không xuống dòng trong comment>.\nCác mục của các câu phải được nối bằng chuỗi phân tách: |||\nSau khi liệt kê xong, in thêm mục cuối: TOTAL=<tổng điểm>.\nKHÔNG trả về thêm bất kỳ chữ nào khác ngoài đúng định dạng đã nêu.\n\nDỮ LIỆU:\n{contentText}"
                         }
                     }
                 }
@@ -171,7 +273,7 @@ namespace Service
                 Model = "gpt-4.1-mini",
                 Input = input,
                 Temperature = 0.5,
-                MaxTokens = 200
+                MaxTokens = 800
             };
             var apiRequest = OpenApiRequest.Builder()
                 .CallUrl("/responses")
@@ -181,10 +283,10 @@ namespace Service
             var response = await _openAIApiService.PostAsync<OpenAIBody, OpenAIResponse>(apiRequest, body);
 
             if (response?.Output == null || response.Output.Count == 0)
-                return new BaseResponse<List<QuizMarkResponse>>(
+                return new BaseResponse<List<MockTestMarkResponse>>(
                     "Mock test marked successfully",
                     StatusCodeEnum.OK_200,
-                    new List<QuizMarkResponse>());
+                    new List<MockTestMarkResponse>());
 
             // 🧩 Ghép output text
             var outputText = string.Join("\n",
@@ -212,130 +314,78 @@ namespace Service
             }
 
             decimal finalScore = 0;
+            decimal? totalFromAi = null;
+
+            // Nếu AI có mục TOTAL, tách ra
+            for (int idx = parts.Count - 1; idx >= 0; idx--)
+            {
+                var p = parts[idx];
+                var mTotal = Regex.Match(p, @"^TOTAL\s*=\s*([0-9]+(\.[0-9]+)?)$", RegexOptions.IgnoreCase);
+                if (mTotal.Success)
+                {
+                    if (decimal.TryParse(mTotal.Groups[1].Value, out var tot))
+                    {
+                        totalFromAi = tot;
+                    }
+                    parts.RemoveAt(idx);
+                }
+            }
 
             for (int i = 0; i < questions.Count; i++)
             {
                 var q = questions[i];
-                var comment = parts[i];
-                bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
-                result.Add(new QuizMarkResponse
+                var piece = parts[i];
+
+                decimal score = 0;
+                string comment = piece;
+
+                // Parse score theo dạng score=...||comment=...
+                var m = Regex.Match(piece, @"score\s*=\s*([0-9]+(\.[0-9]+)?)\s*\|\|\s*comment\s*=\s*(.*)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                if (m.Success)
+                {
+                    if (decimal.TryParse(m.Groups[1].Value, out var s))
+                    {
+                        score = s;
+                    }
+                    comment = m.Groups[3].Value.Trim();
+                }
+
+                bool isCorrect = score >= 0.999m || Normalize(q.Answer) == Normalize(q.RightAnswer);
+                result.Add(new MockTestMarkResponse
                 {
                     Question = q.QuestionText,
                     Answer = q.Answer,
                     RightAnswer = q.RightAnswer,
+                    Score = score,
                     IsCorrect = isCorrect,
                     Comment = comment
                 });
-                if (isCorrect)
-                    finalScore += 1;
-            }
+                finalScore += score;
 
-            var mockTestResult = new Mocktestresult
-            {
-                MockTestId = request.UserAnswers[0].QuestionId,
-                CreatedBy = request.UserAnswers[0].UserId,
-                Score = finalScore,
-                CreatedAt = DateTime.UtcNow,
-                IsPassed = finalScore > 60
-            };
-
-            await _mockTestResultRepository.AddAsync(mockTestResult);
-
-            return new BaseResponse<List<QuizMarkResponse>>(
-                "Mock test marked successfully",
-                StatusCodeEnum.OK_200,
-                result);
-        }
-
-        public async Task<BaseResponse<MockTestCreateResponse>> ImportMockTestFromExcelAsync(MockTestCreateRequest request, string userId)
-        {
-            var response = new MockTestCreateResponse();
-
-            if (request.ExcelFile == null || request.ExcelFile.Length == 0)
-                throw new Exception("No file uploaded");
-
-            var allowedExtensions = new[] { ".xlsx", ".xls" };
-            var fileExtension = Path.GetExtension(request.ExcelFile.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(fileExtension))
-                throw new Exception("Only .xlsx and .xls files are allowed");
-
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-            var mockTest = new Mocktest
-            {
-                MockTestTitle = request.MockTestTitle,
-                MockTestDescription = request.MockTestDescription ?? "",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                CreatedBy = userId
-            };
-
-            await _mockTestRepository.AddAsync(mockTest);
-
-            using var stream = request.ExcelFile.OpenReadStream();
-            using var package = new ExcelPackage(stream);
-
-            var worksheet = package.Workbook.Worksheets[0];
-            if (worksheet == null)
-                throw new Exception("Excel file must have at least one worksheet");
-
-            var rowCount = worksheet.Dimension?.Rows ?? 0;
-            if (rowCount < 2)
-                throw new Exception("Excel file must have at least two rows");
-
-            var imageFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "mocktest", mockTest.MockTestId.ToString());
-            if (!Directory.Exists(imageFolderPath))
-                Directory.CreateDirectory(imageFolderPath);
-
-            var questions = new List<Mocktestquestion>();
-
-            for (int row = 2; row <= rowCount; row++)
-            {
-                var questionContent = worksheet.Cells[row, 1]?.Value?.ToString()?.Trim();
-                var correctAnswer = worksheet.Cells[row, 2]?.Value?.ToString()?.Trim();
-
-                if (string.IsNullOrEmpty(questionContent) || string.IsNullOrEmpty(correctAnswer))
-                    continue;
-
-                string? imageUrl = null;
-                var drawings = worksheet.Drawings.Where(d => d.From.Row + 1 == row).ToList();
-
-                if (drawings.Count > 0 && drawings[0] is ExcelPicture pic)
+                var userAnswer = new Mocktestuseranswer
                 {
-                    var fileName = $"{row - 1}.png";
-                    var filePath = Path.Combine(imageFolderPath, fileName);
-                    var img = pic.Image;
-                    if (img != null && img.ImageBytes != null)
-                    {
-                        await File.WriteAllBytesAsync(filePath, img.ImageBytes);
-                        imageUrl = $"/images/mocktest/{mockTest.MockTestId}/{fileName}";
-                    }
-                }
-
-                var question = new Mocktestquestion
-                {
-                    MockTestId = mockTest.MockTestId,
-                    QuestionContent = questionContent,
-                    CorrectAnswer = correctAnswer,
-                    ImageUrl = imageUrl,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    MockTestResultId = mocktestResult.MockTestResultId,
+                    MockTestQuestionId = q.QuestionId,
+                    Answer = q.Answer,
+                    Score = score,
                 };
 
-                await _questionRepository.AddAsync(question);
-                questions.Add(question);
+                await _userAnswerRepository.AddAsync(userAnswer);
             }
 
-            if (questions.Count == 0)
-                throw new Exception("No questions found in Excel file");
+            if (totalFromAi.HasValue)
+            {
+                finalScore = totalFromAi.Value;
+            }
 
-            response.Questions = questions;
+            // Cập nhật điểm tổng vào kết quả
+            mocktestResult.Score = finalScore;
+            await _mockTestResultRepository.UpdateAsync(mocktestResult);
 
-            return new BaseResponse<MockTestCreateResponse>(
-                "Mock test imported successfully",
+            return new BaseResponse<List<MockTestMarkResponse>>(
+                $"Chấm bài mock test thành công",
                 StatusCodeEnum.OK_200,
-                response);
+                result);
         }
     }
 }

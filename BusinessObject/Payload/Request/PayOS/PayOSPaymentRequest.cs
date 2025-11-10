@@ -4,6 +4,8 @@
     {
         public int Amount { get; set; }
 
-        public int CourseId { get; set; }
+        public int? CourseId { get; set; }
+
+        public int PackageId { get; set; }
     }
 }

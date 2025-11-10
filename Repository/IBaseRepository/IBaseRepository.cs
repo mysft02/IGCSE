@@ -18,8 +18,11 @@ namespace Repository.IBaseRepository
         
         // Query methods
         Task<List<T>> FindAsync(Expression<Func<T, bool>>? filter = null);
+        Task<T?> FindOneAsync(Expression<Func<T, bool>> filter);
+
         Task<int> CountAsync(Expression<Func<T, bool>>? filter = null);
         Task<List<T>> FindWithPagingAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10);
         Task<(List<T> Items, int TotalCount)> FindWithPagingAndCountAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10);
+        Task<(List<T> Items, int TotalCount)> FindWithIncludePagingAndCountAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10, params Expression<Func<T, object>>[] includes);
     }
 }

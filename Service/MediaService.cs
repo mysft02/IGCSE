@@ -9,80 +9,85 @@ namespace Service
     public class MediaService
     {
         private readonly IWebHostEnvironment _env;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MediaService(IWebHostEnvironment env)
+        public MediaService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
         {
             _env = env;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<BaseResponse<string>> GetImageAsync(string webRootPath,string relativePath)
+        public async Task<IActionResult> GetMediaAsync(string webRootPath, string relativePath)
         {
-            // relativePath = "images/avatar.png"
+            if (string.IsNullOrWhiteSpace(relativePath))
+                throw new Exception("Thiếu đường dẫn file");
+
+            // Xóa ký tự / hoặc \
             var cleanRelativePath = relativePath.TrimStart('/', '\\');
+
             var fullPath = Path.Combine(webRootPath, cleanRelativePath);
 
             if (!File.Exists(fullPath))
-                throw new Exception("Không tìm thấy hình ảnh");
+                throw new FileNotFoundException($"Không tìm thấy file: {cleanRelativePath}");
 
-            var bytes = await File.ReadAllBytesAsync(fullPath);
+            var fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
 
-            var response = Convert.ToBase64String(bytes);
+            var ext = Path.GetExtension(fullPath).ToLower();
+
+            var contentType = ext switch
+            {
+                // --- IMAGE ---
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+
+                // --- PDF ---
+                ".pdf" => "application/pdf",
+
+                // --- VIDEO ---
+                ".mp4" => "video/mp4",
+                ".mov" => "video/quicktime",
+                ".avi" => "video/x-msvideo",
+                ".mkv" => "video/x-matroska",
+                ".webm" => "video/webm",
+
+                _ => "application/octet-stream"
+            };
+
+            return new FileStreamResult(fileStream, contentType);
+        }
+
+        public async Task<BaseResponse<string>> GetMediaUrlAsync(string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+                throw new Exception("Thiếu đường dẫn file");
+
+            var webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
+
+            // loại bỏ / hoặc \
+            var cleanRelativePath = relativePath.TrimStart('/', '\\');
+
+            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
+
+            if (!File.Exists(fullPath))
+                throw new FileNotFoundException($"Không tìm thấy file: {cleanRelativePath}");
+
+            var request = _httpContextAccessor.HttpContext?.Request;
+
+            // ✅ Encode relativePath để Swagger hiển thị đúng images%2F...
+            var encodedPath = Uri.EscapeDataString(cleanRelativePath);
+
+            var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
 
             return new BaseResponse<string>
-            (
-                "Lấy hình ảnh thành công",
-                StatusCodeEnum.OK_200,
-                response
-            );
-        }
-
-        public async Task<IActionResult> GetVideoAsync(string webRootPath, string relativePath, HttpRequest request)
-        {
-            // relativePath = "images/avatar.png"
-            var cleanRelativePath = relativePath.TrimStart('/', '\\');
-            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
-
-            if (!File.Exists(fullPath))
-                throw new Exception("Video không tìm thấy");
-
-            var fileInfo = new FileInfo(fullPath);
-            long totalSize = fileInfo.Length;
-
-            // Lấy header Range (nếu có)
-            request.Headers.TryGetValue("Range", out var rangeHeader);
-
-            // Nếu không có Range → trả full video
-            if (string.IsNullOrEmpty(rangeHeader))
             {
-                var fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
-                return new FileStreamResult(fs, "video/mp4")
-                {
-                    EnableRangeProcessing = true
-                };
-            }
-
-            // Parse Range header
-            var range = rangeHeader.ToString().Replace("bytes=", "").Split('-');
-            long start = long.Parse(range[0]);
-            long end = range.Length > 1 && !string.IsNullOrEmpty(range[1])
-                        ? long.Parse(range[1])
-                        : totalSize - 1;
-
-            long length = end - start + 1;
-
-            var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            stream.Seek(start, SeekOrigin.Begin);
-
-            var response = request.HttpContext.Response;
-            response.StatusCode = 206;
-            response.Headers.Add("Accept-Ranges", "bytes");
-            response.Headers.Add("Content-Range", $"bytes {start}-{end}/{totalSize}");
-            response.Headers.Add("Content-Length", length.ToString());
-            stream.Seek(start, SeekOrigin.Begin);
-
-            var output = new FileStreamResult(stream, "video/mp4");
-
-            return new FileStreamResult(stream, "video/mp4");
+                Data = result,
+                StatusCode = StatusCodeEnum.OK_200,
+                Message = "Lấy URL thành công"
+            };
         }
+
     }
 }

@@ -1,6 +1,4 @@
-﻿using BusinessObject.Model;
-
-namespace BusinessObject.DTOs.Response.Quizzes
+﻿namespace BusinessObject.DTOs.Response.Quizzes
 {
     public class QuizMarkResponse
     {

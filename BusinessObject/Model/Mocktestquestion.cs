@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace BusinessObject.Model;
+﻿namespace BusinessObject.Model;
 
 public class Mocktestquestion
 {
@@ -19,5 +16,7 @@ public class Mocktestquestion
 
     public DateTime UpdatedAt { get; set; }
 
-    public virtual Mocktest MockTest { get; set; } = null!;
+    public string? PartialMark { get; set; }
+
+    public decimal? Mark { get; set; }
 }

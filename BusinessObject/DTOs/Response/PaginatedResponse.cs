@@ -27,3 +27,4 @@ public class PaginatedResponse<T>
     /// </summary>
     public int CurrentPage => Page + 1;
 }
+

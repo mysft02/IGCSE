@@ -10,7 +10,6 @@ public abstract class BaseQueryRequest
     public int Page { get; set; } = 0;
     public int Size { get; set; } = 10;
     public string? userID { get; set; }
-    public List<string>? TrelloTokensIds { get; set; }
 
     public int GetPageSize()
     {
