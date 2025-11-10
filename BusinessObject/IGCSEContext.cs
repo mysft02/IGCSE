@@ -16,11 +16,9 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
-    public virtual DbSet<Category> Categories { get; set; }
-
     public virtual DbSet<Course> Courses { get; set; }
 
-    public virtual DbSet<Coursekey> Coursekeys { get; set; }
+    // public virtual DbSet<Coursekey> Coursekeys { get; set; } // removed coursekey usage
 
     public virtual DbSet<Coursesection> Coursesections { get; set; }
 
@@ -44,7 +42,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Module> Modules { get; set; }
 
-    public virtual DbSet<Chapter> Chapters { get; set; }
+    // public virtual DbSet<Chapter> Chapters { get; set; } // Chapter functionality removed
 
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
 
@@ -153,16 +151,6 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                   .HasDatabaseName("IX_RefreshTokens_AccountID");
         });
 
-        modelBuilder.Entity<Category>(entity =>
-        {
-            entity.HasKey(e => e.CategoryId).HasName("PRIMARY");
-            entity.ToTable("category");
-            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
-            entity.Property(e => e.CategoryName).HasMaxLength(255);
-            entity.Property(e => e.Description).HasColumnType("text");
-            entity.Property(e => e.IsActive).IsRequired().HasDefaultValueSql("'1'");
-        });
-
         modelBuilder.Entity<Course>(entity =>
         {
             entity.HasKey(e => e.CourseId).HasName("PRIMARY");
@@ -170,7 +158,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("course");
 
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
+            entity.Property(e => e.ModuleId).HasColumnName("ModuleID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.Description)
@@ -182,27 +170,15 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedBy).HasMaxLength(255);
+            
+            // Configure the relationship with Module
+            entity.HasOne(d => d.Module)
+                  .WithMany(p => p.Courses)
+                  .HasForeignKey(d => d.ModuleId)
+                  .HasConstraintName("FK_Course_Module_ModuleID");
         });
 
-        modelBuilder.Entity<Coursekey>(entity =>
-        {
-            entity.HasKey(e => e.CourseKeyId).HasName("PRIMARY");
-
-            entity.ToTable("coursekey");
-
-            entity.Property(e => e.CourseKeyId).HasColumnName("CourseKeyID");
-            entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
-            entity.Property(e => e.CreatedBy).HasMaxLength(255);
-            entity.Property(e => e.KeyValue).HasMaxLength(100);
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasDefaultValueSql("'available'");
-            entity.Property(e => e.StudentId)
-                .HasMaxLength(255)
-                .HasColumnName("StudentID");
-            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
-        });
+        // modelBuilder.Entity<Coursekey>(entity => { /* removed coursekey mapping */ });
 
         modelBuilder.Entity<Question>(entity =>
         {
@@ -324,7 +300,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.HasKey(e => e.ProcessId).HasName("PRIMARY");
             entity.ToTable("process");
             entity.Property(e => e.ProcessId).HasColumnName("ProcessID");
-            entity.Property(e => e.CourseKeyId).HasColumnName("CourseKeyID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.StudentId).HasColumnName("StudentID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.LessonId).HasColumnName("LessonID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -360,8 +337,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.HasKey(e => e.ModuleID).HasName("PRIMARY");
             entity.ToTable("module");
             entity.Property(e => e.ModuleID).HasColumnName("ModuleID");
-            entity.Property(e => e.CourseId).HasColumnName("CourseID"); // map khoá ngoại
-            entity.Property(e => e.ModuleName).HasMaxLength(255);
+            entity.Property(e => e.EmbeddingDataSubject).HasColumnName("EmbeddingDataSubject");
+            entity.Property(e => e.ModuleName).HasMaxLength(255).HasColumnName("ModuleName");
             entity.Property(e => e.Description).HasColumnType("text");
             entity.Property(e => e.IsActive).HasColumnType("tinyint(1)").IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");

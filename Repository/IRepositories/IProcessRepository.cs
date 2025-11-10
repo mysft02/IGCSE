@@ -5,9 +5,11 @@ namespace Repository.IRepositories
 {
     public interface IProcessRepository : IBaseRepository<Process>
     {
-        Task<Process?> GetByCourseKeyAndLessonAsync(long courseKeyId, long lessonId);
-        Task<IEnumerable<Process>> GetByCourseKeyAsync(long courseKeyId);
         Task<IEnumerable<Process>> GetByLessonAsync(long lessonId);
-        Task<bool> IsLessonCompletedAsync(long courseKeyId, long lessonId);
+        // New student-based APIs (no courseKey)
+        Task<Process?> GetByStudentAndLessonAsync(string studentId, long lessonId);
+        Task<IEnumerable<Process>> GetByStudentAndCourseAsync(string studentId, long courseId);
+        Task<bool> IsLessonCompletedForStudentAsync(string studentId, long lessonId);
+        Task<IEnumerable<Process>> GetByStudentAsync(string studentId);
     }
 }

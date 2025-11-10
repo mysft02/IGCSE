@@ -1,16 +1,22 @@
-using BusinessObject.DTOs.Response.Chapters;
 using System;
-using System.Collections.Generic;
+using BusinessObject.Enums;
+
 namespace BusinessObject.DTOs.Response.Modules
 {
     public class ModuleResponse
     {
-        public int ModuleID { get; set; }
-        public string ModuleName { get; set; } = string.Empty;
-        public string? Description { get; set; }
+        public int ModuleId { get; set; }
+        public string ModuleName { get; set; }
+        public string Description { get; set; }
         public bool IsActive { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public List<ChapterResponse> Chapters { get; set; } = new();
+        
+        // This will be mapped from Module.CourseSubject
+        public CourseSubject CourseSubject { get; set; }
+        
+        // Computed property to get the display name
+        public string CourseSubjectName => 
+            CourseSubjectHelper.GetDisplayName(CourseSubject);
     }
 }

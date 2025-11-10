@@ -15,27 +15,31 @@ namespace Service
 {
     public class PaymentService
     {
-        private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
         private readonly ICourseRepository _courseRepository;
         private readonly PayOSApiService _payOSApiService;
+        private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
+        private readonly CourseRegistrationService _courseRegistrationService;
 
         public PaymentService(
-            ICoursekeyRepository coursekeyRepository,
             IAccountRepository accountRepository,
             UserManager<Account> userManager,
             IPaymentRepository paymentRepository,
             ICourseRepository courseRepository,
-            PayOSApiService payOSApiService)
+            PayOSApiService payOSApiService,
+            IParentStudentLinkRepository parentStudentLinkRepository,
+            CourseRegistrationService courseRegistrationService)
         {
-            _coursekeyRepository = coursekeyRepository;
+            
             _accountRepository = accountRepository;
             _userManager = userManager;
             _paymentRepository = paymentRepository;
             _courseRepository = courseRepository;
             _payOSApiService = payOSApiService;
+            _parentStudentLinkRepository = parentStudentLinkRepository;
+            _courseRegistrationService = courseRegistrationService;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(Dictionary<string, string> request, string userId)
@@ -70,98 +74,32 @@ namespace Service
 
             await _paymentRepository.AddAsync(transaction);
 
-            // Tạo CourseKey khi thanh toán thành công
-            var uniqueKeyValue = Guid.NewGuid().ToString("N");
-            var courseKey = new Coursekey
+            // Chỉ Parent mới được mua khóa học cho con
+            // Tự động gán khóa học cho các học sinh liên kết với Parent
+            var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
+            
+            if (linkedStudents == null || !linkedStudents.Any())
             {
-                CourseId = courseId,
-                StudentId = null,
-                CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Status = "available",
-                KeyValue = uniqueKeyValue
-            };
-            await _coursekeyRepository.AddAsync(courseKey);
-
-            // Gửi key cho Parent
-            await SendKeyToParentAsync(userId, uniqueKeyValue, courseId);
-
-            return new BaseResponse<PayOSPaymentReturnResponse>(
-                    "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh.",
-                    StatusCodeEnum.OK_200,
+                return new BaseResponse<PayOSPaymentReturnResponse>(
+                    "Thanh toán thành công nhưng không tìm thấy học sinh liên kết. Vui lòng liên kết học sinh trước khi mua khóa học.",
+                    StatusCodeEnum.BadRequest_400,
                     paymentResponse
                 );
+            }
+
+            foreach (var student in linkedStudents)
+            {
+                await _courseRegistrationService.InitializeCourseProgressForStudentAsync(student.Id, courseId);
+            }
+
+            return new BaseResponse<PayOSPaymentReturnResponse>(
+                $"Thanh toán thành công! Khóa học đã được gán cho {linkedStudents.Count()} học sinh.",
+                StatusCodeEnum.OK_200,
+                paymentResponse
+            );
         }
 
-        public async Task<List<CourseKeyResponse>> GetAllCourseKeysAsync()
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync();
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<List<CourseKeyResponse>> GetFilteredCourseKeysAsync(string? status = null, string? parentId = null, int? courseId = null)
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync(status, parentId, courseId);
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
+        // Course key-related methods removed
 
         public async Task<BaseResponse<PaymentAnalyticsResponse>> GetPaymentAnalyticsAsync()
         {
@@ -275,27 +213,6 @@ namespace Service
                 StatusCodeEnum.OK_200,
                 response
                 );
-        }
-
-        private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
-        {
-            var parent = await _accountRepository.GetByStringId(parentId);
-            if (parent == null)
-            {
-                throw new Exception("Không tìm thấy thông tin phụ huynh");
-            }
-
-            // TODO: Implement gửi email/SMS cho Parent
-            // Hiện tại chỉ log ra console
-            Console.WriteLine($"=== THÔNG BÁO CHO PHỤ HUYNH ===");
-            Console.WriteLine($"Phụ huynh: {parent.Name} ({parent.Email})");
-            Console.WriteLine($"Khóa học ID: {courseId}");
-            Console.WriteLine($"Mã khóa học: {keyValue}");
-            Console.WriteLine($"Hướng dẫn: Đưa mã này cho học sinh để kích hoạt khóa học");
-            Console.WriteLine($"================================");
-
-            // TODO: Gửi email thực tế
-            // await _emailService.SendCourseKeyAsync(parent.Email, keyValue, courseId);
         }
     }
 }

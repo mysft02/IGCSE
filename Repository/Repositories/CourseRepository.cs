@@ -25,14 +25,14 @@ namespace Repository.Repositories
         public async Task<Course?> GetByCourseIdWithCategoryAsync(long courseId)
         {
             return await _context.Set<Course>()
-                .Include(c => c.Category)
+                .Include(c => c.Module)
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
         public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId)
         {
             return await _context.Set<Course>()
-                .Where(c => c.CategoryId == categoryId)
+                .Where(c => c.ModuleId == categoryId)
                 .ToListAsync();
         }
 
@@ -99,6 +99,14 @@ namespace Repository.Repositories
                 .ToDictionaryAsync(x => x.Status, x => x.Count);
             
             return result;
+        }
+
+        public async Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId)
+        {
+            return await _context.Set<Course>()
+                .Where(c => c.CreatedBy == creatorAccountId)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
         }
     }
 }

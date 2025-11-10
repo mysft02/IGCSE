@@ -1,13 +1,18 @@
+using System.ComponentModel.DataAnnotations;
+using BusinessObject.Enums;
+
 namespace BusinessObject.DTOs.Request.Modules
 {
     public class ModuleRequest
     {
-        public int CourseId { get; set; }
-
-        public string ModuleName { get; set; } = string.Empty;
-
-        public string? Description { get; set; }
-
-        public bool IsActive { get; set; }
+        [Required]
+        public string ModuleName { get; set; }
+        
+        public string Description { get; set; }
+        
+        public bool IsActive { get; set; } = true;
+        
+        [Required]
+        public CourseSubject CourseSubject { get; set; }
     }
 }

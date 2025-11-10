@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using BusinessObject.Model;
 using Repository.IRepositories;
 using Common.Constants;
@@ -11,7 +11,6 @@ namespace Service
     public class CourseRegistrationService
     {
         private readonly IMapper _mapper;
-        private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly ICoursesectionRepository _coursesectionRepository;
         private readonly ILessonRepository _lessonRepository;
         private readonly ILessonitemRepository _lessonitemRepository;
@@ -21,7 +20,6 @@ namespace Service
 
         public CourseRegistrationService(
             IMapper mapper,
-            ICoursekeyRepository coursekeyRepository,
             ICoursesectionRepository coursesectionRepository,
             ILessonRepository lessonRepository,
             ILessonitemRepository lessonitemRepository,
@@ -30,7 +28,7 @@ namespace Service
             ICourseRepository courseRepository)
         {
             _mapper = mapper;
-            _coursekeyRepository = coursekeyRepository;
+            // coursekey removed
             _coursesectionRepository = coursesectionRepository;
             _lessonRepository = lessonRepository;
             _lessonitemRepository = lessonitemRepository;
@@ -43,38 +41,34 @@ namespace Service
         {
             try
             {
-                var registrations = await _coursekeyRepository.GetByStudentIdAsync(studentId);
-
+                var processes = await _processRepository.GetByStudentAsync(studentId);
+                var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
-                foreach (var reg in registrations)
+                foreach (var g in grouped)
                 {
-                    var course = await _courseRepository.GetByCourseIdWithCategoryAsync(reg.CourseId);
-                    if (course != null)
+                    var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
+                    if (course == null) continue;
+                    var first = g.MinBy(p => p.CreatedAt ?? DateTime.UtcNow);
+                    responses.Add(new CourseRegistrationResponse
                     {
-                        responses.Add(new CourseRegistrationResponse
-                        {
-                            CourseKeyId = reg.CourseKeyId,
-                            CourseId = reg.CourseId,
-                            CourseName = course.Name,
-                            CategoryName = course.Category?.CategoryName ?? "Unknown",
-                            StudentId = studentId,
-                            StudentName = "", // Will be populated from Account service
-                            CourseKey = $"{reg.CourseId}-{reg.StudentId}-{reg.CreatedAt?.Ticks}",
-                            EnrollmentDate = reg.CreatedAt ?? DateTime.UtcNow,
-                            Status = "Active"
-                        });
-                    }
+                        CourseId = (int)g.Key,
+                        CourseName = course.Name,
+                        StudentId = studentId,
+                        StudentName = "",
+                        EnrollmentDate = first?.CreatedAt ?? DateTime.UtcNow,
+                        Status = "Active"
+                    });
                 }
 
                 return new BaseResponse<IEnumerable<CourseRegistrationResponse>>(
-                    "Student registrations retrieved successfully",
+                    "Lấy danh sách khóa học của học sinh thành công",
                     StatusCodeEnum.OK_200,
                     responses
                 );
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to get student registrations: {ex.Message}");
+                throw new Exception($"Lấy danh sách thất bại: {ex.Message}");
             }
         }
 
@@ -82,12 +76,7 @@ namespace Service
         {
             try
             {
-                // Verify course key exists and is valid
-                var courseKey = await _coursekeyRepository.GetByCourseKeyAsync(courseKeyId);
-                if (courseKey == null)
-                {
-                    throw new Exception("Invalid course key");
-                }
+                // coursekey removed; skip validation
 
                 var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(courseSectionId);
                 if (courseSection == null)
@@ -96,7 +85,7 @@ namespace Service
                 }
 
                 var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync(courseSectionId);
-                var allProcesses = (await _processRepository.GetByCourseKeyAsync(courseKeyId)).ToList();
+                var allProcesses = new List<Process>();
 
                 var response = new CourseSectionResponse
                 {
@@ -140,29 +129,21 @@ namespace Service
         {
             try
             {
-                // Tìm ra courseKey phù hợp cho student và course
-                var courseKeys = await _coursekeyRepository.GetByStudentIdAsync(studentId);
-                var courseKey = courseKeys.FirstOrDefault(k => k.CourseId == courseId);
-                if (courseKey == null)
-                {
-                    throw new Exception("Student is not enrolled in this course");
-                }
-
                 var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
                 if (course == null)
                 {
                     throw new Exception("Course not found");
                 }
 
-                var processes = (await _processRepository.GetByCourseKeyAsync(courseKey.CourseKeyId)).ToList();
+                var processes = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
                 var courseSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseId)).OrderBy(s => s.Order).ToList();
 
                 var progressResponse = new StudentProgressResponse
                 {
-                    CourseKeyId = courseKey.CourseKeyId,
+                    CourseKeyId = 0,
                     CourseId = courseId,
                     CourseName = course.Name,
-                    CategoryName = course.Category?.CategoryName ?? "Unknown",
+                    CategoryName = course.Module?.ModuleName ?? "Unknown",
                     StudentName = "",
                     Sections = new List<SectionProgressResponse>(),
                     OverallProgress = 0
@@ -188,7 +169,7 @@ namespace Service
                     {
                         totalLessons++;
                         var process = processes.FirstOrDefault(p => p.LessonId == lesson.LessonId);
-                        var isCompleted = process != null && await _processRepository.IsLessonCompletedAsync(courseKey.CourseKeyId, lesson.LessonId);
+                        var isCompleted = process != null && await _processRepository.IsLessonCompletedForStudentAsync(studentId, lesson.LessonId);
                         var isUnlocked = process != null && process.IsUnlocked;
                         if (isCompleted) completedLessons++;
                         var lessonProgress = new LessonProgressResponse
@@ -233,48 +214,31 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<bool>> CompleteLessonItemAsync(int courseKeyId, int lessonItemId)
+        public async Task<BaseResponse<bool>> CompleteLessonItemAsync(string studentId, int lessonItemId)
         {
             try
             {
-                var courseKey = await _coursekeyRepository.GetByCourseKeyAsync(courseKeyId);
-                if (courseKey == null)
-                {
-                    throw new Exception("Invalid course key");
-                }
-
+                // 1. Lấy thông tin lesson item
                 var lessonItem = await _lessonitemRepository.GetByLessonItemIdAsync(lessonItemId);
                 if (lessonItem == null)
                 {
                     throw new Exception("Lesson item not found");
                 }
 
-                // Get or create process for this lesson
-                var process = await _processRepository.GetByCourseKeyAndLessonAsync(courseKeyId, lessonItem.LessonId);
+                // 2. Tìm Process của học sinh cho bài học này
+                var process = await _processRepository.GetByStudentAndLessonAsync(studentId, lessonItem.LessonId);
                 if (process == null)
                 {
-                    process = new Process
-                    {
-                        CourseKeyId = courseKeyId,
-                        LessonId = lessonItem.LessonId,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
-                        IsUnlocked = true
-                    };
-                    process = await _processRepository.AddAsync(process);
+                    throw new Exception("Student is not enrolled in this course or lesson not found");
                 }
 
-                // Kiểm tra nếu chưa unlock thì không cho học
+                // 3. Kiểm tra bài học đã được mở khóa chưa
                 if (!process.IsUnlocked)
                 {
-                    return new BaseResponse<bool>(
-                        "Bài học chưa được mở, cần hoàn thành các bài phía trước!",
-                        StatusCodeEnum.BadRequest_400,
-                        false
-                    );
+                    throw new Exception("This lesson is locked. Please complete previous lessons first.");
                 }
 
-                // Check if lesson item is already completed
+                // 4. Kiểm tra lesson item đã hoàn thành chưa (tránh duplicate)
                 var existingProcessItem = await _processitemRepository.GetByProcessAndLessonItemAsync(process.ProcessId, lessonItemId);
                 if (existingProcessItem != null)
                 {
@@ -285,7 +249,7 @@ namespace Service
                     );
                 }
 
-                // Create process item to mark lesson item as completed
+                // 5. Tạo Processitem mới để đánh dấu hoàn thành
                 var processItem = new Processitem
                 {
                     ProcessId = process.ProcessId,
@@ -293,44 +257,73 @@ namespace Service
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-
                 await _processitemRepository.AddAsync(processItem);
 
-                // Kiểm tra nếu đã hoàn thành tất cả lesson item của lesson này
-                var allLessonItems = (await _lessonitemRepository.GetByLessonIdAsync(lessonItem.LessonId)).ToList();
-                var allProcessItems = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
-                if (allLessonItems.Count > 0 && allLessonItems.Count == allProcessItems.Count + 1) // +1 vì item hiện tại vừa add chưa nằm trong list
+                // 6. Kiểm tra xem tất cả lesson items trong bài học đã hoàn thành chưa
+                var allLessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonItem.LessonId);
+                var completedProcessItems = await _processitemRepository.GetByProcessIdAsync(process.ProcessId);
+                
+                bool isLessonCompleted = allLessonItems.Count() == completedProcessItems.Count();
+
+                // 7. Nếu bài học hoàn thành, mở khóa bài học tiếp theo
+                if (isLessonCompleted)
                 {
-                    // unlock lesson tiếp theo cùng section
+                    process.UpdatedAt = DateTime.UtcNow;
+                    await _processRepository.UpdateAsync(process);
+
+                    // Tìm bài học tiếp theo
                     var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
-                    var lessonsOfSection = (await _lessonRepository.GetActiveLessonsBySectionAsync(lesson.CourseSectionId)).OrderBy(l => l.Order).ToList();
-                    var curLessonIndex = lessonsOfSection.FindIndex(l => l.LessonId == lesson.LessonId);
-                    if (curLessonIndex >= 0 && curLessonIndex + 1 < lessonsOfSection.Count)
+                    if (lesson != null)
                     {
-                        var nextLesson = lessonsOfSection[curLessonIndex + 1];
-                        var nextProcess = await _processRepository.GetByCourseKeyAndLessonAsync(courseKeyId, nextLesson.LessonId);
-                        if (nextProcess != null && !nextProcess.IsUnlocked)
+                        // Lấy tất cả lessons trong section hiện tại
+                        var lessonsInSection = (await _lessonRepository.GetActiveLessonsBySectionAsync(lesson.CourseSectionId))
+                            .OrderBy(l => l.Order)
+                            .ToList();
+                        
+                        var currentLessonIndex = lessonsInSection.FindIndex(l => l.LessonId == lesson.LessonId);
+                        
+                        // Kiểm tra có bài học tiếp theo trong section không
+                        if (currentLessonIndex >= 0 && currentLessonIndex < lessonsInSection.Count - 1)
                         {
-                            nextProcess.IsUnlocked = true;
-                            await _processRepository.UpdateAsync(nextProcess);
-                        }
-                    }
-                    else if (curLessonIndex == lessonsOfSection.Count - 1) // đã là lesson cuối của section, unlock section tiếp theo
-                    {
-                        var allSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseKey.CourseId)).OrderBy(s => s.Order).ToList();
-                        var thisSectionIndex = allSections.FindIndex(s => s.CourseSectionId == lesson.CourseSectionId);
-                        if (thisSectionIndex >= 0 && thisSectionIndex + 1 < allSections.Count)
-                        {
-                            var nextSection = allSections[thisSectionIndex + 1];
-                            var nextSectionLessons = (await _lessonRepository.GetActiveLessonsBySectionAsync(nextSection.CourseSectionId)).OrderBy(l => l.Order).ToList();
-                            if (nextSectionLessons.Any())
+                            // Mở khóa bài học tiếp theo trong cùng section
+                            var nextLesson = lessonsInSection[currentLessonIndex + 1];
+                            var nextProcess = await _processRepository.GetByStudentAndLessonAsync(studentId, nextLesson.LessonId);
+                            if (nextProcess != null && !nextProcess.IsUnlocked)
                             {
-                                var firstLessonNextSection = nextSectionLessons.First();
-                                var processFirstLesson = await _processRepository.GetByCourseKeyAndLessonAsync(courseKeyId, firstLessonNextSection.LessonId);
-                                if (processFirstLesson != null && !processFirstLesson.IsUnlocked)
+                                nextProcess.IsUnlocked = true;
+                                nextProcess.UpdatedAt = DateTime.UtcNow;
+                                await _processRepository.UpdateAsync(nextProcess);
+                            }
+                        }
+                        else
+                        {
+                            // Đã hết bài học trong section, mở bài học đầu tiên của section tiếp theo
+                            var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+                            if (courseSection != null)
+                            {
+                                var allSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseSection.CourseId))
+                                    .OrderBy(s => s.Order)
+                                    .ToList();
+                                
+                                var currentSectionIndex = allSections.FindIndex(s => s.CourseSectionId == courseSection.CourseSectionId);
+                                
+                                if (currentSectionIndex >= 0 && currentSectionIndex < allSections.Count - 1)
                                 {
-                                    processFirstLesson.IsUnlocked = true;
-                                    await _processRepository.UpdateAsync(processFirstLesson);
+                                    var nextSection = allSections[currentSectionIndex + 1];
+                                    var firstLessonInNextSection = (await _lessonRepository.GetActiveLessonsBySectionAsync(nextSection.CourseSectionId))
+                                        .OrderBy(l => l.Order)
+                                        .FirstOrDefault();
+                                    
+                                    if (firstLessonInNextSection != null)
+                                    {
+                                        var nextProcess = await _processRepository.GetByStudentAndLessonAsync(studentId, firstLessonInNextSection.LessonId);
+                                        if (nextProcess != null && !nextProcess.IsUnlocked)
+                                        {
+                                            nextProcess.IsUnlocked = true;
+                                            nextProcess.UpdatedAt = DateTime.UtcNow;
+                                            await _processRepository.UpdateAsync(nextProcess);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -338,8 +331,10 @@ namespace Service
                 }
 
                 return new BaseResponse<bool>(
-                    "Lesson item completed successfully",
-                    StatusCodeEnum.Created_201,
+                    isLessonCompleted 
+                        ? "Lesson item completed! Next lesson unlocked." 
+                        : "Lesson item completed successfully",
+                    StatusCodeEnum.OK_200,
                     true
                 );
             }
@@ -349,31 +344,13 @@ namespace Service
             }
         }
 
-        public async Task<IEnumerable<Coursekey>> GetAllCourseKeysAsync()
-        {
-            return await _coursekeyRepository.GetAllCourseKeysWithNullHandlingAsync();
-        }
-
-        public async Task<IEnumerable<Coursekey>> GetAvailableCourseKeysAsync()
-        {
-            return await _coursekeyRepository.GetAvailableCourseKeysAsync();
-        }
-
-        public async Task UpdateCourseKeyAsync(Coursekey key)
-        {
-            await _coursekeyRepository.UpdateAsync(key);
-        }
-
-        public async Task InitializeCourseProgressAsync(int courseKeyId)
+        public async Task InitializeCourseProgressForStudentAsync(string studentId, int courseId)
         {
             try
             {
-                var courseKey = await _coursekeyRepository.GetByCourseKeyAsync(courseKeyId);
-                if (courseKey == null) return;
-
-                var courseSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseKey.CourseId))?.OrderBy(s => s.Order).ToList();
+                var courseSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseId))?.OrderBy(s => s.Order).ToList();
                 if (courseSections == null || !courseSections.Any()) return;
-                // Chỉ unlock section đầu tiên (bằng cách unlock lesson đầu của nó)
+
                 foreach (var section in courseSections)
                 {
                     var lessons = (await _lessonRepository.GetActiveLessonsBySectionAsync(section.CourseSectionId))?.OrderBy(l => l.Order).ToList();
@@ -382,10 +359,11 @@ namespace Service
                     {
                         for (int i = 0; i < lessons.Count; i++)
                         {
-                            var isUnlocked = (i == 0); // lesson đầu tiên được mở
+                            var isUnlocked = (i == 0);
                             var process = new Process
                             {
-                                CourseKeyId = courseKeyId,
+                                StudentId = studentId,
+                                CourseId = courseId,
                                 LessonId = lessons[i].LessonId,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow,
@@ -394,13 +372,14 @@ namespace Service
                             await _processRepository.AddAsync(process);
                         }
                     }
-                    else // Section sau: chưa unlock lesson nào
+                    else
                     {
                         foreach (var lesson in lessons)
                         {
                             var process = new Process
                             {
-                                CourseKeyId = courseKeyId,
+                                StudentId = studentId,
+                                CourseId = courseId,
                                 LessonId = lesson.LessonId,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow,
@@ -411,9 +390,8 @@ namespace Service
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log error but don't throw - initialization shouldn't fail registration
             }
         }
     }

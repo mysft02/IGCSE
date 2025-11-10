@@ -4,8 +4,8 @@ namespace BusinessObject.DTOs.Response.CourseContent
 {
     public class CourseSectionResponse
     {
-        public long CourseSectionId { get; set; }
         public long CourseId { get; set; }
+        public long CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }

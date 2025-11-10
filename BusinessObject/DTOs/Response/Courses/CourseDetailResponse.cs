@@ -12,9 +12,7 @@ namespace BusinessObject.DTOs.Response.Courses
         public string ImageUrl { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public int CategoryId { get; set; }
-        public string CategoryName { get; set; } = string.Empty;
-        public List<ModuleDetailResponse> Modules { get; set; } = new();
+        public List<CourseSectionDetailResponse> Sections { get; set; } = new();
     }
     public class ModuleDetailResponse
     {
@@ -38,8 +36,8 @@ namespace BusinessObject.DTOs.Response.Courses
     }
     public class CourseSectionDetailResponse
     {
-        public long CourseSectionId { get; set; }
         public long CourseId { get; set; }
+        public long CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -54,6 +52,20 @@ namespace BusinessObject.DTOs.Response.Courses
         public string? Description { get; set; }
         public int Order { get; set; }
         public bool IsActive { get; set; }
-        public List<LessonItemResponse> LessonItems { get; set; } = new();
+        public bool IsUnlocked { get; set; } = false;  // Trạng thái mở khóa bài học
+        public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành bài học
+        public List<LessonItemDetailResponse> LessonItems { get; set; } = new();
+    }
+    
+    public class LessonItemDetailResponse
+    {
+        public long LessonItemId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string ItemType { get; set; } = string.Empty; // video, text, quiz, etc.
+        public int Order { get; set; }
+        public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành item
+        public DateTime? CompletedAt { get; set; } // Thời gian hoàn thành
     }
 }

@@ -8,9 +8,9 @@ namespace Common.Utils
         private static readonly long MaxFileSize = 5 * 1024 * 1024; 
         private static readonly string[] AllowedDocumentExtensions = { ".pdf" };
         private static readonly string[] AllowedVideoExtensions = { ".mp4", ".webm", ".ogg" };
-        private const string ImagesFolder = "wwwroot/images/courses";
-        private const string LessonDocsFolder = "wwwroot/lessons/docs";
-        private const string LessonVideosFolder = "wwwroot/lessons/videos";
+        private const string ImagesFolder = "courses/images";
+        private const string LessonDocsFolder = "lessons/docs";
+        private const string LessonVideosFolder = "lessons/videos";
 
         /// <summary>
         /// Uploads an image file and returns the relative URL path

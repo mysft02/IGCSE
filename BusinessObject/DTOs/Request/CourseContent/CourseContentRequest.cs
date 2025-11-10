@@ -16,8 +16,8 @@ namespace BusinessObject.DTOs.Request.CourseContent
         [Required]
         public int CourseId { get; set; }
 
-        [Required]
-        public int ChapterId { get; set; }
+        //[Required]
+        //public int ChapterId { get; set; }
 
         [Required]
         public int Order { get; set; }

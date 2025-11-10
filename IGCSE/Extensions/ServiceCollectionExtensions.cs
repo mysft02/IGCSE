@@ -19,8 +19,6 @@ namespace IGCSE.Extensions
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<ITokenRepository, TokenRepository>();
             services.AddScoped<ICourseRepository, CourseRepository>();
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
-            services.AddScoped<ICoursekeyRepository, CoursekeyRepository>();
             services.AddScoped<ICoursesectionRepository, CoursesectionRepository>();
             services.AddScoped<ILessonRepository, LessonRepository>();
             services.AddScoped<ILessonitemRepository, LessonitemRepository>();
@@ -31,9 +29,8 @@ namespace IGCSE.Extensions
             services.AddScoped<IPaymentRepository, PaymentRepository>();
             services.AddScoped<IQuestionRepository, QuestionRepository>();
             services.AddScoped<IModuleRepository, ModuleRepository>();
-            services.AddScoped<ModuleService>();
-            services.AddScoped<IChapterRepository, ChapterRepository>();
-            services.AddScoped<ChapterService>();
+            // services.AddScoped<IChapterRepository, ChapterRepository>(); // Chapter disabled
+            // services.AddScoped<ChapterService>(); // Chapter disabled
             services.AddScoped<IParentStudentLinkRepository, ParentStudentLinkRepository>();
             services.AddScoped<ITrelloTokenRepository, TrelloTokenRepository>();
             services.AddScoped<IMockTestRepository, MockTestRepository>();
@@ -51,7 +48,6 @@ namespace IGCSE.Extensions
             // Application services
             services.AddScoped<AccountService>();
             services.AddScoped<CourseService>();
-            services.AddScoped<CategoryService>();
             services.AddScoped<CourseRegistrationService>();
             services.AddScoped<TrelloApiService>();
             services.AddHttpClient<ApiService>();
@@ -64,6 +60,7 @@ namespace IGCSE.Extensions
             services.AddScoped<TrelloTokenService>();
             services.AddScoped<MockTestService>();
             services.AddScoped<MediaService>();
+            services.AddScoped<ModuleService>();
 
             return services;
         }

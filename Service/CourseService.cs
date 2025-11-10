@@ -21,7 +21,9 @@ namespace Service
         private readonly ILessonitemRepository _lessonitemRepository;
         private readonly OpenAIEmbeddingsApiService _openAIEmbeddingsApiService;
         private readonly IModuleRepository _moduleRepository;
-        private readonly IChapterRepository _chapterRepository;
+        private readonly IProcessRepository _processRepository;
+        private readonly IProcessitemRepository _processitemRepository;
+        // private readonly IChapterRepository _chapterRepository;
 
         public CourseService(
             IMapper mapper,
@@ -31,7 +33,8 @@ namespace Service
             ILessonitemRepository lessonitemRepository,
             OpenAIEmbeddingsApiService openAIEmbeddingsApiService,
             IModuleRepository moduleRepository,
-            IChapterRepository chapterRepository)
+            IProcessRepository processRepository,
+            IProcessitemRepository processitemRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -40,10 +43,12 @@ namespace Service
             _lessonitemRepository = lessonitemRepository;
             _openAIEmbeddingsApiService = openAIEmbeddingsApiService;
             _moduleRepository = moduleRepository;
-            _chapterRepository = chapterRepository;
+            _processRepository = processRepository;
+            _processitemRepository = processitemRepository;
+            // _chapterRepository = chapterRepository; // Chapter disabled
         }
 
-        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
+        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
         {
             // Create new course
             var course = new Course
@@ -52,10 +57,12 @@ namespace Service
                 Description = request.Description,
                 Price = request.Price,
                 ImageUrl = request.ImageUrl,
-                CategoryId = request.CategoryId,
+                ModuleId = request.ModuleId,
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = createdBy,
+                UpdatedBy = createdBy
             };
 
             var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
@@ -143,14 +150,12 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
-            // Validate Category exists if CategoryId is being updated
-            if (request.CategoryId != existingCourse.CategoryId)
+            if (request.ModuleId != existingCourse.ModuleId)
             {
-                var courses = await _courseRepository.GetAllAsync();
-                var categoryExists = courses.Any(c => c.CategoryId == request.CategoryId);
-                if (!categoryExists)
+                var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
+                if (module == null)
                 {
-                    throw new Exception("Category not found or inactive");
+                    throw new Exception("Module not found or inactive");
                 }
             }
 
@@ -160,7 +165,7 @@ namespace Service
             existingCourse.Status = request.Status;
             existingCourse.Price = request.Price;
             existingCourse.ImageUrl = request.ImageUrl;
-            existingCourse.CategoryId = request.CategoryId;
+            existingCourse.ModuleId = request.ModuleId;
             existingCourse.UpdatedAt = DateTime.UtcNow;
 
             var updatedCourse = await _courseRepository.UpdateAsync(existingCourse);
@@ -359,6 +364,17 @@ namespace Service
             );
         }
 
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetTeacherCoursesAsync(string teacherAccountId)
+        {
+            var courses = await _courseRepository.GetCoursesByCreatorAsync(teacherAccountId);
+            var responses = courses.Select(_mapper.Map<CourseResponse>).ToList();
+            return new BaseResponse<IEnumerable<CourseResponse>>(
+                "Teacher courses retrieved successfully",
+                StatusCodeEnum.OK_200,
+                responses
+            );
+        }
+
         public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync()
         {
             var courseAnalytics = await _courseRepository.GetCoursesSortedByStatus();
@@ -375,11 +391,11 @@ namespace Service
                 result
             );
         }
-        public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(long courseId)
+        public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(int courseId, string? studentId = null)
         {
             try
             {
-                // 1. Get course with category
+                // 1. Get course with related data
                 var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
                 if (course == null) 
                     throw new Exception("Course not found");
@@ -387,41 +403,63 @@ namespace Service
                 // 2. Map course to DTO
                 var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
 
-                // 3. Load and map modules
-                var modules = await _moduleRepository.GetByCourseIdAsync((int)courseId);
-                if (modules != null && modules.Any())
+                // 3. Lấy tiến trình học của student nếu có studentId
+                List<Process>? studentProcesses = null;
+                Dictionary<int, List<Processitem>>? processItemsDict = null;
+
+                if (!string.IsNullOrEmpty(studentId))
                 {
-                    courseDetailResponse.Modules = _mapper.Map<List<ModuleDetailResponse>>(modules);
-
-                    // 4. For each module, load and map its chapters
-                    foreach (var module in courseDetailResponse.Modules)
+                    studentProcesses = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
+                    
+                    // Lấy tất cả process items cho student
+                    processItemsDict = new Dictionary<int, List<Processitem>>();
+                    foreach (var process in studentProcesses)
                     {
-                        var chapters = await _chapterRepository.GetByModuleIdAsync(module.ModuleID);
-                        if (chapters != null && chapters.Any())
+                        var items = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
+                        processItemsDict[process.ProcessId] = items;
+                    }
+                }
+
+                var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
+                if (sections != null && sections.Any())
+                {
+                    courseDetailResponse.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
+
+                    // For each section, load lessons and lesson items
+                    foreach (var section in courseDetailResponse.Sections)
+                    {
+                        var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
+                        if (lessons != null && lessons.Any())
                         {
-                            module.Chapters = _mapper.Map<List<ChapterDetailResponse>>(chapters);
-
-                            // 5. For each chapter, load and map its sections
-                            foreach (var chapter in module.Chapters)
+                            section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+                            
+                            foreach (var lesson in section.Lessons)
                             {
-                                var sections = await _coursesectionRepository.GetByChapterIdAsync(chapter.ChapterID);
-                                if (sections != null && sections.Any())
+                                // Lấy lesson items
+                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
+                                lesson.LessonItems = _mapper.Map<List<LessonItemDetailResponse>>(lessonItems ?? new List<Lessonitem>());
+
+                                // Nếu có studentId, cập nhật thông tin tiến trình
+                                if (studentProcesses != null && processItemsDict != null)
                                 {
-                                    chapter.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
-
-                                    // 6. For each section, load and map its lessons
-                                    foreach (var section in chapter.Sections)
+                                    var process = studentProcesses.FirstOrDefault(p => p.LessonId == lesson.LessonId);
+                                    if (process != null)
                                     {
-                                        var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
-                                        if (lessons != null && lessons.Any())
-                                        {
-                                            section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+                                        // Cập nhật trạng thái mở khóa của lesson
+                                        lesson.IsUnlocked = process.IsUnlocked;
 
-                                            // 7. For each lesson, load and map its items
-                                            foreach (var lesson in section.Lessons)
+                                        // Kiểm tra lesson đã hoàn thành chưa
+                                        var completedItems = processItemsDict.GetValueOrDefault(process.ProcessId, new List<Processitem>());
+                                        lesson.IsCompleted = lessonItems.Count() > 0 && completedItems.Count == lessonItems.Count();
+
+                                        // Cập nhật trạng thái hoàn thành của từng lesson item
+                                        foreach (var lessonItemResponse in lesson.LessonItems)
+                                        {
+                                            var completedItem = completedItems.FirstOrDefault(pi => pi.LessonItemId == lessonItemResponse.LessonItemId);
+                                            if (completedItem != null)
                                             {
-                                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
-                                                lesson.LessonItems = _mapper.Map<List<LessonItemResponse>>(lessonItems ?? new List<Lessonitem>());
+                                                lessonItemResponse.IsCompleted = true;
+                                                lessonItemResponse.CompletedAt = completedItem.CreatedAt;
                                             }
                                         }
                                     }
