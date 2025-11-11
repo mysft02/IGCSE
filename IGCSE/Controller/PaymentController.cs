@@ -101,13 +101,14 @@ namespace IGCSE.Controller
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
 
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
             }
 
-            var result = await _paymentService.HandlePaymentAsync(request, userId);
+            var result = await _paymentService.HandlePaymentAsync(request, userId, userRole);
             return Ok(result);
         }
 

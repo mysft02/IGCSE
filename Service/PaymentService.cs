@@ -23,6 +23,7 @@ namespace Service
         private readonly PayOSApiService _payOSApiService;
         private readonly IPackageRepository _packageRepository;
         private readonly IUserPackageRepository _userPackageRepository;
+        private readonly ICreateSlotRepository _createSlotRepository;
 
         public PaymentService(
             ICoursekeyRepository coursekeyRepository,
@@ -32,7 +33,8 @@ namespace Service
             ICourseRepository courseRepository,
             PayOSApiService payOSApiService,
             IPackageRepository packageRepository,
-            IUserPackageRepository userPackageRepository)
+            IUserPackageRepository userPackageRepository,
+            ICreateSlotRepository createSlotRepository)
         {
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
@@ -42,9 +44,10 @@ namespace Service
             _payOSApiService = payOSApiService;
             _packageRepository = packageRepository;
             _userPackageRepository = userPackageRepository;
+            _createSlotRepository = createSlotRepository;
         }
 
-        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
+        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId, string userRole)
         {
             if(request == null)
             {
@@ -121,21 +124,69 @@ namespace Service
             else if (packageId.HasValue)
             {
                 transaction.ItemId = packageId.Value;
-
-                var userPackage = await _userPackageRepository.FindOneAsync(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == userId && x.PackageId == packageId);
-
                 var newUserPackage = new Userpackage
                 {
                     PackageId = packageId.Value,
                     Price = paymentResponse.Data.AmountPaid,
-                    UserId = userPackage.UserId.Split("_")[0],
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                 };
 
-                await _userPackageRepository.DeleteAsync(userPackage);
-                await _userPackageRepository.AddAsync(newUserPackage);
+                var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == packageId, xc => xc.Userpackages);
+                if(package == null)
+                {
+                    throw new Exception("Gói bạn cần mua không tìm thấy.");
+                }
+
+                if(userRole == "Parent")
+                {
+                    var userPackage = package.Userpackages.FirstOrDefault(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == userId && x.PackageId == packageId);
+
+                    newUserPackage.UserId = userPackage.UserId.Split("_")[0];
+
+                    await _userPackageRepository.DeleteAsync(userPackage);
+                    await _userPackageRepository.AddAsync(newUserPackage);
+                }
+                else
+                {
+                    var teacherPackage = package.Userpackages.FirstOrDefault(x => x.UserId == userId);
+
+                    if(teacherPackage != null)
+                    {
+                        teacherPackage.Price = paymentResponse.Data.AmountPaid;
+                        teacherPackage.IsActive = true;
+                        teacherPackage.UpdatedAt = DateTime.UtcNow;
+
+                        await _userPackageRepository.UpdateAsync(teacherPackage);
+                    }
+                    else
+                    {
+                        newUserPackage.UserId = userId;
+                        await _userPackageRepository.AddAsync(newUserPackage);
+                    }
+
+                    var currSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+                    if (currSlot != null)
+                    {
+                        currSlot.Slot += package.Slot;
+                        currSlot.AvailableSlot += package.Slot;
+
+                        await _createSlotRepository.UpdateAsync(currSlot);
+                    }
+                    else
+                    {
+                        var newSlot = new Createslot
+                        {
+                            Slot = package.Slot,
+                            AvailableSlot = package.Slot,
+                            TeacherId = userId,
+                            PackageId = packageId.Value
+                        };
+
+                        await _createSlotRepository.AddAsync(newSlot);
+                    }
+                }
             }
 
             await _paymentRepository.AddAsync(transaction);
@@ -249,11 +300,23 @@ namespace Service
             }
             else
             {
-                var packageCheck = await _packageRepository.GetByUserId(request.DestUserId);
+                var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == request.PackageId, xc => xc.Userpackages);
 
-                if(userRole == "Parent")
+                if(package == null)
                 {
-                    if(packageCheck != null)
+                    throw new Exception("Gói bạn cần mua không tìm thấy");
+                }
+
+                if (userRole == "Parent")
+                {
+                    if(package .IsMockTest == false)
+                    {
+                        throw new Exception("Gói này dành cho giáo viên. Bạn không thể mua.");
+                    }
+
+                    var packageCheck = package.Userpackages.FirstOrDefault(x => x.UserId == request.DestUserId);
+
+                    if (packageCheck != null)
                     {
                         throw new Exception("Bạn đã mua gói này rồi.");
                     }
@@ -268,9 +331,16 @@ namespace Service
                     };
 
                     await _userPackageRepository.AddAsync(userPackage);
-                    
-                    body.Description = $"Thanh toán cho gói {request.PackageId}.";
                 }
+                else
+                {
+                    if (package.IsMockTest == true)
+                    {
+                        throw new Exception("Gói này dành cho phụ huynh. Bạn không thể mua.");
+                    }
+                }
+
+                body.Description = $"Thanh toán cho gói {request.PackageId}.";
             }
             // Kiểm tra API keys trước khi tạo signature
             var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY");

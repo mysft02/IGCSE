@@ -39,6 +39,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Package> Packages { get; set; }
     public virtual DbSet<Userpackage> Userpackages { get; set; }
     public virtual DbSet<Quizuseranswer> Quizuseranswers { get; set; }
+    public virtual DbSet<Createslot> Createslots { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -498,6 +499,15 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Price).HasPrecision(18, 2);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Createslot>(entity =>
+        {
+            entity.HasKey(e => e.CreateSlotId).HasName("PRIMARY");
+
+            entity.ToTable("createslot");
+
+            entity.Property(e => e.TeacherId).HasMaxLength(255);
         });
 
         OnModelCreatingPartial(modelBuilder);

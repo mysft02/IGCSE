@@ -46,6 +46,7 @@ namespace IGCSE.Extensions
             services.AddScoped<IQuizUserAnswerRepository, QuizUserAnswerRepository>();
             services.AddScoped<IMockTestUserAnswerRepository, MockTestUserAnswerRepository>();
             services.AddScoped<IUserPackageRepository, UserPackageRepository>();
+            services.AddScoped<ICreateSlotRepository, CreateSlotRepository>();
 
             return services;
         }

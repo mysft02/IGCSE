@@ -8,6 +8,6 @@
 
         public int PackageId { get; set; }
 
-        public string DestUserId { get; set; }
+        public string? DestUserId { get; set; }
     }
 }

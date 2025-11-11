@@ -256,5 +256,19 @@ namespace Repository.BaseRepository
             return await _dbContext.Set<T>().FirstOrDefaultAsync(filter);
         }
 
+        public async Task<T?> FindOneWithIncludeAsync(Expression<Func<T, bool>> filter, params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _dbContext.Set<T>();
+
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return await query.FirstOrDefaultAsync(filter);
+        }
     }
 }
