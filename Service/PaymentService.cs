@@ -22,7 +22,7 @@ namespace Service
         private readonly PayOSApiService _payOSApiService;
         private readonly IPackageRepository _packageRepository;
         private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
-        private readonly CourseRegistrationService _courseRegistrationService;
+        private readonly CourseService _courseService;
 
         public PaymentService(
             IAccountRepository accountRepository,
@@ -32,7 +32,7 @@ namespace Service
             PayOSApiService payOSApiService,
             IPackageRepository packageRepository,
             IParentStudentLinkRepository parentStudentLinkRepository,
-            CourseRegistrationService courseRegistrationService)
+            CourseService courseService)
         {
             _accountRepository = accountRepository;
             _userManager = userManager;
@@ -41,7 +41,7 @@ namespace Service
             _payOSApiService = payOSApiService;
             _packageRepository = packageRepository;
             _parentStudentLinkRepository = parentStudentLinkRepository;
-            _courseRegistrationService = courseRegistrationService;
+            _courseService = courseService;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
@@ -109,7 +109,7 @@ namespace Service
                     try
                     {
                         // Khởi tạo tiến trình học cho từng student
-                        await _courseRegistrationService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
+                        await _courseService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
                     }
                     catch (Exception ex)
                     {

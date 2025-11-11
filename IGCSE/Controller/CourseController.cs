@@ -4,6 +4,7 @@ using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Response.ParentStudentLink;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,6 @@ namespace IGCSE.Controller
     public class CourseController : ControllerBase
     {
         private readonly CourseService _courseService;
-        private readonly CourseRegistrationService _courseRegistrationService;
         private readonly ModuleService _moduleService;
         //private readonly ChapterService _chapterService;
         private readonly MediaService _mediaService;
@@ -28,7 +28,6 @@ namespace IGCSE.Controller
 
         public CourseController(
             CourseService courseService,
-            CourseRegistrationService courseRegistrationService,
             ModuleService moduleService,
             //ChapterService chapterService,
             MediaService mediaService,
@@ -40,7 +39,6 @@ namespace IGCSE.Controller
             _moduleService = moduleService;
             //_chapterService = chapterService;
             _courseService = courseService;
-            _courseRegistrationService = courseRegistrationService;
             _paymentService = paymentService;
         }
 
@@ -207,7 +205,7 @@ namespace IGCSE.Controller
                     return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
                 }
 
-                var result = await _courseRegistrationService.CompleteLessonItemAsync(userId, lessonItemId);
+                var result = await _courseService.CompleteLessonItemAsync(userId, lessonItemId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -235,7 +233,7 @@ namespace IGCSE.Controller
                     return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
                 }
 
-                var result = await _courseRegistrationService.GetStudentRegistrationsAsync(userId);
+                var result = await _courseService.GetStudentRegistrationsAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -303,6 +301,34 @@ namespace IGCSE.Controller
             {
                 return BadRequest(new BaseResponse<string>(
                     $"Lỗi khi lấy thông tin khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("get-linked-students-progress")]
+        [Authorize(Roles = "Parent")]
+        [SwaggerOperation(Summary = "Xem tiến trình học của các học sinh đã liên kết với Parent (Parent)")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<StudentProgressOverviewResponse>>>> GetLinkedStudentsProgress()
+        {
+            try
+            {
+                var user = HttpContext.User;
+                var parentId = user.FindFirst("AccountID")?.Value;
+
+                if (string.IsNullOrEmpty(parentId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.GetLinkedStudentsProgressAsync(parentId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
                     StatusCodeEnum.BadRequest_400,
                     null
                 ));

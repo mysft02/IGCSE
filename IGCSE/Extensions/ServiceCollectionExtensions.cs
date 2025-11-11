@@ -56,7 +56,6 @@ namespace IGCSE.Extensions
             // Application services
             services.AddScoped<AccountService>();
             services.AddScoped<CourseService>();
-            services.AddScoped<CourseRegistrationService>();
             services.AddScoped<TrelloApiService>();
             services.AddHttpClient<ApiService>();
             services.AddScoped<OpenAIApiService>();
@@ -73,8 +72,6 @@ namespace IGCSE.Extensions
             services.AddScoped<TrelloListService>();
             services.AddScoped<LessonService>();
             services.AddScoped<SectionService>();
-            services.AddScoped<MediaService>();
-            services.AddScoped<MockTestService>();
             services.AddScoped<PackageService>();
             services.AddScoped<FinalQuizService>();
             services.AddScoped<MockTestQuestionService>();
