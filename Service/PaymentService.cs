@@ -330,7 +330,7 @@ namespace Service
                         UpdatedAt = DateTime.Now,
                     };
 
-                    await _userPackageRepository.AddAsync(userPackage);
+                    await _userPackageRepository.AddOrUpdateAsync(userPackage, c => new object[] { c.PackageId, c.UserId});
                 }
                 else
                 {
