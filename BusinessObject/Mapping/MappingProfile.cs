@@ -2,9 +2,7 @@ using AutoMapper;
 using BusinessObject.Model;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Response.ParentStudentLink;
-using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.MockTest;
-using BusinessObject.Payload.Response.MockTest;
 using BusinessObject.DTOs.Response.MockTestQuestion;
 using BusinessObject.DTOs.Response.Questions;
 using BusinessObject.DTOs.Response.Accounts;
@@ -17,8 +15,6 @@ using BusinessObject.DTOs.Request.Modules;
 using BusinessObject.DTOs.Response.Trellos;
 using BusinessObject.Payload.Response.Trello;
 using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
-using BusinessObject.DTOs.Response.MockTest;
-using BusinessObject.DTOs.Response.MockTestQuestion;
 using BusinessObject.DTOs.Request.Packages;
 
 namespace BusinessObject.Mapping
@@ -111,6 +107,8 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
                 
+            // Chapter mapping removed
+            /*
             CreateMap<Chapter, ChapterDetailResponse>()
                 .ForMember(dest => dest.ChapterID, opt => opt.MapFrom(src => src.ChapterID))
                 .ForMember(dest => dest.ModuleID, opt => opt.MapFrom(src => src.ModuleID))
@@ -118,6 +116,7 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.ChapterDescription, opt => opt.MapFrom(src => src.ChapterDescription))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
+            */
                 
             // Course section mappings
             CreateMap<Coursesection, CourseSectionDetailResponse>()

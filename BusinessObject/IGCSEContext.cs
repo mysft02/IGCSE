@@ -55,12 +55,6 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Userpackage> Userpackages { get; set; }
     public virtual DbSet<Quizuseranswer> Quizuseranswers { get; set; }
 
-    public virtual DbSet<Mocktest> Mocktests { get; set; }
-
-    public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }
-
-    public virtual DbSet<Mocktestresult> Mocktestresults { get; set; }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (optionsBuilder.IsConfigured)
@@ -226,8 +220,6 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                   .HasConstraintName("FK_Course_Module_ModuleID");
         });
 
-        // modelBuilder.Entity<Coursekey>(entity => { /* removed coursekey mapping */ });
-
         modelBuilder.Entity<Question>(entity =>
         {
             entity.HasKey(e => e.QuestionId).HasName("PRIMARY");
@@ -290,7 +282,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("coursesection");
             entity.Property(e => e.CourseSectionId).HasColumnName("CourseSectionID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.ChapterId).HasColumnName("ChapterID"); // Foreign key to chapter
+            // entity.Property(e => e.ChapterId).HasColumnName("ChapterID"); // Chapter removed
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Name).HasMaxLength(255);

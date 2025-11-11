@@ -107,16 +107,17 @@ namespace Repository.Repositories
                 .Where(c => c.CreatedBy == creatorAccountId)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
-        public async Task<bool> CheckDuplicate(int? courseId, string userId)
-        {
-            var course = _context.Coursekeys
-                .FirstOrDefault(c => c.CourseId == courseId && c.CreatedBy == userId);
-
-            if(course != null)
-            {
-                return true;
-            }
-            return false;
         }
+        //public async Task<bool> CheckDuplicate(int? courseId, string userId)
+        //{
+        //    var course = _context.Coursekeys
+        //        .FirstOrDefault(c => c.CourseId == courseId && c.CreatedBy == userId);
+
+        //    if(course != null)
+        //    {
+        //        return true;
+        //    }
+        //    return false;
+        //}
     }
 }

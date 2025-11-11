@@ -5,6 +5,7 @@ using BusinessObject.DTOs.Response.ParentStudentLink;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Accounts;
 using BusinessObject.DTOs.Request.Accounts;
+using Microsoft.AspNetCore.Authorization;
 
 namespace IGCSE.Controller
 {

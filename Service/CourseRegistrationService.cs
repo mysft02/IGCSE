@@ -72,12 +72,10 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(long courseKeyId, long courseSectionId)
+        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(long courseSectionId)
         {
             try
             {
-                // coursekey removed; skip validation
-
                 var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(courseSectionId);
                 if (courseSection == null)
                 {
@@ -140,7 +138,6 @@ namespace Service
 
                 var progressResponse = new StudentProgressResponse
                 {
-                    CourseKeyId = 0,
                     CourseId = courseId,
                     CourseName = course.Name,
                     CategoryName = course.Module?.ModuleName ?? "Unknown",

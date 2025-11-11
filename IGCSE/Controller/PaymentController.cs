@@ -22,61 +22,6 @@ namespace IGCSE.Controller
             _paymentService = paymentService;
         }
 
-        [HttpGet("parent-coursekeys")]
-        [Authorize(Roles = "Parent")]
-        [SwaggerOperation(Summary = "Lấy danh sách các key khóa học đã thanh toán thành công mà parent đang có (Parent)")]
-        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetParentCourseKeys()
-        {
-            try
-            {
-                var user = HttpContext.User;
-                var parentId = user.FindFirst("AccountID")?.Value;
-                if (string.IsNullOrEmpty(parentId))
-                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
-
-                var keys = await _paymentService.GetCourseKeysByParentAsync(parentId);
-
-                return Ok(new BaseResponse<List<CourseKeyResponse>>(
-                    $"Tìm thấy {keys.Count} khóa học",
-                    Common.Constants.StatusCodeEnum.OK_200,
-                    keys
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpGet("get-all-keys")]
-        [SwaggerOperation(Summary = "Lấy tất cả key khóa học đã thanh toán thành công")]
-        public async Task<ActionResult<BaseResponse<List<CourseKeyResponse>>>> GetAllCourseKeys([FromQuery] string? status = null, [FromQuery] string? parentId = null, [FromQuery] int? courseId = null)
-        {
-            try
-            {
-                var keys = await _paymentService.GetFilteredCourseKeysAsync(status, parentId, courseId);
-
-                return Ok(new BaseResponse<List<CourseKeyResponse>>(
-                    $"Tìm thấy {keys.Count} mã khóa học",
-                    Common.Constants.StatusCodeEnum.OK_200,
-                    keys
-                ));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-
         [HttpGet("get-payos-payment-url")]
         [Authorize]
         public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> GetPayOSPaymentUrl([FromQuery] PayOSPaymentRequest request)

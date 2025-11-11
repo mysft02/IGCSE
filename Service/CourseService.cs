@@ -422,6 +422,11 @@ namespace Service
                 }
 
                 var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
+                
+                // Biến để tính overall progress
+                int totalLessons = 0;
+                int completedLessons = 0;
+                
                 if (sections != null && sections.Any())
                 {
                     courseDetailResponse.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
@@ -440,6 +445,9 @@ namespace Service
                                 var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
                                 lesson.LessonItems = _mapper.Map<List<LessonItemDetailResponse>>(lessonItems ?? new List<Lessonitem>());
 
+                                // Đếm tổng số lessons
+                                totalLessons++;
+
                                 // Nếu có studentId, cập nhật thông tin tiến trình
                                 if (studentProcesses != null && processItemsDict != null)
                                 {
@@ -452,6 +460,12 @@ namespace Service
                                         // Kiểm tra lesson đã hoàn thành chưa
                                         var completedItems = processItemsDict.GetValueOrDefault(process.ProcessId, new List<Processitem>());
                                         lesson.IsCompleted = lessonItems.Count() > 0 && completedItems.Count == lessonItems.Count();
+                                        
+                                        // Đếm số lessons đã hoàn thành
+                                        if (lesson.IsCompleted)
+                                        {
+                                            completedLessons++;
+                                        }
 
                                         // Cập nhật trạng thái hoàn thành của từng lesson item
                                         foreach (var lessonItemResponse in lesson.LessonItems)
@@ -468,6 +482,27 @@ namespace Service
                             }
                         }
                     }
+                }
+
+                // Cập nhật thông tin enrollment và progress
+                if (studentProcesses != null && studentProcesses.Any())
+                {
+                    courseDetailResponse.IsEnrolled = true;
+                    
+                    // Tính overall progress (phần trăm hoàn thành)
+                    if (totalLessons > 0)
+                    {
+                        courseDetailResponse.OverallProgress = Math.Round((double)completedLessons / totalLessons * 100, 2);
+                    }
+                    else
+                    {
+                        courseDetailResponse.OverallProgress = 0;
+                    }
+                }
+                else
+                {
+                    courseDetailResponse.IsEnrolled = false;
+                    courseDetailResponse.OverallProgress = null; // Không có progress nếu chưa enroll
                 }
 
                 return new BaseResponse<CourseDetailResponse>(
@@ -507,7 +542,6 @@ namespace Service
                 Description = description,
                 Price = price,
                 ImageUrl = "",
-                CategoryId = null,
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

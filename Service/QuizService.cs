@@ -25,6 +25,7 @@ namespace Service
         private readonly TrelloCardService _trelloCardService;
         private readonly IWebHostEnvironment _env;
         private readonly IQuizUserAnswerRepository _quizUserAnswerRepository;
+        private readonly MediaService _mediaService;
 
         public QuizService(
             IMapper mapper, 
@@ -34,7 +35,8 @@ namespace Service
             IQuizResultRepository quizResultRepository, 
             TrelloCardService trelloCardService,
             IWebHostEnvironment env,
-            IQuizUserAnswerRepository quizUserAnswerRepository)
+            IQuizUserAnswerRepository quizUserAnswerRepository,
+            MediaService mediaService)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
@@ -44,6 +46,7 @@ namespace Service
             _trelloCardService = trelloCardService;
             _env = env;
             _quizUserAnswerRepository = quizUserAnswerRepository;
+            _mediaService = mediaService;
         }
 
         public async Task<BaseResponse<PaginatedResponse<QuizQueryResponse>>> GetAllQuizAsync(QuizQueryRequest request)
@@ -100,7 +103,7 @@ namespace Service
                     continue;
                 }
 
-                var imageResponse = await _mediaService.GetImageAsync(_env.WebRootPath, c.PictureUrl);
+                var imageResponse = await _mediaService.GetMediaUrlAsync(c.PictureUrl);
                 c.Image = imageResponse.Data;
             }
 

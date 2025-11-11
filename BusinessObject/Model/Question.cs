@@ -16,7 +16,5 @@ public class Question
 
     public DateTime UpdatedAt { get; set; }
 
-    public string? PictureUrl { get; set; }
-
     public virtual Quiz Quiz { get; set; } = null!;
 }

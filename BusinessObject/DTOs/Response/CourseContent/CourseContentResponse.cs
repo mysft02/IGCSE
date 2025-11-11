@@ -36,7 +36,6 @@ namespace BusinessObject.DTOs.Response.CourseContent
 
     public class StudentProgressResponse
     {
-        public long CourseKeyId { get; set; }
         public long CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;

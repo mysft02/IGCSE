@@ -39,10 +39,5 @@ namespace Repository.Repositories
                 .OrderBy(cs => cs.Order)
                 .ToListAsync();
         }
-
-        public async Task<IEnumerable<Coursesection>> GetByChapterIdAsync(int chapterId)
-        {
-            return await _context.Coursesections.Where(s => s.ChapterId == chapterId).ToListAsync();
-        }
     }
 }

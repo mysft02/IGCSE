@@ -44,6 +44,25 @@ namespace IGCSE.Controller
             _paymentService = paymentService;
         }
 
+        [HttpGet("all")]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
+        {
+            try
+            {
+                var result = await _courseService.GetCoursesPagedAsync(query);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpPost("create")]
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(Summary = "Tạo khóa học (Teacher)")]
@@ -63,7 +82,7 @@ namespace IGCSE.Controller
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized(new BaseResponse<object>(
-                    $"User ID not found in token", 
+                    $"Không tìm thấy ID", 
                     StatusCodeEnum.Unauthorized_401, 
                     null));
             }
@@ -71,140 +90,6 @@ namespace IGCSE.Controller
             var result = await _courseService.CreateCourseAsync(request, userId);
 
             return Ok(result);
-        }
-
-        [HttpGet("all")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học")]
-        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
-        {
-            try
-            {
-                var result = await _courseService.GetCoursesPagedAsync(query);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpPost("{courseId}/approve")]
-        [Authorize(Roles = "Manager")]
-        [SwaggerOperation(Summary = "Duyệt khóa học (Manager)")]
-        public async Task<ActionResult<BaseResponse<CourseResponse>>> ApproveCourse(long courseId)
-        {
-            try
-            {
-                var result = await _courseService.ApproveCourseAsync(courseId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpPost("{courseId}/reject")]
-        [Authorize(Roles = "Manager")]
-        [SwaggerOperation(Summary = "Từ chối khóa học (Manager)")]
-        public async Task<ActionResult<BaseResponse<CourseResponse>>> RejectCourse(long courseId, [FromBody] string? reason)
-        {
-            try
-            {
-                var result = await _courseService.RejectCourseAsync(courseId, reason);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpGet("my-registrations")]
-        [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetMyRegistrations()
-        {
-            try
-            {
-                var user = HttpContext.User;
-                var userId = user.FindFirst("AccountID")?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
-                }
-
-                var result = await _courseRegistrationService.GetStudentRegistrationsAsync(userId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    $"Lỗi khi lấy danh sách khóa học đã đăng ký: {ex.Message}",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpGet("progress")]
-        [SwaggerOperation(Summary = "Lấy thông tin tiến trình khóa học đã đăng ký của sinh viên theo studentId và courseId (Parent/Student)")]
-        public async Task<ActionResult<BaseResponse<StudentProgressResponse>>> GetStudentProgressByStudentAndCourse([FromQuery] string studentId, [FromQuery] long courseId)
-        {
-            try
-            {
-                var result = await _courseRegistrationService.GetStudentProgressAsync(studentId, courseId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.NotFound_404,
-                    null
-                ));
-            }
-        }
-
-        [HttpPost("complete-lesson-item")]
-        [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Đánh dấu hoàn thành lesson item (Student)")]
-        public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int lessonItemId)
-        {
-            try
-            {
-                var user = HttpContext.User;
-                var userId = user.FindFirst("AccountID")?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
-                }
-
-                var result = await _courseRegistrationService.CompleteLessonItemAsync(userId, lessonItemId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    $"Lỗi khi hoàn thành lesson item: {ex.Message}",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
         }
 
         [HttpPost("section/create")]
@@ -219,7 +104,7 @@ namespace IGCSE.Controller
                                               .ToList();
                 return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
             }
@@ -240,7 +125,7 @@ namespace IGCSE.Controller
                                               .ToList();
                 return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
             }
@@ -261,7 +146,7 @@ namespace IGCSE.Controller
                                               .ToList();
                 return BadRequest(new BaseResponse<string>(
                     "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    StatusCodeEnum.BadRequest_400,
                     string.Join(", ", errors)
                 ));
             }
@@ -276,14 +161,14 @@ namespace IGCSE.Controller
                     if (request.ItemType.Equals("pdf", StringComparison.OrdinalIgnoreCase))
                     {
                         if (!FileUploadHelper.IsValidLessonDocument(request.File))
-                            throw new ArgumentException("Invalid PDF file");
+                            throw new ArgumentException("PDF không hợp lệ");
 
                         fileUrl = await FileUploadHelper.UploadLessonDocumentAsync(request.File, _environment.WebRootPath);
                     }
                     else if (request.ItemType.Equals("video", StringComparison.OrdinalIgnoreCase))
                     {
                         if (!FileUploadHelper.IsValidLessonVideo(request.File))
-                            throw new ArgumentException("Invalid video file");
+                            throw new ArgumentException("Video không hợp lệ");
 
                         fileUrl = await FileUploadHelper.UploadLessonVideoAsync(request.File, _environment.WebRootPath);
                     }
@@ -301,30 +186,66 @@ namespace IGCSE.Controller
             {
                 return BadRequest(new BaseResponse<string>(
                     ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    StatusCodeEnum.BadRequest_400,
                     null
                 ));
             }
         }
-        
-        [HttpGet("get-all-similar-courses")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)
+
+        [HttpPost("complete-lesson-item")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(Summary = "Đánh dấu hoàn thành lesson item (Student)")]
+        public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int lessonItemId)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
+                var user = HttpContext.User;
+                var userId = user.FindFirst("AccountID")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseRegistrationService.CompleteLessonItemAsync(userId, lessonItemId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
+                    $"Lỗi khi hoàn thành thành phần của bài học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
                 ));
             }
+        }
 
-            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
-            return Ok(result);
+        [HttpGet("my-registrations")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseRegistrationResponse>>>> GetMyRegistrations()
+        {
+            try
+            {
+                var user = HttpContext.User;
+                var userId = user.FindFirst("AccountID")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseRegistrationService.GetStudentRegistrationsAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy danh sách khóa học đã đăng ký: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
         }
 
         [HttpGet("my-create-course")]
@@ -336,10 +257,30 @@ namespace IGCSE.Controller
             var teacherId = user.FindFirst("AccountID")?.Value;
             if (string.IsNullOrEmpty(teacherId))
             {
-                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
             }
 
             var result = await _courseService.GetTeacherCoursesAsync(teacherId);
+            return Ok(result);
+        }
+
+        [HttpGet("get-all-similar-courses")]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new BaseResponse<string>(
+                    "Dữ liệu không hợp lệ",
+                    StatusCodeEnum.BadRequest_400,
+                    string.Join(", ", errors)
+                ));
+            }
+
+            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
             return Ok(result);
         }
 
@@ -362,7 +303,7 @@ namespace IGCSE.Controller
             {
                 return BadRequest(new BaseResponse<string>(
                     $"Lỗi khi lấy thông tin khóa học: {ex.Message}",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
+                    StatusCodeEnum.BadRequest_400,
                     null
                 ));
             }

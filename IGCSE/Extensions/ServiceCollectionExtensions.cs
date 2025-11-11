@@ -11,8 +11,6 @@ using Service.OAuth;
 using Service.Background;
 using Service.Background.Interfaces;
 using Service.Background.Executors;
-using Service.PayOS;
-using BusinessObject.Model;
 
 namespace IGCSE.Extensions
 {
@@ -34,8 +32,6 @@ namespace IGCSE.Extensions
             services.AddScoped<IPaymentRepository, PaymentRepository>();
             services.AddScoped<IQuestionRepository, QuestionRepository>();
             services.AddScoped<IModuleRepository, ModuleRepository>();
-            // services.AddScoped<IChapterRepository, ChapterRepository>(); // Chapter disabled
-            // services.AddScoped<ChapterService>(); // Chapter disabled
             services.AddScoped<IParentStudentLinkRepository, ParentStudentLinkRepository>();
             services.AddScoped<ITrelloTokenRepository, TrelloTokenRepository>();
             services.AddScoped<IMockTestRepository, MockTestRepository>();

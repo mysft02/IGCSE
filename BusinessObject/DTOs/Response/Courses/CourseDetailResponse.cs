@@ -13,6 +13,10 @@ namespace BusinessObject.DTOs.Response.Courses
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<CourseSectionDetailResponse> Sections { get; set; } = new();
+        
+        // Thông tin tiến trình học (chỉ có khi student đã đăng nhập và enroll)
+        public bool IsEnrolled { get; set; } = false;
+        public double? OverallProgress { get; set; } = null; // Phần trăm hoàn thành (0-100)
     }
     public class ModuleDetailResponse
     {
