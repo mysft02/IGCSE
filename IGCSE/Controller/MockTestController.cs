@@ -38,7 +38,10 @@ namespace IGCSE.Controller
 
         [HttpGet("get-mocktest-result")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy danh sách kết quả các bài thi mock test đã làm")]
+        [SwaggerOperation(Summary = "Lấy danh sách kết quả các bài thi mock test đã làm", 
+            Description ="Api dùng để lấy danh sách toàn bộ kết quả bài mock test đã làm của người dùng có bao gồm đáp án, cách giải và câu trả lời của người dùng. " +
+            "`MockTestId` để lọc theo danh sách bài mock test, " +
+            "`MockTestResultId` để lấy 1 kết quả nhất định")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>>> GetAllMockTestResult([FromQuery] MockTestResultQueryRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
@@ -56,7 +59,7 @@ namespace IGCSE.Controller
 
         [HttpGet("get-mocktest-by-id")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi")]
+        [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi", Description ="Api dùng để lấy danh sách câu hỏi của bài mock test cho việc thực hiện bài mock test không bao gồm đáp án")]
         public async Task<ActionResult<BaseResponse<MockTestForStudentResponse>>> GetMockTestForStudent([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;

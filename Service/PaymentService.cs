@@ -22,6 +22,7 @@ namespace Service
         private readonly ICourseRepository _courseRepository;
         private readonly PayOSApiService _payOSApiService;
         private readonly IPackageRepository _packageRepository;
+        private readonly IUserPackageRepository _userPackageRepository;
 
         public PaymentService(
             ICoursekeyRepository coursekeyRepository,
@@ -30,7 +31,8 @@ namespace Service
             IPaymentRepository paymentRepository,
             ICourseRepository courseRepository,
             PayOSApiService payOSApiService,
-            IPackageRepository packageRepository)
+            IPackageRepository packageRepository,
+            IUserPackageRepository userPackageRepository)
         {
             _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
@@ -39,6 +41,7 @@ namespace Service
             _courseRepository = courseRepository;
             _payOSApiService = payOSApiService;
             _packageRepository = packageRepository;
+            _userPackageRepository = userPackageRepository;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
@@ -119,17 +122,20 @@ namespace Service
             {
                 transaction.ItemId = packageId.Value;
 
-                var userPackage = new Userpackage
+                var userPackage = await _userPackageRepository.FindOneAsync(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == userId && x.PackageId == packageId);
+
+                var newUserPackage = new Userpackage
                 {
-                    UserId = userId,
                     PackageId = packageId.Value,
                     Price = paymentResponse.Data.AmountPaid,
+                    UserId = userPackage.UserId.Split("_")[0],
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
                 };
 
-                await _packageRepository.AddUserPackageAsync(userPackage);
+                await _userPackageRepository.DeleteAsync(userPackage);
+                await _userPackageRepository.AddAsync(newUserPackage);
             }
 
             await _paymentRepository.AddAsync(transaction);
@@ -214,7 +220,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId)
+        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId, string userRole)
         {
             var body = new PayOSApiBody
             {
@@ -243,23 +249,42 @@ namespace Service
             }
             else
             {
-                var packageCheck = await _packageRepository.CheckDuplicate(request.PackageId, userId);
-                if (packageCheck)
+                var packageCheck = await _packageRepository.GetByUserId(request.DestUserId);
+
+                if(userRole == "Parent")
                 {
-                    throw new Exception("Bạn đã mua gói đăng kí này rồi.");
+                    if(packageCheck != null)
+                    {
+                        throw new Exception("Bạn đã mua gói này rồi.");
+                    }
+
+                    var userPackage = new Userpackage
+                    {
+                        PackageId = request.PackageId,
+                        UserId = request.DestUserId + "_" + userId,
+                        IsActive = false,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                    };
+
+                    await _userPackageRepository.AddAsync(userPackage);
+                    
+                    body.Description = $"Thanh toán cho gói {request.PackageId}.";
                 }
-
-                body.Description = $"Thanh toán cho gói {request.PackageId}.";
             }
+            // Kiểm tra API keys trước khi tạo signature
+            var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY");
+            var clientId = CommonUtils.GetApiKey("PAYOS_CLIENT_ID");
+            var apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY");
 
-            var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
+            var signature = CommonUtils.GeneratePayOSSignature(body, checksumKey);
 
             body.Signature = signature;
 
             var apiRequest = PayOSApiRequest.Builder()
                 .CallUrl("/v2/payment-requests")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddHeader("x-client-id", clientId)
+                .AddHeader("x-api-key", apiKey)
                 .Body(body)
                 .Build();
 
