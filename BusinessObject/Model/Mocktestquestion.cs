@@ -19,4 +19,8 @@ public class Mocktestquestion
     public string? PartialMark { get; set; }
 
     public decimal? Mark { get; set; }
+
+    public virtual Mocktestresult Mocktestresult { get; set; }
+
+    public virtual ICollection<Mocktestuseranswer> MockTestUserAnswer { get; set; }
 }

@@ -1,4 +1,5 @@
-﻿using BusinessObject.Model;
+﻿using BusinessObject.DTOs.Response.MockTest;
+using BusinessObject.Model;
 using BusinessObject.Payload.Request.Filter;
 using System.Linq.Expressions;
 
@@ -7,6 +8,8 @@ namespace BusinessObject.DTOs.Request.MockTest
     public class MockTestResultQueryRequest : BaseQueryRequest
     {
         public int? MockTestId { get; set; }
+
+        public int? MockTestResultId { get; set; }
 
         public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
         {
@@ -18,7 +21,7 @@ namespace BusinessObject.DTOs.Request.MockTest
             return BuildMockTestResultFilter() as Expression<Func<T, bool>>;
         }
 
-        public List<Mocktestresult> ApplySorting(List<Mocktestresult> tests)
+        public List<MockTestResultQueryResponse> ApplySorting(List<MockTestResultQueryResponse> tests)
         {
             if (string.IsNullOrEmpty(SortBy))
                 return tests;
@@ -31,17 +34,14 @@ namespace BusinessObject.DTOs.Request.MockTest
                     ? tests.OrderBy(t => t.MockTestResultId).ToList()
                     : tests.OrderByDescending(t => t.MockTestResultId).ToList(),
                 "mocktestid" => isAscending
-                    ? tests.OrderBy(t => t.MockTestId).ToList()
-                    : tests.OrderByDescending(t => t.MockTestId).ToList(),
+                    ? tests.OrderBy(t => t.MockTest.MockTestId).ToList()
+                    : tests.OrderByDescending(t => t.MockTest.MockTestId).ToList(),
                 "score" => isAscending
                     ? tests.OrderBy(t => t.Score).ToList()
                     : tests.OrderByDescending(t => t.Score).ToList(),
-                "userid" => isAscending
-                    ? tests.OrderBy(t => t.UserId).ToList()
-                    : tests.OrderByDescending(t => t.UserId).ToList(),
-                "createdat" => isAscending
-                    ? tests.OrderBy(t => t.CreatedAt).ToList()
-                    : tests.OrderByDescending(t => t.CreatedAt).ToList(),
+                "datetaken" => isAscending
+                    ? tests.OrderBy(t => t.DateTaken).ToList()
+                    : tests.OrderByDescending(t => t.DateTaken).ToList(),
                 _ => tests
             };
         }
@@ -63,7 +63,12 @@ namespace BusinessObject.DTOs.Request.MockTest
                 predicates.Add(x => x.MockTestId == MockTestId);
             }
 
-            if(userID != null)
+            if (!string.IsNullOrEmpty(MockTestResultId?.ToString()))
+            {
+                predicates.Add(x => x.MockTestResultId == MockTestResultId);
+            }
+
+            if (userID != null)
             {
                 predicates.Add(x => x.UserId == userID);
             }
