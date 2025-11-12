@@ -549,7 +549,7 @@ namespace Service
             }
         }
 
-        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses)
+        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId)
         {
             courseName = courseName.Replace("[course]", "").Trim();
             string description = "This is a course imported from Trello.";
@@ -575,7 +575,9 @@ namespace Service
                 ImageUrl = "",
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = userId,
+                UpdatedBy = userId
             };
             var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
             course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);

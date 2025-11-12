@@ -1,5 +1,6 @@
 ﻿using BusinessObject;
 using BusinessObject.Model;
+using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
 
@@ -12,18 +13,6 @@ namespace Repository.Repositories
         public PackageRepository(IGCSEContext context) : base(context)
         {
             _context = context;
-        }
-
-        public async Task<bool> CheckDuplicate(int packageId, string userId)
-        {
-            var package = _context.Userpackages
-                .FirstOrDefault(p => p.PackageId == packageId && p.UserId == userId);
-
-            if (package != null)
-            {
-                return true;
-            }
-            return false;
         }
 
         public async Task<Package?> AddUserPackageAsync(Userpackage userpackage)

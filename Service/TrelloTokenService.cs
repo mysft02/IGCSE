@@ -25,6 +25,7 @@ public class TrelloTokenService
     private readonly QuizService _quizService;
     private readonly IMapper _mapper;
     private readonly MockTestQuestionService _mockTestQuestionService;
+    private readonly ICreateSlotRepository _createSlotRepository;
     private readonly IBackgroundTaskInvoker? _backgroundTaskInvoker;
 
     public TrelloTokenService(
@@ -38,6 +39,7 @@ public class TrelloTokenService
         QuizService quizService,
         MockTestService mockTestService,
         MockTestQuestionService mockTestQuestionService,
+        ICreateSlotRepository createSlotRepository,
         IBackgroundTaskInvoker? backgroundTaskInvoker = null)
     {
         _trelloTokenRepository = trelloTokenRepository;
@@ -50,6 +52,7 @@ public class TrelloTokenService
         _quizService = quizService;
         _mockTestService = mockTestService;
         _mockTestQuestionService = mockTestQuestionService;
+        _createSlotRepository = createSlotRepository;
         _backgroundTaskInvoker = backgroundTaskInvoker;
     }
 
@@ -111,6 +114,17 @@ public class TrelloTokenService
     
     public async Task<string> AutoUploadFromTrelloAsync(string userId, string trelloId, string boardId)
     {
+        var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+        if(createSlot != null)
+        {
+            throw new Exception("Bạn chưa mua gói để tạo mới khoá học. Vui lòng mua gói trước.");
+        }
+
+        if(createSlot.Slot <= createSlot.AvailableSlot)
+        {
+            throw new Exception("Bạn không còn suất tạo mới khoá học. Vui lòng mua thêm gói.");
+        }
+
         var trelloToken = await _trelloTokenRepository.FindOneAsync(token =>
             token.TrelloId == trelloId &&
             token.UserId == userId
@@ -129,13 +143,14 @@ public class TrelloTokenService
             this,
             nameof(SyncAndUploadCourse),
             trelloToken,
-            boardId
+            boardId,
+            createSlot
             );
         return "Upload bài giảng từ Trello đang được tiến hành trong nền. Vui lòng kiểm tra lại sau.";
     }
     
     [BackgroundTask("syncExecutor")]
-    public async Task<string> SyncAndUploadCourse(TrelloToken trelloToken, string boardId)
+    public async Task<string> SyncAndUploadCourse(TrelloToken trelloToken, string boardId, Createslot createSlot)
     {
         try
         {
@@ -160,7 +175,7 @@ public class TrelloTokenService
                 if (ExtractTypeTrelloListContent(list.Name) == "Course")
                 {
                     //create course
-                    course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses);
+                    course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Section")
                 {
@@ -188,6 +203,9 @@ public class TrelloTokenService
                     continue;
                 }
             }
+
+            createSlot.AvailableSlot -= 1;
+            await _createSlotRepository.UpdateAsync(createSlot);
         }
         catch (Exception e)
         {
