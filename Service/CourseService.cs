@@ -10,6 +10,8 @@ using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Request.CourseContent;
 using BusinessObject.Payload.Response.Trello;
+using Repository.Repositories;
+using BusinessObject.DTOs.Response.MockTest;
 
 namespace Service
 {
@@ -361,21 +363,40 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync()
+        public async Task<BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request)
         {
-            var courseAnalytics = await _courseRepository.GetCoursesSortedByStatus();
+            var filter = request.BuildFilter<Course>();
 
-            var result = new CourseAnalyticsResponse
+            // Get total count first (for pagination info)
+            var totalCount = await _courseRepository.CountAsync(filter);
+
+            // Get filtered items
+            var items = await _courseRepository.GetCourseAnalyticsAsync(request, filter);
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items);
+
+            var pagedItems = sortedItems
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>
             {
-                TotalCourse = await _courseRepository.CountAsync(),
-                Partion = courseAnalytics
+                Data = new PaginatedResponse<CourseDashboardQueryResponse>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy thống kê khoá học thành công",
+                StatusCode = StatusCodeEnum.OK_200
             };
-
-            return new BaseResponse<CourseAnalyticsResponse>(
-                "Course analytics retrieved successfully",
-                StatusCodeEnum.OK_200,
-                result
-            );
         }
         public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(long courseId)
         {

@@ -151,13 +151,16 @@ namespace Repository.BaseRepository
         /// <summary>
         /// Find entities with optional filter
         /// </summary>
-        public async Task<List<T>> FindAsync(Expression<Func<T, bool>>? filter = null)
+        public async Task<List<T>> FindAsync(params Expression<Func<T, bool>>[] filters)
         {
             var query = _dbContext.Set<T>().AsQueryable();
             
-            if (filter != null)
+            if (filters != null)
             {
-                query = query.Where(filter);
+                foreach(var filter in filters)
+                {
+                    query = query.Where(filter);
+                }
             }
             
             return await query.ToListAsync();

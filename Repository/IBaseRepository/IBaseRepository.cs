@@ -15,9 +15,9 @@ namespace Repository.IBaseRepository
         Task<List<T>> UpdateRange(List<T> entities);
         Task<List<T>> DeleteRange(List<T> entities);
         Task<T> AddOrUpdateAsync(T entity, Func<T, object> keySelector);
-        
+
         // Query methods
-        Task<List<T>> FindAsync(Expression<Func<T, bool>>? filter = null);
+        Task<List<T>> FindAsync(params Expression<Func<T, bool>>[] filters);
         Task<T?> FindOneAsync(Expression<Func<T, bool>> filter);
 
         Task<int> CountAsync(Expression<Func<T, bool>>? filter = null);

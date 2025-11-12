@@ -30,4 +30,8 @@ public class Course
     public string EmbeddingData { get; set; } = null!;
 
     public virtual Category? Category { get; set; }
+
+    public virtual ICollection<Coursekey> CourseKeys { get; set; }
+
+    public virtual Finalquiz FinalQuiz { get; set; }
 }
