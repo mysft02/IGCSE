@@ -1,4 +1,4 @@
-﻿using Common.Constants;
+using Common.Constants;
 
 namespace BusinessObject.DTOs.Response.MockTest
 {

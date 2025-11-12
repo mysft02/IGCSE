@@ -1,0 +1,96 @@
+databaseChangeLog:
+  - changeSet:
+      id: 28
+      author: quanghuy
+      changes:
+        - createTable:
+            tableName: module
+            columns:
+              - column:
+                  name: ModuleID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ModuleName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+        - createTable:
+            tableName: chapter
+            columns:
+              - column:
+                  name: ChapterID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ModuleID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ChapterName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ChapterDescription
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+        - addColumn:
+            tableName: coursesection
+            columns:
+              - column:
+                  name: ChapterID
+                  type: INT
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: chapter
+        - dropTable:
+            tableName: module
+        - dropColumn:
+            columnName: ChapterID
+            tableName: coursesection

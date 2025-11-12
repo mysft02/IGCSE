@@ -2,6 +2,7 @@
 using BusinessObject;
 using Repository.BaseRepository;
 using Repository.IRepositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Repository.Repositories
 {
@@ -12,6 +13,13 @@ namespace Repository.Repositories
         public QuizRepository(IGCSEContext context) : base(context)
         {
             _context = context;
+        }
+
+        public async Task<Quiz?> GetByQuizIdAsync(int quizId)
+        {
+            return _context.Quizzes
+                .Include(x => x.Questions)
+                .FirstOrDefault(x => x.QuizId == quizId);
         }
     }
 }

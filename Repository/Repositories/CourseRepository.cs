@@ -7,8 +7,6 @@ using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Request.Courses;
 using System.Linq.Expressions;
-using System.Xml.Linq;
-using System;
 
 namespace Repository.Repositories
 {
@@ -30,14 +28,14 @@ namespace Repository.Repositories
         public async Task<Course?> GetByCourseIdWithCategoryAsync(long courseId)
         {
             return await _context.Set<Course>()
-                .Include(c => c.Category)
+                .Include(c => c.Module)
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
         public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId)
         {
             return await _context.Set<Course>()
-                .Where(c => c.CategoryId == categoryId)
+                .Where(c => c.ModuleId == categoryId)
                 .ToListAsync();
         }
 
@@ -106,22 +104,17 @@ namespace Repository.Repositories
             return result;
         }
 
-        public async Task<bool> CheckDuplicate(int? courseId, string userId)
+        public async Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId)
         {
-            var course = _context.Coursekeys
-                .FirstOrDefault(c => c.CourseId == courseId && c.CreatedBy == userId);
-
-            if(course != null)
-            {
-                return true;
-            }
-            return false;
+            return await _context.Set<Course>()
+                .Where(c => c.CreatedBy == creatorAccountId)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<List<CourseDashboardQueryResponse>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request, Expression<Func<Course, bool>>? filter = null)
         {
             var query = _context.Courses
-                .Include(x => x.CourseKeys)
                 .Include(x => x.FinalQuiz).ThenInclude(xc => xc.FinalQuizResult)
                 .AsQueryable();
 
@@ -143,7 +136,7 @@ namespace Repository.Repositories
                     CreatedAt = (DateTime)x.CreatedAt,
                     UpdatedAt = (DateTime)x.UpdatedAt,
                     CreatedBy = x.CreatedBy,
-                    CustomerCount = x.CourseKeys.Where(xc => xc.CourseId == x.CourseId).Count(),
+                    CustomerCount = _context.Processes.Where(xc => xc.CourseId == x.CourseId).Count(),
                     AverageFinalScore = x.FinalQuiz.FinalQuizResult.Select(xc => xc.Score).ToList().Average(),
                     TotalIncome = _context.Transactionhistories.Where(xc => xc.ItemId == x.CourseId).Select(n => n.Amount).ToList().Sum(),
                 })

@@ -229,29 +229,11 @@ namespace Common.Utils
             return dot / denominator;
         }
 
-        public static bool isEmtyString(string? str)
-        {
-            if (str == null)
-            {
-                return true;
-            }
-            return string.IsNullOrWhiteSpace(str);
-        }
-        
-        public static bool isEmtyObject(object? obj)
-        {
-            if (obj == null)
-            {
-                return true;
-            }
-            return false;
-        }
-
         public static string GeneratePayOSSignature(object body, string checksumKey)
         {
             var props = body.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.GetValue(body) != null)
-                .Select(p =>
+                .Select(p => 
                 {
                     var jsonPropertyName = p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name;
                     return new { Key = jsonPropertyName, Value = p.GetValue(body)!.ToString() };
@@ -401,7 +383,7 @@ namespace Common.Utils
             }
             return string.IsNullOrWhiteSpace(str);
         }
-
+        
         public static bool IsEmptyObject(object? obj)
         {
             if (obj == null)

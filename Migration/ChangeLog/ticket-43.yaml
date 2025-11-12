@@ -1,0 +1,125 @@
+databaseChangeLog:
+  - changeSet:
+      id: 43
+      author: huy
+      changes:
+        - dropTable:
+            tableName: category
+        - dropTable:
+            tableName: coursekey
+        - dropColumn:
+            tableName: course
+            columnName: CategoryID
+        - addColumn:
+            tableName: course
+            columns:
+              - column:
+                  name: ModuleID
+                  type: INT
+                  constraints:
+                    nullable: true
+        - addColumn:
+            tableName: module
+            columns:
+              - column:
+                  name: EmbeddingDataSubject
+                  type: TEXT
+                  constraints:
+                    nullable: true
+        - dropColumn:
+            tableName: module
+            columnName: CourseID
+        - dropColumn:
+            tableName: process
+            columnName: CourseKeyID
+        - addColumn:
+            tableName: process
+            columns:
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: StudentID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+      rollback:
+        - addColumn:
+            tableName: module
+            columns:
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: true
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: CategoryID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CategoryName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+        - createTable:
+            tableName: coursekey
+            columns:
+              - column:
+                  name: CourseKeyID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: Key
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsUsed
+                  type: BIT
+                  constraints:
+                    nullable: false
+                    defaultValue: 0
+        - addColumn:
+            tableName: course
+            columns:
+              - column:
+                  name: CategoryID
+                  type: INT
+                  constraints:
+                    nullable: true
+        - dropColumn:
+            tableName: course
+            columnName: ModuleID
+        - dropColumn:
+            tableName: module
+            columnName: EmbeddingDataSubject
+        - dropColumn:
+            tableName: process
+            columnName: CourseID
+        - dropColumn:
+            tableName: process
+            columnName: StudentID
+        - addColumn:
+            tableName: process
+            columns:
+              - column:
+                  name: CourseKeyID
+                  type: INT
+                  constraints:
+                    nullable: false
+      tags:
+        - database-schema-update

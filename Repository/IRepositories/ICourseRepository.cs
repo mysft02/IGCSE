@@ -14,7 +14,7 @@ namespace Repository.IRepositories
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId);
         Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status);
         Task<Dictionary<string, int>> GetCoursesSortedByStatus();
-        Task<bool> CheckDuplicate(int? courseId, string userId);
+        Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId);
         Task<List<CourseDashboardQueryResponse>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request, Expression<Func<Course, bool>>? filter = null);
     }
 }

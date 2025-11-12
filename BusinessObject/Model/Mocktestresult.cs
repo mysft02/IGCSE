@@ -1,4 +1,4 @@
-﻿namespace BusinessObject.Model;
+namespace BusinessObject.Model;
 
 public class Mocktestresult
 {

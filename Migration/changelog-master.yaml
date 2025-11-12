@@ -14,14 +14,18 @@
   - include:
       file: ./ChangeLog/ticket-17.yaml
   - include:
+      file: ./ChangeLog/ticket-28.yaml
+  - include:
       file: ./ChangeLog/ticket-27.yaml
   - include:
       file: ./ChangeLog/ticket-31.yaml
   - include:
-      file: ./ChangeLog/ticket-37.yaml
+      file: ./ChangeLog/ticket-30.yaml
   - include:
       file: ./ChangeLog/ticket-33.yaml
   - include:
-      file: ./ChangeLog/ticket-39.yaml
+      file: ./ChangeLog/ticket-43.yaml
   - include:
-      file: ./ChangeLog/ticket-30.yaml
+      file: ./ChangeLog/ticket-37.yaml
+  - include:
+      file: ./ChangeLog/ticket-39.yaml

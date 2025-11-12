@@ -12,24 +12,42 @@ namespace BusinessObject.DTOs.Response.Courses
         public string ImageUrl { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public int CategoryId { get; set; }
-        public string CategoryName { get; set; } = string.Empty;
-
-        // Thông tin chi tiết về cấu trúc khóa học
-        public List<CourseSectionDetailResponse> Sections { get; set; } = new List<CourseSectionDetailResponse>();
+        public List<CourseSectionDetailResponse> Sections { get; set; } = new();
+        
+        // Thông tin tiến trình học (chỉ có khi student đã đăng nhập và enroll)
+        public bool IsEnrolled { get; set; } = false;
+        public double? OverallProgress { get; set; } = null; // Phần trăm hoàn thành (0-100)
     }
-
+    public class ModuleDetailResponse
+    {
+        public int ModuleID { get; set; }
+        public string ModuleName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public sbyte IsActive { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public List<ChapterDetailResponse> Chapters { get; set; } = new();
+    }
+    public class ChapterDetailResponse
+    {
+        public int ChapterID { get; set; }
+        public int ModuleID { get; set; }
+        public string ChapterName { get; set; } = string.Empty;
+        public string? ChapterDescription { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public List<CourseSectionDetailResponse> Sections { get; set; } = new();
+    }
     public class CourseSectionDetailResponse
     {
-        public long CourseSectionId { get; set; }
         public long CourseId { get; set; }
+        public long CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
         public bool IsActive { get; set; }
-        public List<LessonDetailResponse> Lessons { get; set; } = new List<LessonDetailResponse>();
+        public List<LessonDetailResponse> Lessons { get; set; } = new();
     }
-
     public class LessonDetailResponse
     {
         public long LessonId { get; set; }
@@ -38,6 +56,20 @@ namespace BusinessObject.DTOs.Response.Courses
         public string? Description { get; set; }
         public int Order { get; set; }
         public bool IsActive { get; set; }
-        public List<LessonItemResponse> LessonItems { get; set; } = new List<LessonItemResponse>();
+        public bool IsUnlocked { get; set; } = false;  // Trạng thái mở khóa bài học
+        public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành bài học
+        public List<LessonItemDetailResponse> LessonItems { get; set; } = new();
+    }
+    
+    public class LessonItemDetailResponse
+    {
+        public long LessonItemId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string ItemType { get; set; } = string.Empty; // video, text, quiz, etc.
+        public int Order { get; set; }
+        public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành item
+        public DateTime? CompletedAt { get; set; } // Thời gian hoàn thành
     }
 }

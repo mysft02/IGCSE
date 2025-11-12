@@ -15,30 +15,36 @@ namespace Service
 {
     public class PaymentService
     {
-        private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
         private readonly ICourseRepository _courseRepository;
         private readonly PayOSApiService _payOSApiService;
         private readonly IPackageRepository _packageRepository;
+        private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
+        private readonly CourseService _courseService;
+        private readonly IProcessRepository _processRepository;
 
         public PaymentService(
-            ICoursekeyRepository coursekeyRepository,
             IAccountRepository accountRepository,
             UserManager<Account> userManager,
             IPaymentRepository paymentRepository,
             ICourseRepository courseRepository,
             PayOSApiService payOSApiService,
-            IPackageRepository packageRepository)
+            IPackageRepository packageRepository,
+            IParentStudentLinkRepository parentStudentLinkRepository,
+            CourseService courseService,
+            IProcessRepository processRepository)
         {
-            _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
             _userManager = userManager;
             _paymentRepository = paymentRepository;
             _courseRepository = courseRepository;
             _payOSApiService = payOSApiService;
             _packageRepository = packageRepository;
+            _parentStudentLinkRepository = parentStudentLinkRepository;
+            _courseService = courseService;
+            _processRepository = processRepository;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
@@ -98,22 +104,22 @@ namespace Service
             {
                 transaction.ItemId = courseId.Value;
 
-                // Tạo CourseKey khi thanh toán thành công cho khóa học
-                var uniqueKeyValue = Guid.NewGuid().ToString("N");
-                var courseKey = new Coursekey
+                // Tự động enroll tất cả students liên kết với Parent vào khóa học
+                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
+                
+                foreach (var student in linkedStudents)
                 {
-                    CourseId = courseId.Value,
-                    StudentId = null,
-                    CreatedBy = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Status = "available",
-                    KeyValue = uniqueKeyValue
-                };
-                await _coursekeyRepository.AddAsync(courseKey);
-
-                // Gửi key cho Parent
-                await SendKeyToParentAsync(userId, uniqueKeyValue, courseId.Value);
+                    try
+                    {
+                        // Khởi tạo tiến trình học cho từng student
+                        await _courseService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error nhưng không throw để không ảnh hưởng đến các student khác
+                        Console.WriteLine($"Error enrolling student {student.Id} to course {courseId.Value}: {ex.Message}");
+                    }
+                }
             }
             else if (packageId.HasValue)
             {
@@ -135,7 +141,7 @@ namespace Service
             await _paymentRepository.AddAsync(transaction);
 
             var successMessage = courseId.HasValue 
-                ? "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh."
+                ? "Thanh toán thành công! Các học sinh đã được đăng ký vào khóa học."
                 : "Thanh toán thành công! Gói đăng kí đã được kích hoạt.";
 
             return new BaseResponse<PayOSPaymentReturnResponse>(
@@ -143,75 +149,6 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     paymentResponse
                 );
-        }
-
-        public async Task<List<CourseKeyResponse>> GetAllCourseKeysAsync()
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync();
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<List<CourseKeyResponse>> GetFilteredCourseKeysAsync(string? status = null, string? parentId = null, int? courseId = null)
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync(status, parentId, courseId);
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
         }
 
         public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId)
@@ -233,8 +170,9 @@ namespace Service
 
             if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
-                var courseCheck = await _courseRepository.CheckDuplicate(request.CourseId, userId);
-                if (courseCheck)
+                // Kiểm tra xem parent đã mua khóa học này chưa bằng cách kiểm tra transaction history
+                var existingTransaction = await _processRepository.FindOneAsync(x => x.CourseId == request.CourseId);
+                if (existingTransaction != null)
                 {
                     throw new Exception("Bạn đã mua khóa học này rồi.");
                 }
@@ -325,27 +263,6 @@ namespace Service
                 StatusCodeEnum.OK_200,
                 response
                 );
-        }
-
-        private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
-        {
-            var parent = await _accountRepository.GetByStringId(parentId);
-            if (parent == null)
-            {
-                throw new Exception("Không tìm thấy thông tin phụ huynh");
-            }
-
-            // TODO: Implement gửi email/SMS cho Parent
-            // Hiện tại chỉ log ra console
-            Console.WriteLine($"=== THÔNG BÁO CHO PHỤ HUYNH ===");
-            Console.WriteLine($"Phụ huynh: {parent.Name} ({parent.Email})");
-            Console.WriteLine($"Khóa học ID: {courseId}");
-            Console.WriteLine($"Mã khóa học: {keyValue}");
-            Console.WriteLine($"Hướng dẫn: Đưa mã này cho học sinh để kích hoạt khóa học");
-            Console.WriteLine($"================================");
-
-            // TODO: Gửi email thực tế
-            // await _emailService.SendCourseKeyAsync(parent.Email, keyValue, courseId);
         }
     }
 }

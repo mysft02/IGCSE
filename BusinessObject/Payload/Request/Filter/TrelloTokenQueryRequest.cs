@@ -75,7 +75,7 @@ public class TrelloTokenQueryRequest : BaseQueryRequest
         }
 
         // Global search query
-        if (!CommonUtils.isEmtyString(Query))
+        if (!CommonUtils.IsEmptyString(Query))
         {
             var searchTerm = Query!.ToLower();
             predicates.Add(x => 

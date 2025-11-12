@@ -14,6 +14,8 @@ public class Coursesection
 
     public sbyte IsActive { get; set; }
 
+    // public int ChapterId { get; set; } // Chapter removed
+
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

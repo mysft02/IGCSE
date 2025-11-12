@@ -43,7 +43,7 @@ namespace IGCSE.Controller
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-            if (CommonUtils.isEmtyString(userId))
+            if (CommonUtils.IsEmptyString(userId))
             {
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
@@ -61,7 +61,7 @@ namespace IGCSE.Controller
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-            if (CommonUtils.isEmtyString(userId))
+            if (CommonUtils.IsEmptyString(userId))
             {
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
@@ -77,7 +77,7 @@ namespace IGCSE.Controller
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-            if (CommonUtils.isEmtyString(userId))
+            if (CommonUtils.IsEmptyString(userId))
             {
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }

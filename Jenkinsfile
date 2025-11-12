@@ -439,6 +439,7 @@ EOF
             echo '============================================'
             sh '''
                 echo "=== CLEANING UP WORKSPACE ==="
+                cleanWs()
                 
                 # Kill any running processes
                 echo "Killing running processes..."

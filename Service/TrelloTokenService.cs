@@ -93,7 +93,7 @@ public class TrelloTokenService
             token.TrelloId == trelloId &&
             token.UserId == userId
         );
-        if(CommonUtils.isEmtyObject(trelloToken)) 
+        if(CommonUtils.IsEmptyObject(trelloToken)) 
         {
             throw new Exception("Không tìm thấy token Trello cho người dùng này");
         }
@@ -115,7 +115,7 @@ public class TrelloTokenService
             token.TrelloId == trelloId &&
             token.UserId == userId
         );
-        if(CommonUtils.isEmtyObject(trelloToken)) 
+        if(CommonUtils.IsEmptyObject(trelloToken)) 
         {
             throw new Exception("Không tìm thấy token Trello cho người dùng này");
         }
@@ -227,7 +227,7 @@ public class TrelloTokenService
             token.TrelloId == trelloId &&
             token.UserId == userId
         );
-        if (CommonUtils.isEmtyObject(trelloToken))
+        if (CommonUtils.IsEmptyObject(trelloToken))
         {
             throw new Exception("Không tìm thấy token Trello cho người dùng này");
         }

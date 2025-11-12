@@ -25,6 +25,7 @@ namespace Service
         private readonly TrelloCardService _trelloCardService;
         private readonly IWebHostEnvironment _env;
         private readonly IQuizUserAnswerRepository _quizUserAnswerRepository;
+        private readonly MediaService _mediaService;
 
         public QuizService(
             IMapper mapper, 
@@ -34,7 +35,8 @@ namespace Service
             IQuizResultRepository quizResultRepository, 
             TrelloCardService trelloCardService,
             IWebHostEnvironment env,
-            IQuizUserAnswerRepository quizUserAnswerRepository)
+            IQuizUserAnswerRepository quizUserAnswerRepository,
+            MediaService mediaService)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
@@ -44,6 +46,7 @@ namespace Service
             _trelloCardService = trelloCardService;
             _env = env;
             _quizUserAnswerRepository = quizUserAnswerRepository;
+            _mediaService = mediaService;
         }
 
         public async Task<BaseResponse<PaginatedResponse<QuizQueryResponse>>> GetAllQuizAsync(QuizQueryRequest request)
@@ -84,13 +87,25 @@ namespace Service
 
         public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
         {
-            var quiz = await _quizRepository.GetByIdAsync(quizId);
+            var quiz = await _quizRepository.GetByQuizIdAsync(quizId);
+
             if (quiz == null)
             {
                 throw new Exception("Quiz not found");
             }
 
             var quizResponse = _mapper.Map<QuizResponse>(quiz);
+
+            foreach (var c in quizResponse.Questions)
+            {
+                if (c.PictureUrl == null)
+                {
+                    continue;
+                }
+
+                var imageResponse = await _mediaService.GetMediaUrlAsync(c.PictureUrl);
+                c.Image = imageResponse.Data;
+            }
 
             return new BaseResponse<QuizResponse>(
                 "Quiz retrieved successfully",

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 
@@ -23,8 +23,8 @@ namespace BusinessObject.DTOs.Request.Courses
         public string ImageUrl { get; set; } = string.Empty;
 
         [Required]
-        [SwaggerSchema("Category ID của khóa học", Nullable = false)]
-        public int CategoryId { get; set; }
+        [SwaggerSchema("Module ID của khóa học", Nullable = false)]
+        public int ModuleId { get; set; }
 
         [Required]
         [SwaggerSchema("Trạng thái khóa học", Nullable = false, Description ="Mặc định tạo là Open")]
