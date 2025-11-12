@@ -85,17 +85,23 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
+        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId, string userId)
         {
+            var checkAllowance = await _quizRepository.CheckAllowance(userId, quizId);
+            if (!checkAllowance)
+            {
+                throw new Exception("Bạn chưa mở khoá bài học này. Vui lòng hoàn thành bài học trước.");
+            }
+
             var quiz = await _quizRepository.GetByQuizIdAsync(quizId);
 
             if (quiz == null)
             {
-                throw new Exception("Quiz not found");
+                throw new Exception("Không tìm thấy bài quiz này.");
             }
 
             return new BaseResponse<QuizResponse>(
-                "Quiz retrieved successfully",
+                "Lấy bài quiz thành công.",
                 StatusCodeEnum.OK_200,
                 quiz
             );

@@ -40,5 +40,15 @@ namespace Repository.Repositories
 
             return quiz;
         }
+
+        public async Task<bool> CheckAllowance(string userId, int quizId)
+        {
+            var quiz = await _context.Quizzes.FirstOrDefaultAsync(x => x.QuizId == (int)quizId);
+
+            var result = await _context.Processes
+                .AnyAsync(x => x.LessonId  == quiz.LessonId && x.StudentId == userId && x.IsUnlocked == true);
+
+            return result;
+        }
     }
 }
