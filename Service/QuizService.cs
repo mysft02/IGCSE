@@ -94,23 +94,10 @@ namespace Service
                 throw new Exception("Quiz not found");
             }
 
-            var quizResponse = _mapper.Map<QuizResponse>(quiz);
-
-            foreach (var c in quizResponse.Questions)
-            {
-                if (c.PictureUrl == null)
-                {
-                    continue;
-                }
-
-                var imageResponse = await _mediaService.GetMediaUrlAsync(c.PictureUrl);
-                c.Image = imageResponse.Data;
-            }
-
             return new BaseResponse<QuizResponse>(
                 "Quiz retrieved successfully",
                 StatusCodeEnum.OK_200,
-                quizResponse
+                quiz
             );
         }
         

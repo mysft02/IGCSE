@@ -26,6 +26,7 @@ public class TrelloTokenService
     private readonly IMapper _mapper;
     private readonly MockTestQuestionService _mockTestQuestionService;
     private readonly ICreateSlotRepository _createSlotRepository;
+    private readonly IFinalQuizRepository _finalQuizRepository;
     private readonly IBackgroundTaskInvoker? _backgroundTaskInvoker;
 
     public TrelloTokenService(
@@ -40,6 +41,7 @@ public class TrelloTokenService
         MockTestService mockTestService,
         MockTestQuestionService mockTestQuestionService,
         ICreateSlotRepository createSlotRepository,
+        IFinalQuizRepository finalQuizRepository,
         IBackgroundTaskInvoker? backgroundTaskInvoker = null)
     {
         _trelloTokenRepository = trelloTokenRepository;
@@ -53,6 +55,7 @@ public class TrelloTokenService
         _mockTestService = mockTestService;
         _mockTestQuestionService = mockTestQuestionService;
         _createSlotRepository = createSlotRepository;
+        _finalQuizRepository = finalQuizRepository;
         _backgroundTaskInvoker = backgroundTaskInvoker;
     }
 
@@ -203,6 +206,17 @@ public class TrelloTokenService
                     continue;
                 }
             }
+
+            var finalQuiz = new Finalquiz
+            {
+                CourseId = course.CourseId,
+                Title = $"{course.Name} final quiz",
+                Description = "Summary course content",
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+            };
+
+            await _finalQuizRepository.AddAsync(finalQuiz);
 
             createSlot.AvailableSlot -= 1;
             await _createSlotRepository.UpdateAsync(createSlot);

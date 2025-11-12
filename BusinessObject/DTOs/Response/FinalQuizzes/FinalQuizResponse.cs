@@ -10,6 +10,6 @@ namespace BusinessObject.DTOs.Response.FinalQuizzes
 
         public string Description { get; set; }
 
-        public List<Question> Questions { get; set; }
+        public List<FinalQuizQuestionResponse> Questions { get; set; }
     }
 }

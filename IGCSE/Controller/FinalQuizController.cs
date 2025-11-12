@@ -21,6 +21,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-final-quiz-by-id")]
+        [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách Final Quiz theo id")]
         public async Task<ActionResult<BaseResponse<FinalQuizResponse>>> GetFinalQuizById([FromQuery] int id)
         {
