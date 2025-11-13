@@ -8,12 +8,12 @@
 
         public string CorrectAnswer { get; set; } = null!;
 
-        public string ImageUrl { get; set; } = null!;
+        public string? ImageUrl { get; set; } = null!;
 
         public decimal? Mark { get; set; }
 
         public string? PartialMark { get; set; }
 
-        public MockTestQuestionUserAnswerResponse UserAnswer { get; set; }
+        public MockTestQuestionUserAnswerResponse? UserAnswer { get; set; }
     }
 }

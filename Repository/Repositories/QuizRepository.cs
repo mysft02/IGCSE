@@ -45,10 +45,16 @@ namespace Repository.Repositories
         {
             var quiz = await _context.Quizzes.FirstOrDefaultAsync(x => x.QuizId == (int)quizId);
 
-            var result = await _context.Processes
-                .AnyAsync(x => x.LessonId  == quiz.LessonId && x.StudentId == userId && x.IsUnlocked == true);
+            var lessonItemCount = await _context.Lessonitems.Where(x => x.LessonId == quiz.LessonId).CountAsync();
 
-            return result;
+            var processItemCount = await _context.Processitems.Where(x => x.LessonItem.LessonId == quiz.LessonId && x.Process.StudentId == userId).CountAsync();
+
+            if(lessonItemCount == processItemCount)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

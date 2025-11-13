@@ -12,6 +12,7 @@ using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
+using OfficeOpenXml.ConditionalFormatting.Contracts;
 
 namespace Service
 {
@@ -90,7 +91,7 @@ namespace Service
             var checkAllowance = await _quizRepository.CheckAllowance(userId, quizId);
             if (!checkAllowance)
             {
-                throw new Exception("Bạn chưa mở khoá bài học này. Vui lòng hoàn thành bài học trước.");
+                throw new Exception("Bạn chưa mở khoá bài quiz này. Vui lòng hoàn thành bài học trước.");
             }
 
             var quiz = await _quizRepository.GetByQuizIdAsync(quizId);

@@ -137,7 +137,7 @@ namespace Service
             var totalCount = await _mockTestResultRepository.CountAsync(filter);
 
             // Get filtered items
-            var items = await _mockTestResultRepository.GetMockTestResultWithReview(request, filter);
+            var items = await _mockTestResultRepository.GetMockTestResultList(request, filter);
 
             // Apply sorting to the paged results
             var sortedItems = request.ApplySorting(items);
@@ -162,6 +162,19 @@ namespace Service
                     TotalPages = totalPages
                 },
                 Message = "Lấy toàn bộ kết quả mock test thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
+        }
+
+        public async Task<BaseResponse<MockTestResultReviewResponse>> GetMockTestResultReviewByIdAsync(int id)
+        {
+            var item = await _mockTestResultRepository.GetMockTestResultWithReview(id);
+
+            // Map to response
+            return new BaseResponse<MockTestResultReviewResponse>
+            {
+                Data = item,
+                Message = "Lấy kết quả mock test thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
         }

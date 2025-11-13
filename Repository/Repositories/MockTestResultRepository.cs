@@ -20,7 +20,7 @@ namespace Repository.Repositories
             _context = context;
         }
 
-        public async Task<List<MockTestResultQueryResponse>> GetMockTestResultWithReview(MockTestResultQueryRequest request, Expression<Func<Mocktestresult, bool>>? filter = null)
+        public async Task<List<MockTestResultQueryResponse>> GetMockTestResultList(MockTestResultQueryRequest request, Expression<Func<Mocktestresult, bool>>? filter = null)
         {
             var query = _context.Mocktestresults
                 .Include(x => x.MockTest)
@@ -39,6 +39,32 @@ namespace Repository.Repositories
                 {
                     MockTestResultId = x.MockTestResultId,
                     MockTest = new MockTestResultResponse
+                    {
+                        MockTestId = x.MockTest.MockTestId,
+                        MockTestTitle = x.MockTest.MockTestTitle,
+                        MockTestDescription = x.MockTest.MockTestDescription,
+                        CreatedAt = x.MockTest.CreatedAt,
+                        UpdatedAt = x.MockTest.UpdatedAt,
+                        CreatedBy = x.MockTest.CreatedBy,
+                    },
+                    Score = x.Score,
+                    DateTaken = x.CreatedAt
+                })
+                .ToListAsync();
+
+            return resultList;
+        }
+
+        public async Task<MockTestResultReviewResponse> GetMockTestResultWithReview(int id)
+        {
+            var result = await _context.Mocktestresults
+                .Include(x => x.MockTest)
+                    .ThenInclude(mt => mt.MockTestQuestions)
+                .Include(x => x.MockTestUserAnswer)
+                .Select(x => new MockTestResultReviewResponse
+                {
+                    MockTestResultId = x.MockTestResultId,
+                    MockTest = new MockTestResultReviewDetailResponse
                     {
                         MockTestId = x.MockTest.MockTestId,
                         MockTestTitle = x.MockTest.MockTestTitle,
@@ -68,9 +94,9 @@ namespace Repository.Repositories
                     Score = x.Score,
                     DateTaken = x.CreatedAt
                 })
-                .ToListAsync();
+                .FirstOrDefaultAsync();
 
-            return resultList;
+            return result;
         }
     }
 }
