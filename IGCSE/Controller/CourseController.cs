@@ -151,30 +151,51 @@ namespace IGCSE.Controller
 
             try
             {
-                // If a file is provided, upload based on ItemType and set Content to URL
+                // Tự động xác định ItemType và upload file
                 if (request.File != null && request.File.Length > 0)
                 {
+                    var fileExtension = Path.GetExtension(request.File.FileName).ToLowerInvariant();
                     string? fileUrl = null;
 
-                    if (request.ItemType.Equals("pdf", StringComparison.OrdinalIgnoreCase))
+                    // Tự động xác định ItemType dựa vào file extension
+                    if (fileExtension == ".pdf")
                     {
                         if (!FileUploadHelper.IsValidLessonDocument(request.File))
                             throw new ArgumentException("PDF không hợp lệ");
 
                         fileUrl = await FileUploadHelper.UploadLessonDocumentAsync(request.File, _environment.WebRootPath);
+                        request.ItemType = "pdf";  // Auto-set
                     }
-                    else if (request.ItemType.Equals("video", StringComparison.OrdinalIgnoreCase))
+                    else if (fileExtension == ".mp4" || fileExtension == ".webm" || fileExtension == ".ogg")
                     {
                         if (!FileUploadHelper.IsValidLessonVideo(request.File))
                             throw new ArgumentException("Video không hợp lệ");
 
                         fileUrl = await FileUploadHelper.UploadLessonVideoAsync(request.File, _environment.WebRootPath);
+                        request.ItemType = "video";  // Auto-set
+                    }
+                    else if (fileExtension == ".jpg" || fileExtension == ".jpeg" || fileExtension == ".png" || fileExtension == ".gif" || fileExtension == ".webp")
+                    {
+                        if (!FileUploadHelper.IsValidImageFile(request.File))
+                            throw new ArgumentException("Image không hợp lệ");
+
+                        fileUrl = await FileUploadHelper.UploadCourseImageAsync(request.File, _environment.WebRootPath);
+                        request.ItemType = "image";  // Auto-set
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"File extension {fileExtension} không được hỗ trợ. Chỉ chấp nhận: PDF, Video (mp4/webm/ogg), Image (jpg/png/gif/webp)");
                     }
 
                     if (!string.IsNullOrEmpty(fileUrl))
                     {
                         request.Content = fileUrl;
                     }
+                }
+                else if (string.IsNullOrEmpty(request.ItemType))
+                {
+                    // Nếu không có file và không có ItemType → Default là "text"
+                    request.ItemType = "text";
                 }
 
                 var result = await _courseService.CreateLessonItemAsync(request);
@@ -283,15 +304,28 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("{courseId}")]
-        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items và tiến trình học của Student)")]
-        public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(int courseId, [FromQuery] string? studentId = null)
+        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items và tiến trình học nếu đã đăng nhập và enroll)")]
+        public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(int courseId)
         {
             try
             {
-                if (string.IsNullOrEmpty(studentId))
+                // Tự động lấy studentId từ token nếu đã đăng nhập
+                string? studentId = null;
+                
+                if (User.Identity?.IsAuthenticated == true)
                 {
-                    var user = HttpContext.User;
-                    studentId = user.FindFirst("AccountID")?.Value;
+                    studentId = User.FindFirst("AccountID")?.Value;
+                    
+                    // Chỉ hiển thị progress nếu là Student role
+                    var roles = User.FindAll("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                                   .Select(c => c.Value)
+                                   .ToList();
+                    
+                    // Nếu không phải Student role, không truyền studentId (không cần progress)
+                    if (!roles.Contains("Student"))
+                    {
+                        studentId = null;
+                    }
                 }
 
                 var result = await _courseService.GetCourseDetailAsync(courseId, studentId);
@@ -323,6 +357,34 @@ namespace IGCSE.Controller
                 }
 
                 var result = await _courseService.GetLinkedStudentsProgressAsync(parentId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("course-buy-by-parent")]
+        [Authorize(Roles = "Parent")]
+        [SwaggerOperation(Summary = "Xem danh sách khóa học Parent đã mua (Parent)")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<ParentEnrollmentResponse>>>> GetCourseBuyByParent()
+        {
+            try
+            {
+                var user = HttpContext.User;
+                var parentId = user.FindFirst("AccountID")?.Value;
+
+                if (string.IsNullOrEmpty(parentId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.GetCourseBuyByParentAsync(parentId);
                 return Ok(result);
             }
             catch (Exception ex)

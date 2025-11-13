@@ -33,6 +33,7 @@ namespace IGCSE.Extensions
             services.AddScoped<IQuestionRepository, QuestionRepository>();
             services.AddScoped<IModuleRepository, ModuleRepository>();
             services.AddScoped<IParentStudentLinkRepository, ParentStudentLinkRepository>();
+            services.AddScoped<IStudentEnrollmentRepository, StudentEnrollmentRepository>();
             services.AddScoped<ITrelloTokenRepository, TrelloTokenRepository>();
             services.AddScoped<IMockTestRepository, MockTestRepository>();
             services.AddScoped<IMockTestQuestionRepository, MockTestQuestionRepository>();

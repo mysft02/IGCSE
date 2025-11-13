@@ -56,7 +56,7 @@ namespace Common.Utils
             }
 
             // Return relative URL path
-            return $"/images/courses/{fileName}";
+            return $"/courses/images/{fileName}";
         }
 
         /// <summary>

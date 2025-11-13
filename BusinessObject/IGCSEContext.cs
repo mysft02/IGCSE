@@ -46,6 +46,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
 
+    public virtual DbSet<Studentenrollment> Studentenrollments { get; set; }
+
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
     public virtual DbSet<Mocktest> Mocktests { get; set; }
     public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }
@@ -339,6 +341,37 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.LessonItemId).HasColumnName("LessonItemID");
             entity.Property(e => e.ProcessId).HasColumnName("ProcessID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Studentenrollment>(entity =>
+        {
+            entity.HasKey(e => e.EnrollmentId).HasName("PRIMARY");
+            entity.ToTable("studentenrollment");
+            entity.Property(e => e.EnrollmentId).HasColumnName("EnrollmentID");
+            entity.Property(e => e.StudentId).HasMaxLength(450).HasColumnName("StudentID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.EnrolledAt).HasColumnType("datetime");
+            entity.Property(e => e.ParentId).HasMaxLength(450).HasColumnName("ParentID");
+
+            entity.HasIndex(e => new { e.StudentId, e.CourseId }, "uk_student_course_enrollment").IsUnique();
+
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_studentenrollment_student");
+
+            entity.HasOne(e => e.Course)
+                .WithMany()
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_studentenrollment_course");
+
+            entity.HasOne(e => e.Parent)
+                .WithMany()
+                .HasForeignKey(e => e.ParentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_studentenrollment_parent");
         });
 
         modelBuilder.Entity<Quizresult>(entity =>

@@ -23,6 +23,7 @@ namespace Service
         private readonly IPackageRepository _packageRepository;
         private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
         private readonly CourseService _courseService;
+        private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
 
         public PaymentService(
             IAccountRepository accountRepository,
@@ -32,7 +33,8 @@ namespace Service
             PayOSApiService payOSApiService,
             IPackageRepository packageRepository,
             IParentStudentLinkRepository parentStudentLinkRepository,
-            CourseService courseService)
+            CourseService courseService,
+            IStudentEnrollmentRepository studentEnrollmentRepository)
         {
             _accountRepository = accountRepository;
             _userManager = userManager;
@@ -42,6 +44,7 @@ namespace Service
             _packageRepository = packageRepository;
             _parentStudentLinkRepository = parentStudentLinkRepository;
             _courseService = courseService;
+            _studentEnrollmentRepository = studentEnrollmentRepository;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
@@ -108,7 +111,17 @@ namespace Service
                 {
                     try
                     {
-                        // Khởi tạo tiến trình học cho từng student
+                        // 1. Tạo enrollment record
+                        var enrollment = new Studentenrollment
+                        {
+                            StudentId = student.Id,
+                            CourseId = courseId.Value,
+                            EnrolledAt = DateTime.UtcNow,
+                            ParentId = userId  // Parent đã mua
+                        };
+                        await _studentEnrollmentRepository.AddAsync(enrollment);
+
+                        // 2. Khởi tạo tiến trình học cho từng student
                         await _courseService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
                     }
                     catch (Exception ex)
@@ -167,11 +180,16 @@ namespace Service
 
             if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
-                // Kiểm tra xem parent đã mua khóa học này chưa bằng cách kiểm tra transaction history
-                var existingTransaction = await _paymentRepository.GetByUserAndCourseAsync(userId, request.CourseId.Value);
-                if (existingTransaction != null)
+                // Kiểm tra xem parent hoặc bất kỳ student nào của parent đã enroll khóa học này chưa
+                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
+                
+                foreach (var student in linkedStudents)
                 {
-                    throw new Exception("Bạn đã mua khóa học này rồi.");
+                    var isEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(student.Id, request.CourseId.Value);
+                    if (isEnrolled)
+                    {
+                        throw new Exception($"Học sinh {student.Name ?? student.UserName} đã được đăng ký vào khóa học này rồi.");
+                    }
                 }
                 
                 body.Description = $"Thanh toán cho khóa học {request.CourseId}.";

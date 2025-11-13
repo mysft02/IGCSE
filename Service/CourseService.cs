@@ -30,6 +30,7 @@ namespace Service
         private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
+        private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
         // private readonly IChapterRepository _chapterRepository;
 
         public CourseService(
@@ -44,7 +45,8 @@ namespace Service
             IProcessitemRepository processitemRepository,
             IParentStudentLinkRepository parentStudentLinkRepository,
             IAccountRepository accountRepository,
-            UserManager<Account> userManager)
+            UserManager<Account> userManager,
+            IStudentEnrollmentRepository studentEnrollmentRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -58,6 +60,7 @@ namespace Service
             _parentStudentLinkRepository = parentStudentLinkRepository;
             _accountRepository = accountRepository;
             _userManager = userManager;
+            _studentEnrollmentRepository = studentEnrollmentRepository;
             // _chapterRepository = chapterRepository; // Chapter disabled
         }
 
@@ -496,7 +499,7 @@ namespace Service
                     }
                 }
 
-                // Cập nhật thông tin enrollment và progress
+                // Cập nhật thông tin enrollment và progress dựa trên process records
                 if (studentProcesses != null && studentProcesses.Any())
                 {
                     courseDetailResponse.IsEnrolled = true;
@@ -570,9 +573,11 @@ namespace Service
         {
             try
             {
+                // Lấy từ process table như cũ
                 var processes = await _processRepository.GetByStudentAsync(studentId);
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
+                
                 foreach (var g in grouped)
                 {
                     var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
@@ -1017,6 +1022,50 @@ namespace Service
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi lấy tiến trình học: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<IEnumerable<ParentEnrollmentResponse>>> GetCourseBuyByParentAsync(string parentId)
+        {
+            try
+            {
+                // Kiểm tra parent tồn tại
+                var parent = await _accountRepository.GetByStringId(parentId);
+                if (parent == null)
+                {
+                    throw new Exception("Parent not found.");
+                }
+
+                // Kiểm tra role là Parent
+                var parentRole = await _userManager.GetRolesAsync(parent);
+                if (!parentRole.Contains("Parent"))
+                {
+                    throw new Exception("You are not a parent.");
+                }
+
+                // Lấy tất cả enrollments do parent mua
+                var enrollments = await _studentEnrollmentRepository.GetByParentIdAsync(parentId);
+                
+                var responses = enrollments.Select(e => new ParentEnrollmentResponse
+                {
+                    EnrollmentId = e.EnrollmentId,
+                    StudentId = e.StudentId,
+                    StudentName = e.Student?.Name ?? e.Student?.UserName ?? "Unknown",
+                    CourseId = e.CourseId,
+                    CourseName = e.Course?.Name ?? "Unknown",
+                    CoursePrice = e.Course?.Price ?? 0,
+                    EnrolledAt = e.EnrolledAt,
+                }).ToList();
+
+                return new BaseResponse<IEnumerable<ParentEnrollmentResponse>>(
+                    $"Tìm thấy {responses.Count} enrollments",
+                    StatusCodeEnum.OK_200,
+                    responses
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách enrollments: {ex.Message}");
             }
         }
     }
