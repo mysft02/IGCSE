@@ -7,5 +7,7 @@
         public int? CourseId { get; set; }
 
         public int PackageId { get; set; }
+
+        public string? DestUserId { get; set; }
     }
 }

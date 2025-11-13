@@ -1,5 +1,8 @@
 using Repository.IBaseRepository;
 using BusinessObject.Model;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.Courses;
+using System.Linq.Expressions;
 
 namespace Repository.IRepositories
 {
@@ -12,6 +15,6 @@ namespace Repository.IRepositories
         Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status);
         Task<Dictionary<string, int>> GetCoursesSortedByStatus();
         Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId);
-        //Task<bool> CheckDuplicate(int? courseId, string userId);
+        Task<List<CourseDashboardQueryResponse>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request, Expression<Func<Course, bool>>? filter = null);
     }
 }

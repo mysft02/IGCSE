@@ -1,0 +1,46 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 48
+      author: dungnt
+      changes:
+
+        # --- Tạo bảng createslot ---
+        - createTable:
+            tableName: createslot
+            columns:
+              - column:
+                  name: CreateSlotId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: Slot
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: AvailableSlot
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: TeacherId
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: PackageId
+                  type: INT
+                  constraints:
+                    nullable: false
+
+      rollback:
+        # --- Rollback bằng cách xóa bảng createslot ---
+        - dropTable:
+            tableName: createslot

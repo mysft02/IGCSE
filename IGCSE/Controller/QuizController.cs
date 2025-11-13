@@ -30,10 +30,18 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-quiz-by-id")]
+        [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách quiz theo id")]
         public async Task<ActionResult<BaseResponse<QuizResponse>>> GetQuizById([FromQuery] int id)
         {
-            var result = await _quizService.GetQuizByIdAsync(id);
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _quizService.GetQuizByIdAsync(id, userId);
             return Ok(result);
         }
 

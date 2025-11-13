@@ -1,12 +1,11 @@
-﻿using BusinessObject.Model;
-
+﻿
 namespace BusinessObject.DTOs.Response.MockTest
 {
-    public class MockTestResultQueryResponse
+    public class MockTestResultReviewResponse
     {
         public int MockTestResultId { get; set; }
 
-        public MockTestResultResponse MockTest { get; set; }
+        public MockTestResultReviewDetailResponse MockTest { get; set; }
 
         public decimal Score { get; set; }
 

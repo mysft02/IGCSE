@@ -1,4 +1,4 @@
-﻿using BusinessObject.DTOs.Response.Questions;
+﻿using BusinessObject.DTOs.Response.FinalQuizzes;
 
 namespace BusinessObject.DTOs.Response.Quizzes
 {
@@ -10,6 +10,6 @@ namespace BusinessObject.DTOs.Response.Quizzes
 
         public string Description { get; set; }
 
-        public List<QuestionResponse> Questions { get; set; }
+        public List<FinalQuizQuestionResponse> Questions { get; set; }
     }
 }

@@ -12,6 +12,7 @@ using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
+using OfficeOpenXml.ConditionalFormatting.Contracts;
 
 namespace Service
 {
@@ -85,32 +86,25 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
+        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId, string userId)
         {
+            var checkAllowance = await _quizRepository.CheckAllowance(userId, quizId);
+            if (!checkAllowance)
+            {
+                throw new Exception("Bạn chưa mở khoá bài quiz này. Vui lòng hoàn thành bài học trước.");
+            }
+
             var quiz = await _quizRepository.GetByQuizIdAsync(quizId);
 
             if (quiz == null)
             {
-                throw new Exception("Quiz not found");
-            }
-
-            var quizResponse = _mapper.Map<QuizResponse>(quiz);
-
-            foreach (var c in quizResponse.Questions)
-            {
-                if (c.PictureUrl == null)
-                {
-                    continue;
-                }
-
-                var imageResponse = await _mediaService.GetMediaUrlAsync(c.PictureUrl);
-                c.Image = imageResponse.Data;
+                throw new Exception("Không tìm thấy bài quiz này.");
             }
 
             return new BaseResponse<QuizResponse>(
-                "Quiz retrieved successfully",
+                "Lấy bài quiz thành công.",
                 StatusCodeEnum.OK_200,
-                quizResponse
+                quiz
             );
         }
         

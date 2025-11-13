@@ -1,9 +1,12 @@
-using BusinessObject.Model;
+﻿using BusinessObject.Model;
 using BusinessObject;
 using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
 using Common.Utils;
+using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Request.Courses;
+using System.Linq.Expressions;
 
 namespace Repository.Repositories
 {
@@ -108,16 +111,38 @@ namespace Repository.Repositories
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
         }
-        //public async Task<bool> CheckDuplicate(int? courseId, string userId)
-        //{
-        //    var course = _context.Coursekeys
-        //        .FirstOrDefault(c => c.CourseId == courseId && c.CreatedBy == userId);
 
-        //    if(course != null)
-        //    {
-        //        return true;
-        //    }
-        //    return false;
-        //}
+        public async Task<List<CourseDashboardQueryResponse>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request, Expression<Func<Course, bool>>? filter = null)
+        {
+            var query = _context.Courses
+                .Include(x => x.FinalQuiz).ThenInclude(xc => xc.FinalQuizResult)
+                .AsQueryable();
+
+            // Áp dụng filter nếu có
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            var resultList = await query
+                .Select(x => new CourseDashboardQueryResponse
+                {
+                    CourseId = x.CourseId,
+                    CourseName = x.Name,
+                    CourseDescription = x.Description,
+                    Status = x.Status,
+                    Price = x.Price,
+                    ImageUrl = x.ImageUrl,
+                    CreatedAt = (DateTime)x.CreatedAt,
+                    UpdatedAt = (DateTime)x.UpdatedAt,
+                    CreatedBy = x.CreatedBy,
+                    CustomerCount = _context.Processes.Where(xc => xc.CourseId == x.CourseId).Count(),
+                    AverageFinalScore = x.FinalQuiz.FinalQuizResult.Select(xc => xc.Score).ToList().Average(),
+                    TotalIncome = _context.Transactionhistories.Where(xc => xc.ItemId == x.CourseId).Select(n => n.Amount).ToList().Sum(),
+                })
+                .ToListAsync();
+
+            return resultList;
+        }
     }
 }

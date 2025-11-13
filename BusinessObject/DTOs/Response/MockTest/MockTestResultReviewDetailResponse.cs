@@ -2,7 +2,7 @@
 
 namespace BusinessObject.DTOs.Response.MockTest
 {
-    public class MockTestResultResponse
+    public class MockTestResultReviewDetailResponse
     {
         public int MockTestId { get; set; }
 
@@ -15,5 +15,7 @@ namespace BusinessObject.DTOs.Response.MockTest
         public DateTime UpdatedAt { get; set; }
 
         public string CreatedBy { get; set; }
+
+        public List<MockTestResultQuestionResponse> Questions { get; set; } = new List<MockTestResultQuestionResponse>();
     }
 }

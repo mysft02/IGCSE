@@ -33,4 +33,8 @@ public class Course
 
     [ForeignKey("ModuleId")]
     public virtual Module? Module { get; set; }
+
+    public virtual Finalquiz FinalQuiz { get; set; }
+
+    public virtual ICollection<Coursesection> CourseSections { get; set; }
 }
