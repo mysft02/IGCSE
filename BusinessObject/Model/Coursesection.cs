@@ -21,4 +21,6 @@ public class Coursesection
     public DateTime? UpdatedAt { get; set; }
 
     public virtual Course Course { get; set; } = null!;
+
+    public virtual ICollection<Lesson> Lessons { get; set; }
 }

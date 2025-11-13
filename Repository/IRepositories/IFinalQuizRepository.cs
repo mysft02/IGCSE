@@ -7,5 +7,6 @@ namespace Repository.IRepositories
     public interface IFinalQuizRepository : IBaseRepository<Finalquiz>
     {
         Task<FinalQuizResponse> GetFinalQuizAsync(int id);
+        Task<bool> CheckAllowance(int finalQuizId, string userId);
     }
 }

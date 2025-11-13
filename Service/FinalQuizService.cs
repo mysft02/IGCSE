@@ -45,12 +45,23 @@ namespace Service
             _finalQuizUserAnswerRepository = finalQuizUserAnswerRepository;
         }
 
-        public async Task<BaseResponse<FinalQuizResponse>> GetFinalQuizByIdAsync(int finalQuizId)
+        public async Task<BaseResponse<FinalQuizResponse>> GetFinalQuizByIdAsync(int finalQuizId, string userId)
         {
+            if(string.IsNullOrEmpty(finalQuizId.ToString()))
+            {
+                throw new Exception("Id không được để trống");
+            }
+
+            var checkAllowance = await _finalQuizRepository.CheckAllowance(finalQuizId, userId);
+            if (!checkAllowance)
+            {
+                throw new Exception("Bạn chưa đủ điền kiện thực hiện bài final quiz. Vui lòng hoàn thành khoá học trước.");
+            }
+
             var finalQuiz = await _finalQuizRepository.GetFinalQuizAsync(finalQuizId);
             if (finalQuiz == null)
             {
-                throw new Exception("Final Quiz not found");
+                throw new Exception("Bài final quiz không tìm thấy.");
             }
 
             return new BaseResponse<FinalQuizResponse>(

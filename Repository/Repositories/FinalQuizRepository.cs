@@ -40,5 +40,27 @@ namespace Repository.Repositories
 
             return finalQuiz;
         }
+
+        public async Task<bool> CheckAllowance(int finalQuizId, string userId)
+        {
+            var finalLesson = await _context.Finalquizzes
+                .Include(x => x.Course)
+                .Include(x => x.Course.CourseSections).ThenInclude(xc => xc.Lessons)
+                .SelectMany(x => x.Course.CourseSections)
+                .SelectMany(x => x.Lessons)
+                .OrderByDescending(c => c.Order)
+                .FirstOrDefaultAsync();
+
+            var lessonItemCount = await _context.Lessonitems.Where(x => x.LessonId == finalLesson.LessonId).CountAsync();
+
+            var processItemCount = await _context.Processitems.Where(x => x.LessonItem.LessonId == finalLesson.LessonId && x.Process.StudentId == userId).CountAsync();
+
+            if (lessonItemCount == processItemCount)
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }

@@ -15,4 +15,6 @@ public class Finalquiz
     public DateTime? UpdatedAt { get; set; }
 
     public virtual ICollection<Finalquizresult> FinalQuizResult { get; set; }
+
+    public virtual Course Course { get; set; }
 }

@@ -25,7 +25,14 @@ namespace IGCSE.Controller
         [SwaggerOperation(Summary = "Lấy danh sách Final Quiz theo id")]
         public async Task<ActionResult<BaseResponse<FinalQuizResponse>>> GetFinalQuizById([FromQuery] int id)
         {
-            var result = await _finalQuizService.GetFinalQuizByIdAsync(id);
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _finalQuizService.GetFinalQuizByIdAsync(id, userId);
             return Ok(result);
         }
 
