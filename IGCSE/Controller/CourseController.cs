@@ -18,7 +18,6 @@ namespace IGCSE.Controller
     {
         private readonly CourseService _courseService;
         private readonly ModuleService _moduleService;
-        //private readonly ChapterService _chapterService;
         private readonly MediaService _mediaService;
         private readonly IWebHostEnvironment _environment;
         private readonly PaymentService _paymentService;
@@ -26,7 +25,6 @@ namespace IGCSE.Controller
         public CourseController(
             CourseService courseService,
             ModuleService moduleService,
-            //ChapterService chapterService,
             MediaService mediaService,
             IWebHostEnvironment environment,
             PaymentService paymentService)
@@ -34,7 +32,6 @@ namespace IGCSE.Controller
             _mediaService = mediaService;
             _environment = environment;
             _moduleService = moduleService;
-            //_chapterService = chapterService;
             _courseService = courseService;
             _paymentService = paymentService;
         }

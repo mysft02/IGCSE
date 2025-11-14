@@ -13,6 +13,8 @@ using BusinessObject.Payload.Response.Trello;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.ParentStudentLink;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 
 namespace Service
 {
@@ -31,7 +33,7 @@ namespace Service
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
         private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
-        // private readonly IChapterRepository _chapterRepository;
+        private readonly MediaService _mediaService;
 
         public CourseService(
             IMapper mapper,
@@ -46,7 +48,8 @@ namespace Service
             IParentStudentLinkRepository parentStudentLinkRepository,
             IAccountRepository accountRepository,
             UserManager<Account> userManager,
-            IStudentEnrollmentRepository studentEnrollmentRepository)
+            IStudentEnrollmentRepository studentEnrollmentRepository,
+            MediaService mediaService)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -61,7 +64,7 @@ namespace Service
             _accountRepository = accountRepository;
             _userManager = userManager;
             _studentEnrollmentRepository = studentEnrollmentRepository;
-            // _chapterRepository = chapterRepository; // Chapter disabled
+            _mediaService = mediaService;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
@@ -220,6 +223,10 @@ namespace Service
             foreach (var course in courses)
             {
                 var courseResponse = _mapper.Map<CourseResponse>(course);
+                if (course.ImageUrl != null)
+                {
+                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                }
                 courseResponses.Add(courseResponse);
             }
 
@@ -237,6 +244,13 @@ namespace Service
 
             var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
+            foreach (var course in courseResponses)
+            {
+                if(course.ImageUrl != null)
+                {
+                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                }
+            }
 
             var paginated = new PaginatedResponse<CourseResponse>
             {
@@ -370,6 +384,10 @@ namespace Service
             foreach (var course in similarCourses)
             {
                 var courseResponse = _mapper.Map<CourseResponse>(course);
+                if (courseResponse.ImageUrl != null)
+                {
+                    courseResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                }
                 courseResponses.Add(courseResponse);
             }
 
@@ -407,6 +425,13 @@ namespace Service
 
             // Map to CourseResponse after filtering and pagination
             var pagedItems = pagedCourses.Select(_mapper.Map<CourseResponse>).ToList();
+            foreach (var course in pagedItems)
+            {
+                if (course.ImageUrl != null)
+                {
+                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                }
+            }
 
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
@@ -571,6 +596,8 @@ namespace Service
                     courseDetailResponse.IsEnrolled = false;
                     courseDetailResponse.OverallProgress = null; // Không có progress nếu chưa enroll
                 }
+
+                courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
 
                 return new BaseResponse<CourseDetailResponse>(
                     "Course detail retrieved successfully",

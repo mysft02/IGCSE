@@ -59,11 +59,8 @@ namespace Service
             return new FileStreamResult(fileStream, contentType);
         }
 
-        public async Task<BaseResponse<string>> GetMediaUrlAsync(string relativePath)
+        public async Task<string> GetMediaUrlAsync(string relativePath)
         {
-            if (string.IsNullOrWhiteSpace(relativePath))
-                throw new Exception("Thiếu đường dẫn file");
-
             var webRootPath = _env.WebRootPath ?? _env.ContentRootPath;
 
             // loại bỏ / hoặc \
@@ -72,7 +69,7 @@ namespace Service
             var fullPath = Path.Combine(webRootPath, cleanRelativePath);
 
             if (!File.Exists(fullPath))
-                throw new FileNotFoundException($"Không tìm thấy file: {cleanRelativePath}");
+                throw new FileNotFoundException("Lỗi khi xử lí hình ảnh.");
 
             var request = _httpContextAccessor.HttpContext?.Request;
 
@@ -81,13 +78,7 @@ namespace Service
 
             var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
 
-            return new BaseResponse<string>
-            {
-                Data = result,
-                StatusCode = StatusCodeEnum.OK_200,
-                Message = "Lấy URL thành công"
-            };
+            return result;
         }
-
     }
 }
