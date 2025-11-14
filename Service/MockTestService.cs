@@ -194,12 +194,10 @@ namespace Service
                 throw new Exception("Bài thi thử không tìm thấy");
             }
 
-            var mockTestResponse = _mapper.Map<MockTestForStudentResponse>(mockTest);
-
             return new BaseResponse<MockTestForStudentResponse>(
                 "Lấy mock test thành công",
                 StatusCodeEnum.OK_200,
-                mockTestResponse
+                mockTest
             );
         }
 

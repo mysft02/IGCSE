@@ -36,7 +36,7 @@ namespace Service
             IPackageRepository packageRepository,
             IParentStudentLinkRepository parentStudentLinkRepository,
             CourseService courseService,
-            IStudentEnrollmentRepository studentEnrollmentRepository)
+            IStudentEnrollmentRepository studentEnrollmentRepository,
             IProcessRepository processRepository,
             IUserPackageRepository userPackageRepository,
             ICreateSlotRepository createSlotRepository)
@@ -240,7 +240,7 @@ namespace Service
             {
                 // Kiểm tra xem parent hoặc bất kỳ student nào của parent đã enroll khóa học này chưa
                 var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
-                
+
                 foreach (var student in linkedStudents)
                 {
                     var isEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(student.Id, request.CourseId.Value);
@@ -248,36 +248,38 @@ namespace Service
                     {
                         throw new Exception($"Học sinh {student.Name ?? student.UserName} đã được đăng ký vào khóa học này rồi.");
                     }
-                if(userRole == "Teacher")
-                {
-                    throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
-                }
 
-                if(await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
-                {
-                    throw new Exception("Không tìm thấy khoá học này.");
-                }
+                    if (userRole == "Teacher")
+                    {
+                        throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
+                    }
 
-                var existingCourse = await _processRepository.FindOneAsync(x => x.CourseId == request.CourseId && x.StudentId == request.DestUserId);
-                if (existingCourse != null)
-                {
-                    throw new Exception("Bạn đã mua khóa học cho học sinh này rồi.");
+                    if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
+                    {
+                        throw new Exception("Không tìm thấy khoá học này.");
+                    }
+
+                    var existingCourse = await _processRepository.FindOneAsync(x => x.CourseId == request.CourseId && x.StudentId == request.DestUserId);
+                    if (existingCourse != null)
+                    {
+                        throw new Exception("Bạn đã mua khóa học cho học sinh này rồi.");
+                    }
+
+                    body.Description = $"Thanh toán cho khóa học {request.CourseId}.";
                 }
-                
-                body.Description = $"Thanh toán cho khóa học {request.CourseId}.";
             }
             else
             {
                 var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == request.PackageId, xc => xc.Userpackages);
 
-                if(package == null)
+                if (package == null)
                 {
                     throw new Exception("Gói bạn cần mua không tìm thấy");
                 }
 
                 if (userRole == "Parent")
                 {
-                    if(package .IsMockTest == false)
+                    if (package.IsMockTest == false)
                     {
                         throw new Exception("Gói này dành cho giáo viên. Bạn không thể mua.");
                     }
@@ -298,7 +300,7 @@ namespace Service
                         UpdatedAt = DateTime.Now,
                     };
 
-                    await _userPackageRepository.AddOrUpdateAsync(userPackage, c => new object[] { c.PackageId, c.UserId});
+                    await _userPackageRepository.AddOrUpdateAsync(userPackage, c => new object[] { c.PackageId, c.UserId });
                 }
                 else
                 {
