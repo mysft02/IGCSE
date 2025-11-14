@@ -391,11 +391,6 @@ namespace Service
             {
                 filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
             }
-            
-            if (!string.IsNullOrEmpty(request.Status))
-            {
-                filtered = filtered.Where(c => c.Status == request.Status);
-            }
             else
             {
                 filtered = filtered.OrderByDescending(c => c.CreatedAt);
@@ -660,11 +655,7 @@ namespace Service
                 {
                     filtered = filtered.Where(r => r.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
                 }
-                
-                if (!string.IsNullOrEmpty(request.Status))
-                {
-                    filtered = filtered.Where(r => r.Status.Equals(request.Status, StringComparison.OrdinalIgnoreCase));
-                }
+
                 else
                 {
                     filtered = filtered.OrderByDescending(r => r.EnrollmentDate);

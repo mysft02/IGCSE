@@ -40,7 +40,9 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học")]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học", Description = "Lấy danh sách khóa học với các trạng thái: " +
+            "`1` là `open`(đã duyệt); " +
+            "`2` là `pending`(chưa được duyệt để public) ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
@@ -60,7 +62,7 @@ namespace IGCSE.Controller
 
         [HttpPost("complete-lesson-item")]
         [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Đánh dấu hoàn thành lesson item (Student)")]
+        [SwaggerOperation(Summary = "Đánh dấu hoàn thành lesson item (Student)", Description = "Api dùng để đánh dấu đã hoàn thành lessonitem khi học sinh đã học xong lessonitem")]
         public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int lessonItemId)
         {
             try
@@ -88,7 +90,7 @@ namespace IGCSE.Controller
 
         [HttpGet("my-registrations")]
         [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)")]
+        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)", Description = "Api dùng để lấy danh sách các khóa học đã enroll của học sinh ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>>> GetMyRegistrations([FromQuery] CourseRegistrationQueryRequest request)
         {
             try
@@ -116,7 +118,7 @@ namespace IGCSE.Controller
 
         [HttpGet("my-create-course")]
         [Authorize(Roles = "Teacher")]
-        [SwaggerOperation(Summary = "Lấy tất cả khóa học do teacher đã tạo (Teacher)")]
+        [SwaggerOperation(Summary = "Lấy tất cả khóa học do teacher đã tạo (Teacher)", Description = "Api dùng để lấy danh sách các khóa học giáo viên đã tạo")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetMyCreatedCourses([FromQuery] TeacherCourseQueryRequest request)
         {
             var user = HttpContext.User;
@@ -131,7 +133,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-similar-courses")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự")]
+        [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự", Description = "Api dùng để lấy danh sách các khóa học tương tự với khóa học hiện tại ")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)
         {
             if (!ModelState.IsValid)
@@ -151,7 +153,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("{courseId}")]
-        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items và tiến trình học nếu đã đăng nhập và enroll)")]
+        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items và tiến trình học nếu đã đăng nhập và enroll)", Description = "Api dùng để xem nội dung của 1 khóa học bao gồm section, lesson,lessonitem và nếu đã đăng nhập và enroll khóa học thì sẽ xem được tiến độ học của khóa học")]
         public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(int courseId)
         {
             try
@@ -190,7 +192,7 @@ namespace IGCSE.Controller
 
         [HttpGet("get-linked-students-progress")]
         [Authorize(Roles = "Parent")]
-        [SwaggerOperation(Summary = "Xem tiến trình học của các học sinh đã liên kết với Parent (Parent)")]
+        [SwaggerOperation(Summary = "Xem tiến trình học của các học sinh đã liên kết với Parent (Parent)", Description = "Api dùng để lấy xem được tiến độ học các khóa học đã enroll của học sinh ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<StudentProgressOverviewResponse>>>> GetLinkedStudentsProgress([FromQuery] StudentProgressQueryRequest request)
         {
             try
@@ -218,7 +220,7 @@ namespace IGCSE.Controller
 
         [HttpGet("course-buy-by-parent")]
         [Authorize(Roles = "Parent")]
-        [SwaggerOperation(Summary = "Xem danh sách khóa học Parent đã mua (Parent)")]
+        [SwaggerOperation(Summary = "Xem danh sách khóa học Parent đã mua (Parent)", Description = "Api dùng để lấy danh sách các khóa học mà phụ huynh đã thanh toán ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>>> GetCourseBuyByParent([FromQuery] ParentEnrollmentQueryRequest request)
         {
             try
