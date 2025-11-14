@@ -61,5 +61,36 @@ namespace Repository.Repositories
                 .Where(p => p.StudentId == studentId)
                 .ToListAsync();
         }
+
+        public async Task<Process> UnlockLessonForStudentAsync(string studentId, int lessonId, int courseId)
+        {
+            // Kiểm tra xem Process đã tồn tại chưa
+            var existingProcess = await GetByStudentAndLessonAsync(studentId, lessonId);
+            
+            if (existingProcess != null)
+            {
+                // Nếu đã tồn tại, chỉ cần update IsUnlocked
+                existingProcess.IsUnlocked = true;
+                existingProcess.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                return existingProcess;
+            }
+            
+            // Nếu chưa tồn tại, tạo mới Process
+            var newProcess = new Process
+            {
+                StudentId = studentId,
+                LessonId = lessonId,
+                CourseId = courseId,
+                IsUnlocked = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            
+            await _context.Set<Process>().AddAsync(newProcess);
+            await _context.SaveChangesAsync();
+            
+            return newProcess;
+        }
     }
 }

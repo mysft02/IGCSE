@@ -11,5 +11,6 @@ namespace Repository.IRepositories
         Task<IEnumerable<Process>> GetByStudentAndCourseAsync(string studentId, long courseId);
         Task<bool> IsLessonCompletedForStudentAsync(string studentId, long lessonId);
         Task<IEnumerable<Process>> GetByStudentAsync(string studentId);
+        Task<Process> UnlockLessonForStudentAsync(string studentId, int lessonId, int courseId);
     }
 }

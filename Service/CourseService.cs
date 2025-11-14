@@ -380,14 +380,52 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetTeacherCoursesAsync(string teacherAccountId)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetTeacherCoursesAsync(string teacherAccountId, TeacherCourseQueryRequest request)
         {
-            var courses = await _courseRepository.GetCoursesByCreatorAsync(teacherAccountId);
-            var responses = courses.Select(_mapper.Map<CourseResponse>).ToList();
-            return new BaseResponse<IEnumerable<CourseResponse>>(
+            var courses = (await _courseRepository.GetCoursesByCreatorAsync(teacherAccountId)).ToList();
+
+            // Apply filters on Course model before mapping
+            var filtered = courses.AsQueryable();
+            
+            if (!string.IsNullOrEmpty(request.SearchByCourseName))
+            {
+                filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
+            }
+            
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                filtered = filtered.Where(c => c.Status == request.Status);
+            }
+            else
+            {
+                filtered = filtered.OrderByDescending(c => c.CreatedAt);
+            }
+
+            // Get total count before pagination
+            var totalCount = filtered.Count();
+
+            // Apply pagination
+            var pagedCourses = filtered
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
+
+            // Map to CourseResponse after filtering and pagination
+            var pagedItems = pagedCourses.Select(_mapper.Map<CourseResponse>).ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            return new BaseResponse<PaginatedResponse<CourseResponse>>(
                 "Teacher courses retrieved successfully",
                 StatusCodeEnum.OK_200,
-                responses
+                new PaginatedResponse<CourseResponse>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                }
             );
         }
 
@@ -590,12 +628,12 @@ namespace Service
 
         // ========== Methods from CourseRegistrationService ==========
 
-        public async Task<BaseResponse<IEnumerable<CourseRegistrationResponse>>> GetStudentRegistrationsAsync(string studentId)
+        public async Task<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>> GetStudentRegistrationsAsync(string studentId, CourseRegistrationQueryRequest request)
         {
             try
             {
                 // Lấy từ process table như cũ
-                var processes = await _processRepository.GetByStudentAsync(studentId);
+                var processes = (await _processRepository.GetByStudentAsync(studentId)).ToList();
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
                 
@@ -615,10 +653,45 @@ namespace Service
                     });
                 }
 
-                return new BaseResponse<IEnumerable<CourseRegistrationResponse>>(
+                // Apply filters
+                var filtered = responses.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(request.SearchByCourseName))
+                {
+                    filtered = filtered.Where(r => r.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.Status))
+                {
+                    filtered = filtered.Where(r => r.Status.Equals(request.Status, StringComparison.OrdinalIgnoreCase));
+                }
+                else
+                {
+                    filtered = filtered.OrderByDescending(r => r.EnrollmentDate);
+                }
+
+                // Get total count before pagination
+                var totalCount = filtered.Count();
+
+                // Apply pagination
+                var pagedItems = filtered
+                    .Skip(request.Page * request.GetPageSize())
+                    .Take(request.GetPageSize())
+                    .ToList();
+
+                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+                return new BaseResponse<PaginatedResponse<CourseRegistrationResponse>>(
                     "Lấy danh sách khóa học của học sinh thành công",
                     StatusCodeEnum.OK_200,
-                    responses
+                    new PaginatedResponse<CourseRegistrationResponse>
+                    {
+                        Items = pagedItems,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
                 );
             }
             catch (Exception ex)
@@ -947,7 +1020,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<IEnumerable<StudentProgressOverviewResponse>>> GetLinkedStudentsProgressAsync(string parentId)
+        public async Task<BaseResponse<PaginatedResponse<StudentProgressOverviewResponse>>> GetLinkedStudentsProgressAsync(string parentId, StudentProgressQueryRequest request)
         {
             try
             {
@@ -966,7 +1039,7 @@ namespace Service
                 }
 
                 // Lấy danh sách students liên kết
-                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(parentId);
+                var linkedStudents = (await _parentStudentLinkRepository.GetByParentId(parentId)).ToList();
                 
                 var result = new List<StudentProgressOverviewResponse>();
 
@@ -981,7 +1054,7 @@ namespace Service
                     };
 
                     // Lấy tất cả processes của student
-                    var processes = await _processRepository.GetByStudentAsync(student.Id);
+                    var processes = (await _processRepository.GetByStudentAsync(student.Id)).ToList();
                     
                     // Group theo CourseId để tính progress
                     var courseGroups = processes.GroupBy(p => p.CourseId).ToList();
@@ -1005,10 +1078,10 @@ namespace Service
                             totalLessons++;
                             
                             // Kiểm tra lesson đã hoàn thành chưa
-                            var processItems = await _processitemRepository.GetByProcessIdAsync(process.ProcessId);
-                            var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(process.LessonId);
+                            var processItems = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
+                            var lessonItems = (await _lessonitemRepository.GetByLessonIdAsync(process.LessonId)).ToList();
                             
-                            if (lessonItems.Any() && processItems.Count() == lessonItems.Count())
+                            if (lessonItems.Any() && processItems.Count == lessonItems.Count)
                             {
                                 completedLessons++;
                             }
@@ -1034,10 +1107,61 @@ namespace Service
                     result.Add(studentProgress);
                 }
 
-                return new BaseResponse<IEnumerable<StudentProgressOverviewResponse>>(
-                    $"Lấy tiến trình học của {result.Count} học sinh thành công",
+                // Apply filters
+                var filtered = result.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(request.SearchByStudentName))
+                {
+                    filtered = filtered.Where(s => s.StudentName.Contains(request.SearchByStudentName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.StudentId))
+                {
+                    filtered = filtered.Where(s => s.StudentId == request.StudentId);
+                }
+                
+                if (request.CourseId.HasValue)
+                {
+                    filtered = filtered.Where(s => s.Courses.Any(c => c.CourseId == request.CourseId.Value));
+                }
+                
+                if (request.MinProgress.HasValue)
+                {
+                    filtered = filtered.Where(s => s.Courses.Any(c => c.OverallProgress >= request.MinProgress.Value));
+                }
+                
+                if (request.MaxProgress.HasValue)
+                {
+                    filtered = filtered.Where(s => s.Courses.Any(c => c.OverallProgress <= request.MaxProgress.Value));
+                }
+
+                else
+                {
+                    filtered = filtered.OrderBy(s => s.StudentName);
+                }
+
+                // Get total count before pagination
+                var totalCount = filtered.Count();
+
+                // Apply pagination
+                var pagedItems = filtered
+                    .Skip(request.Page * request.GetPageSize())
+                    .Take(request.GetPageSize())
+                    .ToList();
+
+                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+                return new BaseResponse<PaginatedResponse<StudentProgressOverviewResponse>>(
+                    $"Lấy tiến trình học của {totalCount} học sinh thành công",
                     StatusCodeEnum.OK_200,
-                    result
+                    new PaginatedResponse<StudentProgressOverviewResponse>
+                    {
+                        Items = pagedItems,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
                 );
             }
             catch (Exception ex)
@@ -1046,7 +1170,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<IEnumerable<ParentEnrollmentResponse>>> GetCourseBuyByParentAsync(string parentId)
+        public async Task<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>> GetCourseBuyByParentAsync(string parentId, ParentEnrollmentQueryRequest request)
         {
             try
             {
@@ -1065,7 +1189,7 @@ namespace Service
                 }
 
                 // Lấy tất cả enrollments do parent mua
-                var enrollments = await _studentEnrollmentRepository.GetByParentIdAsync(parentId);
+                var enrollments = (await _studentEnrollmentRepository.GetByParentIdAsync(parentId)).ToList();
                 
                 var responses = enrollments.Select(e => new ParentEnrollmentResponse
                 {
@@ -1078,10 +1202,66 @@ namespace Service
                     EnrolledAt = e.EnrolledAt,
                 }).ToList();
 
-                return new BaseResponse<IEnumerable<ParentEnrollmentResponse>>(
-                    $"Tìm thấy {responses.Count} enrollments",
+                // Apply filters
+                var filtered = responses.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(request.SearchByStudentName))
+                {
+                    filtered = filtered.Where(e => e.StudentName.Contains(request.SearchByStudentName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.SearchByCourseName))
+                {
+                    filtered = filtered.Where(e => e.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.StudentId))
+                {
+                    filtered = filtered.Where(e => e.StudentId == request.StudentId);
+                }
+                
+                if (request.CourseId.HasValue)
+                {
+                    filtered = filtered.Where(e => e.CourseId == request.CourseId.Value);
+                }
+                
+                if (request.EnrolledFrom.HasValue)
+                {
+                    filtered = filtered.Where(e => e.EnrolledAt >= request.EnrolledFrom.Value);
+                }
+                
+                if (request.EnrolledTo.HasValue)
+                {
+                    filtered = filtered.Where(e => e.EnrolledAt <= request.EnrolledTo.Value);
+                }
+
+                else
+                {
+                    filtered = filtered.OrderByDescending(e => e.EnrolledAt);
+                }
+
+                // Get total count before pagination
+                var totalCount = filtered.Count();
+
+                // Apply pagination
+                var pagedItems = filtered
+                    .Skip(request.Page * request.GetPageSize())
+                    .Take(request.GetPageSize())
+                    .ToList();
+
+                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+                return new BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>(
+                    $"Tìm thấy {totalCount} enrollments",
                     StatusCodeEnum.OK_200,
-                    responses
+                    new PaginatedResponse<ParentEnrollmentResponse>
+                    {
+                        Items = pagedItems,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
                 );
             }
             catch (Exception ex)

@@ -27,6 +27,8 @@ namespace Service
         private readonly IWebHostEnvironment _env;
         private readonly IQuizUserAnswerRepository _quizUserAnswerRepository;
         private readonly MediaService _mediaService;
+        private readonly IProcessRepository _processRepository;
+        private readonly ILessonRepository _lessonRepository;
 
         public QuizService(
             IMapper mapper, 
@@ -37,7 +39,9 @@ namespace Service
             TrelloCardService trelloCardService,
             IWebHostEnvironment env,
             IQuizUserAnswerRepository quizUserAnswerRepository,
-            MediaService mediaService)
+            MediaService mediaService,
+            IProcessRepository processRepository,
+            ILessonRepository lessonRepository)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
@@ -48,6 +52,8 @@ namespace Service
             _env = env;
             _quizUserAnswerRepository = quizUserAnswerRepository;
             _mediaService = mediaService;
+            _processRepository = processRepository;
+            _lessonRepository = lessonRepository;
         }
 
         public async Task<BaseResponse<PaginatedResponse<QuizQueryResponse>>> GetAllQuizAsync(QuizQueryRequest request)
@@ -279,6 +285,37 @@ namespace Service
             }
 
             await _quizResultRepository.AddAsync(quizResult);
+
+            // Nếu quiz pass, unlock lesson tiếp theo
+            if (quizResult.IsPassed)
+            {
+                try
+                {
+                    // Lấy thông tin quiz để biết lessonId và courseId
+                    var quiz = await _quizRepository.GetByIdAsync(quizResult.QuizId);
+                    if (quiz != null)
+                    {
+                        // Lấy lesson tiếp theo
+                        var nextLesson = await _lessonRepository.GetNextLessonAsync(quiz.LessonId);
+                        
+                        if (nextLesson != null)
+                        {
+                            // Unlock lesson tiếp theo cho student
+                            await _processRepository.UnlockLessonForStudentAsync(
+                                userId, 
+                                nextLesson.LessonId, 
+                                quiz.CourseId
+                            );
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log lỗi nhưng không làm fail toàn bộ request
+                    // Có thể thêm logging service ở đây nếu cần
+                    Console.WriteLine($"Error unlocking next lesson: {ex.Message}");
+                }
+            }
 
             return new BaseResponse<List<QuizMarkResponse>>(
                     "Chấm bài quiz thành công",
