@@ -431,5 +431,28 @@ namespace Common.Utils
             // Trả về chuỗi base64 đầy đủ để gửi qua API
             return $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
         }
+
+        public static string GetMediaUrl(string relativePath, string webRootPath, IHttpContextAccessor httpContextAccessor)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+                throw new Exception("Lỗi khi xử lí hình ảnh.");
+
+            // loại bỏ / hoặc \
+            var cleanRelativePath = relativePath.TrimStart('/', '\\');
+
+            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
+
+            if (!File.Exists(fullPath))
+                throw new Exception("Lỗi khi xử lí hình ảnh.");
+
+            var request = httpContextAccessor.HttpContext?.Request;
+
+            // ✅ Encode relativePath để Swagger hiển thị đúng images%2F...
+            var encodedPath = Uri.EscapeDataString(cleanRelativePath);
+
+            var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
+
+            return result;
+        }
     }
 }

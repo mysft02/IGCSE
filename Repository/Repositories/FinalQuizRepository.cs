@@ -1,6 +1,9 @@
 ﻿using BusinessObject;
 using BusinessObject.DTOs.Response.FinalQuizzes;
 using BusinessObject.Model;
+using Common.Utils;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Repository.BaseRepository;
 using Repository.IRepositories;
@@ -10,10 +13,14 @@ namespace Repository.Repositories
     public class FinalQuizRepository : BaseRepository<Finalquiz>, IFinalQuizRepository
     {
         private readonly IGCSEContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public FinalQuizRepository(IGCSEContext context) : base(context)
+        public FinalQuizRepository(IGCSEContext context, IWebHostEnvironment webHostEnvironment, IHttpContextAccessor httpContextAccessor) : base(context)
         {
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<FinalQuizResponse> GetFinalQuizAsync(int id)
@@ -31,7 +38,7 @@ namespace Repository.Repositories
                     {
                         QuestionId = c.QuestionId,
                         QuestionContent = c.QuestionContent,
-                        ImageUrl = c.PictureUrl
+                        ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor)
                     })
                     .Take(20)
                     .ToList(),

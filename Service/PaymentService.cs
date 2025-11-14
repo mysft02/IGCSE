@@ -248,6 +248,7 @@ namespace Service
                     {
                         throw new Exception($"Học sinh {student.Name ?? student.UserName} đã được đăng ký vào khóa học này rồi.");
                     }
+
                     if (userRole == "Teacher")
                     {
                         throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");

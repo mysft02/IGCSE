@@ -5,16 +5,23 @@ using Repository.IRepositories;
 using Microsoft.EntityFrameworkCore;
 using BusinessObject.DTOs.Response.Quizzes;
 using BusinessObject.DTOs.Response.FinalQuizzes;
+using Microsoft.AspNetCore.Hosting;
+using Common.Utils;
+using Microsoft.AspNetCore.Http;
 
 namespace Repository.Repositories
 {
     public class QuizRepository : BaseRepository<Quiz>, IQuizRepository
     {
         private readonly IGCSEContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public QuizRepository(IGCSEContext context) : base(context)
+        public QuizRepository(IGCSEContext context, IWebHostEnvironment webHostEnvironment, IHttpContextAccessor httpContextAccessor) : base(context)
         {
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<QuizResponse> GetByQuizIdAsync(int quizId)
@@ -32,7 +39,7 @@ namespace Repository.Repositories
                     {
                         QuestionId = c.QuestionId,
                         QuestionContent = c.QuestionContent,
-                        ImageUrl = c.PictureUrl
+                        ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor)
                     })
                     .ToList(),
                 })
