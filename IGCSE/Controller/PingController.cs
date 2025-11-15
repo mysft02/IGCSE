@@ -1,6 +1,7 @@
 ﻿using BusinessObject.Payload.Request;
 using BusinessObject.Payload.Request.OpenAI;
 using Common.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Service.OpenAI;
@@ -26,6 +27,16 @@ public class PingController : ControllerBase
     public IActionResult Ping()
     {
         return Ok(new { message = "pong" });
+    }
+
+    [HttpGet("test-token")]
+    [Authorize]
+    public IActionResult PingToken()
+    {
+        var user = HttpContext.User;
+        var userId = user.FindFirst("AccountID")?.Value;
+
+        return Ok(new { message =  userId});
     }
 
     // GET api/ping/trello?key=...&token=...

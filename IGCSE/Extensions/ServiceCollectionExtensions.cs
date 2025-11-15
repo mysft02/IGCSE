@@ -6,12 +6,11 @@ using Service;
 using Service.Trello;
 using Service.OpenAI;
 using BusinessObject.Mapping;
+using Service.PayOS;
 using Service.OAuth;
 using Service.Background;
 using Service.Background.Interfaces;
 using Service.Background.Executors;
-using Service.PayOS;
-using BusinessObject.Model;
 
 namespace IGCSE.Extensions
 {
@@ -23,8 +22,6 @@ namespace IGCSE.Extensions
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<ITokenRepository, TokenRepository>();
             services.AddScoped<ICourseRepository, CourseRepository>();
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
-            services.AddScoped<ICoursekeyRepository, CoursekeyRepository>();
             services.AddScoped<ICoursesectionRepository, CoursesectionRepository>();
             services.AddScoped<ILessonRepository, LessonRepository>();
             services.AddScoped<ILessonitemRepository, LessonitemRepository>();
@@ -34,7 +31,9 @@ namespace IGCSE.Extensions
             services.AddScoped<IQuizResultRepository, QuizResultRepository>();
             services.AddScoped<IPaymentRepository, PaymentRepository>();
             services.AddScoped<IQuestionRepository, QuestionRepository>();
+            services.AddScoped<IModuleRepository, ModuleRepository>();
             services.AddScoped<IParentStudentLinkRepository, ParentStudentLinkRepository>();
+            services.AddScoped<IStudentEnrollmentRepository, StudentEnrollmentRepository>();
             services.AddScoped<ITrelloTokenRepository, TrelloTokenRepository>();
             services.AddScoped<IMockTestRepository, MockTestRepository>();
             services.AddScoped<IMockTestQuestionRepository, MockTestQuestionRepository>();
@@ -46,6 +45,7 @@ namespace IGCSE.Extensions
             services.AddScoped<IQuizUserAnswerRepository, QuizUserAnswerRepository>();
             services.AddScoped<IMockTestUserAnswerRepository, MockTestUserAnswerRepository>();
             services.AddScoped<IUserPackageRepository, UserPackageRepository>();
+            services.AddScoped<ICreateSlotRepository, CreateSlotRepository>();
 
             return services;
         }
@@ -58,8 +58,6 @@ namespace IGCSE.Extensions
             // Application services
             services.AddScoped<AccountService>();
             services.AddScoped<CourseService>();
-            services.AddScoped<CategoryService>();
-            services.AddScoped<CourseRegistrationService>();
             services.AddScoped<TrelloApiService>();
             services.AddHttpClient<ApiService>();
             services.AddScoped<OpenAIApiService>();
@@ -68,13 +66,14 @@ namespace IGCSE.Extensions
             services.AddScoped<QuizService>();
             services.AddScoped<TrelloOAuthService>();
             services.AddScoped<TrelloTokenService>();
+            services.AddScoped<MockTestService>();
+            services.AddScoped<MediaService>();
+            services.AddScoped<ModuleService>();
             services.AddScoped<TrelloBoardService>();
             services.AddScoped<TrelloCardService>();
             services.AddScoped<TrelloListService>();
             services.AddScoped<LessonService>();
             services.AddScoped<SectionService>();
-            services.AddScoped<MediaService>();
-            services.AddScoped<MockTestService>();
             services.AddScoped<PackageService>();
             services.AddScoped<FinalQuizService>();
             services.AddScoped<MockTestQuestionService>();

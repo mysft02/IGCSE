@@ -10,6 +10,11 @@ using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Request.CourseContent;
 using BusinessObject.Payload.Response.Trello;
+using BusinessObject.DTOs.Response.CourseRegistration;
+using BusinessObject.DTOs.Response.ParentStudentLink;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 
 namespace Service
 {
@@ -21,6 +26,14 @@ namespace Service
         private readonly ILessonRepository _lessonRepository;
         private readonly ILessonitemRepository _lessonitemRepository;
         private readonly OpenAIEmbeddingsApiService _openAIEmbeddingsApiService;
+        private readonly IModuleRepository _moduleRepository;
+        private readonly IProcessRepository _processRepository;
+        private readonly IProcessitemRepository _processitemRepository;
+        private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
+        private readonly IAccountRepository _accountRepository;
+        private readonly UserManager<Account> _userManager;
+        private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
+        private readonly MediaService _mediaService;
 
         public CourseService(
             IMapper mapper,
@@ -28,7 +41,15 @@ namespace Service
             ICoursesectionRepository coursesectionRepository,
             ILessonRepository lessonRepository,
             ILessonitemRepository lessonitemRepository,
-            OpenAIEmbeddingsApiService openAIEmbeddingsApiService)
+            OpenAIEmbeddingsApiService openAIEmbeddingsApiService,
+            IModuleRepository moduleRepository,
+            IProcessRepository processRepository,
+            IProcessitemRepository processitemRepository,
+            IParentStudentLinkRepository parentStudentLinkRepository,
+            IAccountRepository accountRepository,
+            UserManager<Account> userManager,
+            IStudentEnrollmentRepository studentEnrollmentRepository,
+            MediaService mediaService)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -36,9 +57,17 @@ namespace Service
             _lessonRepository = lessonRepository;
             _lessonitemRepository = lessonitemRepository;
             _openAIEmbeddingsApiService = openAIEmbeddingsApiService;
+            _moduleRepository = moduleRepository;
+            _processRepository = processRepository;
+            _processitemRepository = processitemRepository;
+            _parentStudentLinkRepository = parentStudentLinkRepository;
+            _accountRepository = accountRepository;
+            _userManager = userManager;
+            _studentEnrollmentRepository = studentEnrollmentRepository;
+            _mediaService = mediaService;
         }
 
-        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request)
+        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
         {
             // Create new course
             var course = new Course
@@ -47,10 +76,12 @@ namespace Service
                 Description = request.Description,
                 Price = request.Price,
                 ImageUrl = request.ImageUrl,
-                CategoryId = request.CategoryId,
+                ModuleId = request.ModuleId,
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = createdBy,
+                UpdatedBy = createdBy
             };
 
             var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
@@ -138,14 +169,12 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
-            // Validate Category exists if CategoryId is being updated
-            if (request.CategoryId != existingCourse.CategoryId)
+            if (request.ModuleId != existingCourse.ModuleId)
             {
-                var courses = await _courseRepository.GetAllAsync();
-                var categoryExists = courses.Any(c => c.CategoryId == request.CategoryId);
-                if (!categoryExists)
+                var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
+                if (module == null)
                 {
-                    throw new Exception("Category not found or inactive");
+                    throw new Exception("Module not found or inactive");
                 }
             }
 
@@ -155,7 +184,7 @@ namespace Service
             existingCourse.Status = request.Status;
             existingCourse.Price = request.Price;
             existingCourse.ImageUrl = request.ImageUrl;
-            existingCourse.CategoryId = request.CategoryId;
+            existingCourse.ModuleId = request.ModuleId;
             existingCourse.UpdatedAt = DateTime.UtcNow;
 
             var updatedCourse = await _courseRepository.UpdateAsync(existingCourse);
@@ -194,6 +223,10 @@ namespace Service
             foreach (var course in courses)
             {
                 var courseResponse = _mapper.Map<CourseResponse>(course);
+                if (course.ImageUrl != null)
+                {
+                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                }
                 courseResponses.Add(courseResponse);
             }
 
@@ -211,6 +244,13 @@ namespace Service
 
             var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
+            foreach (var course in courseResponses)
+            {
+                if(course.ImageUrl != null)
+                {
+                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                }
+            }
 
             var paginated = new PaginatedResponse<CourseResponse>
             {
@@ -232,16 +272,9 @@ namespace Service
 
         public async Task<BaseResponse<CourseSectionResponse>> CreateCourseSectionAsync(CourseSectionRequest request)
         {
-            var courseSection = new Coursesection
-            {
-                CourseId = request.CourseId,
-                Name = request.Name,
-                Description = request.Description,
-                Order = request.Order,
-                IsActive = request.IsActive,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var courseSection = _mapper.Map<Coursesection>(request);
+            courseSection.CreatedAt = DateTime.UtcNow;
+            courseSection.UpdatedAt = DateTime.UtcNow;
 
             var createdSection = await _coursesectionRepository.AddAsync(courseSection);
             var response = _mapper.Map<CourseSectionResponse>(createdSection);
@@ -351,6 +384,10 @@ namespace Service
             foreach (var course in similarCourses)
             {
                 var courseResponse = _mapper.Map<CourseResponse>(course);
+                if (courseResponse.ImageUrl != null)
+                {
+                    courseResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                }
                 courseResponses.Add(courseResponse);
             }
 
@@ -361,104 +398,206 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync()
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetTeacherCoursesAsync(string teacherAccountId, TeacherCourseQueryRequest request)
         {
-            var courseAnalytics = await _courseRepository.GetCoursesSortedByStatus();
+            var courses = (await _courseRepository.GetCoursesByCreatorAsync(teacherAccountId)).ToList();
 
-            var result = new CourseAnalyticsResponse
+            // Apply filters on Course model before mapping
+            var filtered = courses.AsQueryable();
+            
+            if (!string.IsNullOrEmpty(request.SearchByCourseName))
             {
-                TotalCourse = await _courseRepository.CountAsync(),
-                Partion = courseAnalytics
-            };
+                filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                filtered = filtered.OrderByDescending(c => c.CreatedAt);
+            }
 
-            return new BaseResponse<CourseAnalyticsResponse>(
-                "Course analytics retrieved successfully",
+            // Get total count before pagination
+            var totalCount = filtered.Count();
+
+            // Apply pagination
+            var pagedCourses = filtered
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
+
+            // Map to CourseResponse after filtering and pagination
+            var pagedItems = pagedCourses.Select(_mapper.Map<CourseResponse>).ToList();
+            foreach (var course in pagedItems)
+            {
+                if (course.ImageUrl != null)
+                {
+                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                }
+            }
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            return new BaseResponse<PaginatedResponse<CourseResponse>>(
+                "Teacher courses retrieved successfully",
                 StatusCodeEnum.OK_200,
-                result
+                new PaginatedResponse<CourseResponse>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                }
             );
         }
-        public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(long courseId)
+
+        public async Task<BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request)
+        {
+            var filter = request.BuildFilter<Course>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _courseRepository.CountAsync(filter);
+
+            // Get filtered items
+            var items = await _courseRepository.GetCourseAnalyticsAsync(request, filter);
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items);
+
+            var pagedItems = sortedItems
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>
+            {
+                Data = new PaginatedResponse<CourseDashboardQueryResponse>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy thống kê khoá học thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
+        }
+        public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(int courseId, string? studentId = null)
         {
             try
             {
-                // Lấy thông tin khóa học
+                // 1. Get course with related data
                 var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
-                if (course == null)
-                {
+                if (course == null) 
                     throw new Exception("Course not found");
-                }
 
-                var courseDetailResponse = new CourseDetailResponse
+                // 2. Map course to DTO
+                var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
+
+                // 3. Lấy tiến trình học của student nếu có studentId
+                List<Process>? studentProcesses = null;
+                Dictionary<int, List<Processitem>>? processItemsDict = null;
+
+                if (!string.IsNullOrEmpty(studentId))
                 {
-                    CourseId = course.CourseId,
-                    Name = course.Name,
-                    Description = course.Description,
-                    Status = course.Status,
-                    Price = course.Price,
-                    ImageUrl = course.ImageUrl,
-                    CreatedAt = course.CreatedAt ?? DateTime.UtcNow,
-                    UpdatedAt = course.UpdatedAt ?? DateTime.UtcNow,
-                    CategoryId = course.CategoryId ?? 0,
-                    CategoryName = course.Category?.CategoryName ?? "Unknown",
-                    Sections = new List<CourseSectionDetailResponse>()
-                };
-
-                // Lấy tất cả sections của khóa học
-                var sections = await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseId);
-                var sortedSections = sections.OrderBy(s => s.Order).ToList();
-
-                foreach (var section in sortedSections)
-                {
-                    var sectionDetail = new CourseSectionDetailResponse
+                    studentProcesses = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
+                    
+                    // Lấy tất cả process items cho student
+                    processItemsDict = new Dictionary<int, List<Processitem>>();
+                    foreach (var process in studentProcesses)
                     {
-                        CourseSectionId = section.CourseSectionId,
-                        CourseId = section.CourseId,
-                        Name = section.Name,
-                        Description = section.Description,
-                        Order = section.Order,
-                        IsActive = section.IsActive == 1,
-                        Lessons = new List<LessonDetailResponse>()
-                    };
-
-                    // Lấy tất cả lessons của section này
-                    var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync(section.CourseSectionId);
-                    var sortedLessons = lessons.OrderBy(l => l.Order).ToList();
-
-                    foreach (var lesson in sortedLessons)
-                    {
-                        var lessonDetail = new LessonDetailResponse
-                        {
-                            LessonId = lesson.LessonId,
-                            CourseSectionId = lesson.CourseSectionId,
-                            Name = lesson.Name,
-                            Description = lesson.Description,
-                            Order = lesson.Order,
-                            IsActive = lesson.IsActive == 1,
-                            LessonItems = new List<LessonItemResponse>()
-                        };
-
-                        // Lấy tất cả lesson items của lesson này
-                        var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lesson.LessonId);
-                        var sortedLessonItems = lessonItems.OrderBy(li => li.Order).ToList();
-
-                        foreach (var lessonItem in sortedLessonItems)
-                        {
-                            lessonDetail.LessonItems.Add(new LessonItemResponse
-                            {
-                                LessonItemId = lessonItem.LessonItemId,
-                                Name = lessonItem.Name,
-                                Description = lessonItem.Description,
-                                Content = lessonItem.Content ?? "",
-                                ItemType = lessonItem.ItemType ?? "text",
-                                Order = lessonItem.Order
-                            });
-                        }
-
-                        sectionDetail.Lessons.Add(lessonDetail);
+                        var items = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
+                        processItemsDict[process.ProcessId] = items;
                     }
-
-                    courseDetailResponse.Sections.Add(sectionDetail);
                 }
+
+                var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
+                
+                // Biến để tính overall progress
+                int totalLessons = 0;
+                int completedLessons = 0;
+                
+                if (sections != null && sections.Any())
+                {
+                    courseDetailResponse.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
+
+                    // For each section, load lessons and lesson items
+                    foreach (var section in courseDetailResponse.Sections)
+                    {
+                        var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
+                        if (lessons != null && lessons.Any())
+                        {
+                            section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+                            
+                            foreach (var lesson in section.Lessons)
+                            {
+                                // Lấy lesson items
+                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
+                                lesson.LessonItems = _mapper.Map<List<LessonItemDetailResponse>>(lessonItems ?? new List<Lessonitem>());
+
+                                // Đếm tổng số lessons
+                                totalLessons++;
+
+                                // Nếu có studentId, cập nhật thông tin tiến trình
+                                if (studentProcesses != null && processItemsDict != null)
+                                {
+                                    var process = studentProcesses.FirstOrDefault(p => p.LessonId == lesson.LessonId);
+                                    if (process != null)
+                                    {
+                                        // Cập nhật trạng thái mở khóa của lesson
+                                        lesson.IsUnlocked = process.IsUnlocked;
+
+                                        // Kiểm tra lesson đã hoàn thành chưa
+                                        var completedItems = processItemsDict.GetValueOrDefault(process.ProcessId, new List<Processitem>());
+                                        lesson.IsCompleted = lessonItems.Count() > 0 && completedItems.Count == lessonItems.Count();
+                                        
+                                        // Đếm số lessons đã hoàn thành
+                                        if (lesson.IsCompleted)
+                                        {
+                                            completedLessons++;
+                                        }
+
+                                        // Cập nhật trạng thái hoàn thành của từng lesson item
+                                        foreach (var lessonItemResponse in lesson.LessonItems)
+                                        {
+                                            var completedItem = completedItems.FirstOrDefault(pi => pi.LessonItemId == lessonItemResponse.LessonItemId);
+                                            if (completedItem != null)
+                                            {
+                                                lessonItemResponse.IsCompleted = true;
+                                                lessonItemResponse.CompletedAt = completedItem.CreatedAt;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Cập nhật thông tin enrollment và progress dựa trên process records
+                if (studentProcesses != null && studentProcesses.Any())
+                {
+                    courseDetailResponse.IsEnrolled = true;
+                    
+                    // Tính overall progress (phần trăm hoàn thành)
+                    if (totalLessons > 0)
+                    {
+                        courseDetailResponse.OverallProgress = Math.Round((double)completedLessons / totalLessons * 100, 2);
+                    }
+                    else
+                    {
+                        courseDetailResponse.OverallProgress = 0;
+                    }
+                }
+                else
+                {
+                    courseDetailResponse.IsEnrolled = false;
+                    courseDetailResponse.OverallProgress = null; // Không có progress nếu chưa enroll
+                }
+
+                courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
 
                 return new BaseResponse<CourseDetailResponse>(
                     "Course detail retrieved successfully",
@@ -468,11 +607,12 @@ namespace Service
             }
             catch (Exception ex)
             {
+                // Log the exception here if you have a logging mechanism
                 throw new Exception($"Failed to get course detail: {ex.Message}");
             }
         }
 
-        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses)
+        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId)
         {
             courseName = courseName.Replace("[course]", "").Trim();
             string description = "This is a course imported from Trello.";
@@ -496,15 +636,656 @@ namespace Service
                 Description = description,
                 Price = price,
                 ImageUrl = "",
-                CategoryId = null,
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = userId,
+                UpdatedBy = userId
             };
             var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
             course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
             var createdCourse = await _courseRepository.AddAsync(course);
             return createdCourse;
+        }
+
+        // ========== Methods from CourseRegistrationService ==========
+
+        public async Task<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>> GetStudentRegistrationsAsync(string studentId, CourseRegistrationQueryRequest request)
+        {
+            try
+            {
+                // Lấy từ process table như cũ
+                var processes = (await _processRepository.GetByStudentAsync(studentId)).ToList();
+                var grouped = processes.GroupBy(p => p.CourseId).ToList();
+                var responses = new List<CourseRegistrationResponse>();
+                
+                foreach (var g in grouped)
+                {
+                    var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
+                    if (course == null) continue;
+                    var first = g.MinBy(p => p.CreatedAt ?? DateTime.UtcNow);
+                    responses.Add(new CourseRegistrationResponse
+                    {
+                        CourseId = (int)g.Key,
+                        CourseName = course.Name,
+                        StudentId = studentId,
+                        StudentName = "",
+                        EnrollmentDate = first?.CreatedAt ?? DateTime.UtcNow,
+                        Status = "Active"
+                    });
+                }
+
+                // Apply filters
+                var filtered = responses.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(request.SearchByCourseName))
+                {
+                    filtered = filtered.Where(r => r.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                else
+                {
+                    filtered = filtered.OrderByDescending(r => r.EnrollmentDate);
+                }
+
+                // Get total count before pagination
+                var totalCount = filtered.Count();
+
+                // Apply pagination
+                var pagedItems = filtered
+                    .Skip(request.Page * request.GetPageSize())
+                    .Take(request.GetPageSize())
+                    .ToList();
+
+                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+                return new BaseResponse<PaginatedResponse<CourseRegistrationResponse>>(
+                    "Lấy danh sách khóa học của học sinh thành công",
+                    StatusCodeEnum.OK_200,
+                    new PaginatedResponse<CourseRegistrationResponse>
+                    {
+                        Items = pagedItems,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lấy danh sách thất bại: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(long courseSectionId)
+        {
+            try
+            {
+                var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(courseSectionId);
+                if (courseSection == null)
+                {
+                    throw new Exception("Course section not found");
+                }
+
+                var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync(courseSectionId);
+                var allProcesses = new List<Process>();
+
+                var response = new CourseSectionResponse
+                {
+                    CourseSectionId = courseSection.CourseSectionId,
+                    CourseId = courseSection.CourseId,
+                    Name = courseSection.Name,
+                    Description = courseSection.Description,
+                    Order = courseSection.Order,
+                    IsActive = courseSection.IsActive == 1,
+                    Lessons = new List<LessonResponse>()
+                };
+
+                foreach (var lesson in lessons)
+                {
+                    var process = allProcesses.FirstOrDefault(p => p.LessonId == lesson.LessonId);
+                    response.Lessons.Add(new LessonResponse
+                    {
+                        LessonId = lesson.LessonId,
+                        CourseSectionId = lesson.CourseSectionId,
+                        Name = lesson.Name,
+                        Description = lesson.Description,
+                        Order = lesson.Order,
+                        IsActive = lesson.IsActive == 1,
+                        IsUnlocked = process != null && process.IsUnlocked
+                    });
+                }
+
+                return new BaseResponse<CourseSectionResponse>(
+                    "Course content retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    response
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get course content: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<StudentProgressResponse>> GetStudentProgressAsync(string studentId, long courseId)
+        {
+            try
+            {
+                var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
+                if (course == null)
+                {
+                    throw new Exception("Course not found");
+                }
+
+                var processes = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
+                var courseSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseId)).OrderBy(s => s.Order).ToList();
+
+                var progressResponse = new StudentProgressResponse
+                {
+                    CourseId = courseId,
+                    CourseName = course.Name,
+                    CategoryName = course.Module?.ModuleName ?? "Unknown",
+                    StudentName = "",
+                    Sections = new List<SectionProgressResponse>(),
+                    OverallProgress = 0
+                };
+
+                int totalLessons = 0;
+                int completedLessons = 0;
+
+                foreach (var section in courseSections)
+                {
+                    var sectionProgress = new SectionProgressResponse
+                    {
+                        CourseSectionId = section.CourseSectionId,
+                        SectionName = section.Name,
+                        Order = section.Order,
+                        IsActive = section.IsActive == 1,
+                        Lessons = new List<LessonProgressResponse>()
+                    };
+
+                    var lessons = (await _lessonRepository.GetActiveLessonsBySectionAsync(section.CourseSectionId)).OrderBy(l => l.Order).ToList();
+
+                    foreach (var lesson in lessons)
+                    {
+                        totalLessons++;
+                        var process = processes.FirstOrDefault(p => p.LessonId == lesson.LessonId);
+                        var isCompleted = process != null && await _processRepository.IsLessonCompletedForStudentAsync(studentId, lesson.LessonId);
+                        var isUnlocked = process != null && process.IsUnlocked;
+                        if (isCompleted) completedLessons++;
+                        var lessonProgress = new LessonProgressResponse
+                        {
+                            LessonId = lesson.LessonId,
+                            LessonName = lesson.Name,
+                            IsCompleted = isCompleted,
+                            CompletedAt = process?.CreatedAt,
+                            ItemProgress = new List<LessonItemProgressResponse>(),
+                            IsUnlocked = isUnlocked
+                        };
+                        if (process != null)
+                        {
+                            var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lesson.LessonId);
+                            var processItems = await _processitemRepository.GetByProcessIdAsync(process.ProcessId);
+                            foreach (var item in lessonItems)
+                            {
+                                var isItemCompleted = processItems.Any(pi => pi.LessonItemId == item.LessonId);
+                                lessonProgress.ItemProgress.Add(new LessonItemProgressResponse
+                                {
+                                    LessonItemId = item.LessonItemId,
+                                    LessonItemName = item.Name,
+                                    IsCompleted = isItemCompleted,
+                                    CompletedAt = processItems.FirstOrDefault(pi => pi.LessonItemId == item.LessonId)?.CreatedAt
+                                });
+                            }
+                        }
+                        sectionProgress.Lessons.Add(lessonProgress);
+                    }
+                    progressResponse.Sections.Add(sectionProgress);
+                }
+                progressResponse.OverallProgress = totalLessons > 0 ? (double)completedLessons / totalLessons * 100 : 0;
+                return new BaseResponse<StudentProgressResponse>(
+                    "Student progress retrieved successfully",
+                    StatusCodeEnum.OK_200,
+                    progressResponse
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to get student progress: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<bool>> CompleteLessonItemAsync(string studentId, int lessonItemId)
+        {
+            try
+            {
+                // 1. Lấy thông tin lesson item
+                var lessonItem = await _lessonitemRepository.GetByLessonItemIdAsync(lessonItemId);
+                if (lessonItem == null)
+                {
+                    throw new Exception("Lesson item not found");
+                }
+
+                // 2. Tìm Process của học sinh cho bài học này
+                var process = await _processRepository.GetByStudentAndLessonAsync(studentId, lessonItem.LessonId);
+                if (process == null)
+                {
+                    throw new Exception("Student is not enrolled in this course or lesson not found");
+                }
+
+                // 3. Kiểm tra bài học đã được mở khóa chưa
+                if (!process.IsUnlocked)
+                {
+                    throw new Exception("This lesson is locked. Please complete previous lessons first.");
+                }
+
+                // 4. Kiểm tra lesson item đã hoàn thành chưa (tránh duplicate)
+                var existingProcessItem = await _processitemRepository.GetByProcessAndLessonItemAsync(process.ProcessId, lessonItemId);
+                if (existingProcessItem != null)
+                {
+                    return new BaseResponse<bool>(
+                        "Lesson item already completed",
+                        StatusCodeEnum.OK_200,
+                        true
+                    );
+                }
+
+                // 5. Tạo Processitem mới để đánh dấu hoàn thành
+                var processItem = new Processitem
+                {
+                    ProcessId = process.ProcessId,
+                    LessonItemId = lessonItemId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await _processitemRepository.AddAsync(processItem);
+
+                // 6. Kiểm tra xem tất cả lesson items trong bài học đã hoàn thành chưa
+                var allLessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonItem.LessonId);
+                var completedProcessItems = await _processitemRepository.GetByProcessIdAsync(process.ProcessId);
+                
+                bool isLessonCompleted = allLessonItems.Count() == completedProcessItems.Count();
+
+                // 7. Nếu bài học hoàn thành, mở khóa bài học tiếp theo
+                if (isLessonCompleted)
+                {
+                    process.UpdatedAt = DateTime.UtcNow;
+                    await _processRepository.UpdateAsync(process);
+
+                    // Tìm bài học tiếp theo
+                    var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+                    if (lesson != null)
+                    {
+                        // Lấy tất cả lessons trong section hiện tại
+                        var lessonsInSection = (await _lessonRepository.GetActiveLessonsBySectionAsync(lesson.CourseSectionId))
+                            .OrderBy(l => l.Order)
+                            .ToList();
+                        
+                        var currentLessonIndex = lessonsInSection.FindIndex(l => l.LessonId == lesson.LessonId);
+                        
+                        // Kiểm tra có bài học tiếp theo trong section không
+                        if (currentLessonIndex >= 0 && currentLessonIndex < lessonsInSection.Count - 1)
+                        {
+                            // Mở khóa bài học tiếp theo trong cùng section
+                            var nextLesson = lessonsInSection[currentLessonIndex + 1];
+                            var nextProcess = await _processRepository.GetByStudentAndLessonAsync(studentId, nextLesson.LessonId);
+                            if (nextProcess != null && !nextProcess.IsUnlocked)
+                            {
+                                nextProcess.IsUnlocked = true;
+                                nextProcess.UpdatedAt = DateTime.UtcNow;
+                                await _processRepository.UpdateAsync(nextProcess);
+                            }
+                        }
+                        else
+                        {
+                            // Đã hết bài học trong section, mở bài học đầu tiên của section tiếp theo
+                            var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+                            if (courseSection != null)
+                            {
+                                var allSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseSection.CourseId))
+                                    .OrderBy(s => s.Order)
+                                    .ToList();
+                                
+                                var currentSectionIndex = allSections.FindIndex(s => s.CourseSectionId == courseSection.CourseSectionId);
+                                
+                                if (currentSectionIndex >= 0 && currentSectionIndex < allSections.Count - 1)
+                                {
+                                    var nextSection = allSections[currentSectionIndex + 1];
+                                    var firstLessonInNextSection = (await _lessonRepository.GetActiveLessonsBySectionAsync(nextSection.CourseSectionId))
+                                        .OrderBy(l => l.Order)
+                                        .FirstOrDefault();
+                                    
+                                    if (firstLessonInNextSection != null)
+                                    {
+                                        var nextProcess = await _processRepository.GetByStudentAndLessonAsync(studentId, firstLessonInNextSection.LessonId);
+                                        if (nextProcess != null && !nextProcess.IsUnlocked)
+                                        {
+                                            nextProcess.IsUnlocked = true;
+                                            nextProcess.UpdatedAt = DateTime.UtcNow;
+                                            await _processRepository.UpdateAsync(nextProcess);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return new BaseResponse<bool>(
+                    isLessonCompleted 
+                        ? "Lesson item completed! Next lesson unlocked." 
+                        : "Lesson item completed successfully",
+                    StatusCodeEnum.OK_200,
+                    true
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to complete lesson item: {ex.Message}");
+            }
+        }
+
+        public async Task InitializeCourseProgressForStudentAsync(string studentId, int courseId)
+        {
+            try
+            {
+                var courseSections = (await _coursesectionRepository.GetActiveSectionsByCourseAsync(courseId))?.OrderBy(s => s.Order).ToList();
+                if (courseSections == null || !courseSections.Any()) return;
+
+                foreach (var section in courseSections)
+                {
+                    var lessons = (await _lessonRepository.GetActiveLessonsBySectionAsync(section.CourseSectionId))?.OrderBy(l => l.Order).ToList();
+                    if (lessons == null || !lessons.Any()) continue;
+                    if (section == courseSections.First())
+                    {
+                        for (int i = 0; i < lessons.Count; i++)
+                        {
+                            var isUnlocked = (i == 0);
+                            var process = new Process
+                            {
+                                StudentId = studentId,
+                                CourseId = courseId,
+                                LessonId = lessons[i].LessonId,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow,
+                                IsUnlocked = isUnlocked
+                            };
+                            await _processRepository.AddAsync(process);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var lesson in lessons)
+                        {
+                            var process = new Process
+                            {
+                                StudentId = studentId,
+                                CourseId = courseId,
+                                LessonId = lesson.LessonId,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow,
+                                IsUnlocked = false
+                            };
+                            await _processRepository.AddAsync(process);
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<StudentProgressOverviewResponse>>> GetLinkedStudentsProgressAsync(string parentId, StudentProgressQueryRequest request)
+        {
+            try
+            {
+                // Kiểm tra parent tồn tại
+                var parent = await _accountRepository.GetByStringId(parentId);
+                if (parent == null)
+                {
+                    throw new Exception("Parent not found.");
+                }
+
+                // Kiểm tra role là Parent
+                var parentRole = await _userManager.GetRolesAsync(parent);
+                if (!parentRole.Contains("Parent"))
+                {
+                    throw new Exception("You are not a parent.");
+                }
+
+                // Lấy danh sách students liên kết
+                var linkedStudents = (await _parentStudentLinkRepository.GetByParentId(parentId)).ToList();
+                
+                var result = new List<StudentProgressOverviewResponse>();
+
+                foreach (var student in linkedStudents)
+                {
+                    var studentProgress = new StudentProgressOverviewResponse
+                    {
+                        StudentId = student.Id,
+                        StudentName = student.Name ?? student.UserName ?? "Unknown",
+                        StudentEmail = student.Email ?? "",
+                        Courses = new List<CourseProgressSummary>()
+                    };
+
+                    // Lấy tất cả processes của student
+                    var processes = (await _processRepository.GetByStudentAsync(student.Id)).ToList();
+                    
+                    // Group theo CourseId để tính progress
+                    var courseGroups = processes.GroupBy(p => p.CourseId).ToList();
+
+                    foreach (var courseGroup in courseGroups)
+                    {
+                        var courseId = courseGroup.Key;
+                        var course = await _courseRepository.GetByCourseIdAsync(courseId);
+                        
+                        if (course == null) continue;
+
+                        // Lấy enrollment date (ngày tạo process đầu tiên)
+                        var enrolledAt = courseGroup.Min(p => p.CreatedAt ?? DateTime.UtcNow);
+
+                        // Tính tổng số lessons và lessons đã hoàn thành
+                        int totalLessons = 0;
+                        int completedLessons = 0;
+
+                        foreach (var process in courseGroup)
+                        {
+                            totalLessons++;
+                            
+                            // Kiểm tra lesson đã hoàn thành chưa
+                            var processItems = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
+                            var lessonItems = (await _lessonitemRepository.GetByLessonIdAsync(process.LessonId)).ToList();
+                            
+                            if (lessonItems.Any() && processItems.Count == lessonItems.Count)
+                            {
+                                completedLessons++;
+                            }
+                        }
+
+                        // Tính progress percentage
+                        double overallProgress = totalLessons > 0 
+                            ? Math.Round((double)completedLessons / totalLessons * 100, 2) 
+                            : 0;
+
+                        studentProgress.Courses.Add(new CourseProgressSummary
+                        {
+                            CourseId = courseId,
+                            CourseName = course.Name,
+                            CourseImageUrl = course.ImageUrl ?? "",
+                            EnrolledAt = enrolledAt,
+                            OverallProgress = overallProgress,
+                            TotalLessons = totalLessons,
+                            CompletedLessons = completedLessons
+                        });
+                    }
+
+                    result.Add(studentProgress);
+                }
+
+                // Apply filters
+                var filtered = result.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(request.SearchByStudentName))
+                {
+                    filtered = filtered.Where(s => s.StudentName.Contains(request.SearchByStudentName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.StudentId))
+                {
+                    filtered = filtered.Where(s => s.StudentId == request.StudentId);
+                }
+                
+                if (request.CourseId.HasValue)
+                {
+                    filtered = filtered.Where(s => s.Courses.Any(c => c.CourseId == request.CourseId.Value));
+                }
+                
+                if (request.MinProgress.HasValue)
+                {
+                    filtered = filtered.Where(s => s.Courses.Any(c => c.OverallProgress >= request.MinProgress.Value));
+                }
+                
+                if (request.MaxProgress.HasValue)
+                {
+                    filtered = filtered.Where(s => s.Courses.Any(c => c.OverallProgress <= request.MaxProgress.Value));
+                }
+
+                else
+                {
+                    filtered = filtered.OrderBy(s => s.StudentName);
+                }
+
+                // Get total count before pagination
+                var totalCount = filtered.Count();
+
+                // Apply pagination
+                var pagedItems = filtered
+                    .Skip(request.Page * request.GetPageSize())
+                    .Take(request.GetPageSize())
+                    .ToList();
+
+                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+                return new BaseResponse<PaginatedResponse<StudentProgressOverviewResponse>>(
+                    $"Lấy tiến trình học của {totalCount} học sinh thành công",
+                    StatusCodeEnum.OK_200,
+                    new PaginatedResponse<StudentProgressOverviewResponse>
+                    {
+                        Items = pagedItems,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy tiến trình học: {ex.Message}");
+            }
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>> GetCourseBuyByParentAsync(string parentId, ParentEnrollmentQueryRequest request)
+        {
+            try
+            {
+                // Kiểm tra parent tồn tại
+                var parent = await _accountRepository.GetByStringId(parentId);
+                if (parent == null)
+                {
+                    throw new Exception("Parent not found.");
+                }
+
+                // Kiểm tra role là Parent
+                var parentRole = await _userManager.GetRolesAsync(parent);
+                if (!parentRole.Contains("Parent"))
+                {
+                    throw new Exception("You are not a parent.");
+                }
+
+                // Lấy tất cả enrollments do parent mua
+                var enrollments = (await _studentEnrollmentRepository.GetByParentIdAsync(parentId)).ToList();
+                
+                var responses = enrollments.Select(e => new ParentEnrollmentResponse
+                {
+                    EnrollmentId = e.EnrollmentId,
+                    StudentId = e.StudentId,
+                    StudentName = e.Student?.Name ?? e.Student?.UserName ?? "Unknown",
+                    CourseId = e.CourseId,
+                    CourseName = e.Course?.Name ?? "Unknown",
+                    CoursePrice = e.Course?.Price ?? 0,
+                    EnrolledAt = e.EnrolledAt,
+                }).ToList();
+
+                // Apply filters
+                var filtered = responses.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(request.SearchByStudentName))
+                {
+                    filtered = filtered.Where(e => e.StudentName.Contains(request.SearchByStudentName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.SearchByCourseName))
+                {
+                    filtered = filtered.Where(e => e.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(request.StudentId))
+                {
+                    filtered = filtered.Where(e => e.StudentId == request.StudentId);
+                }
+                
+                if (request.CourseId.HasValue)
+                {
+                    filtered = filtered.Where(e => e.CourseId == request.CourseId.Value);
+                }
+                
+                if (request.EnrolledFrom.HasValue)
+                {
+                    filtered = filtered.Where(e => e.EnrolledAt >= request.EnrolledFrom.Value);
+                }
+                
+                if (request.EnrolledTo.HasValue)
+                {
+                    filtered = filtered.Where(e => e.EnrolledAt <= request.EnrolledTo.Value);
+                }
+
+                else
+                {
+                    filtered = filtered.OrderByDescending(e => e.EnrolledAt);
+                }
+
+                // Get total count before pagination
+                var totalCount = filtered.Count();
+
+                // Apply pagination
+                var pagedItems = filtered
+                    .Skip(request.Page * request.GetPageSize())
+                    .Take(request.GetPageSize())
+                    .ToList();
+
+                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+                return new BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>(
+                    $"Tìm thấy {totalCount} enrollments",
+                    StatusCodeEnum.OK_200,
+                    new PaginatedResponse<ParentEnrollmentResponse>
+                    {
+                        Items = pagedItems,
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách enrollments: {ex.Message}");
+            }
         }
     }
 }

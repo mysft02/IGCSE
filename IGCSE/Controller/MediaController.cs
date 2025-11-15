@@ -1,4 +1,5 @@
 ﻿using BusinessObject.DTOs.Response;
+using Common.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
@@ -29,7 +30,14 @@ namespace IGCSE.Controller
         [SwaggerOperation(Summary = "Lấy media url từ server", Description = "Sử dụng api này để lấy đường dẫn hình ảnh, video hoặc pdf rồi dùng trực tiếp đường dẫn đó để lấy media")]
         public async Task<BaseResponse<string>> GetMediaUrl([FromQuery] string imagePath)
         {
-            return await _mediaService.GetMediaUrlAsync(imagePath);
+            var result = await _mediaService.GetMediaUrlAsync(imagePath);
+
+            return new BaseResponse<string>
+            {
+                Data = result,
+                Message = "No answers to mark",
+                StatusCode = StatusCodeEnum.OK_200,
+            };
         }
     }
 }

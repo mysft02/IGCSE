@@ -1,4 +1,4 @@
-﻿namespace BusinessObject.Model;
+namespace BusinessObject.Model;
 
 public class Mocktestresult
 {
@@ -13,4 +13,8 @@ public class Mocktestresult
     public string UserId { get; set; } = null!;
 
     public virtual Mocktest MockTest { get; set; } = null!;
+    
+    public virtual ICollection<Mocktestquestion> MockTestQuestions { get; set; }
+
+    public virtual ICollection<Mocktestuseranswer> MockTestUserAnswer { get; set; }
 }

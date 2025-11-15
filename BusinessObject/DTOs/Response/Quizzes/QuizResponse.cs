@@ -1,4 +1,5 @@
-﻿using BusinessObject.Model;
+﻿using BusinessObject.DTOs.Response.FinalQuizzes;
+
 namespace BusinessObject.DTOs.Response.Quizzes
 {
     public class QuizResponse
@@ -9,6 +10,6 @@ namespace BusinessObject.DTOs.Response.Quizzes
 
         public string Description { get; set; }
 
-        public List<Question> Questions { get; set; }
+        public List<FinalQuizQuestionResponse> Questions { get; set; }
     }
 }

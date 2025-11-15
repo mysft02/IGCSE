@@ -45,20 +45,29 @@ namespace Service
             _finalQuizUserAnswerRepository = finalQuizUserAnswerRepository;
         }
 
-        public async Task<BaseResponse<FinalQuizResponse>> GetFinalQuizByIdAsync(int finalQuizId)
+        public async Task<BaseResponse<FinalQuizResponse>> GetFinalQuizByIdAsync(int finalQuizId, string userId)
         {
-            var finalQuiz = await _finalQuizRepository.GetByIdAsync(finalQuizId);
-            if (finalQuiz == null)
+            if(string.IsNullOrEmpty(finalQuizId.ToString()))
             {
-                throw new Exception("Final Quiz not found");
+                throw new Exception("Id không được để trống");
             }
 
-            var finalQuizResponse = _mapper.Map<FinalQuizResponse>(finalQuiz);
+            var checkAllowance = await _finalQuizRepository.CheckAllowance(finalQuizId, userId);
+            if (!checkAllowance)
+            {
+                throw new Exception("Bạn chưa đủ điền kiện thực hiện bài final quiz. Vui lòng hoàn thành khoá học trước.");
+            }
+
+            var finalQuiz = await _finalQuizRepository.GetFinalQuizAsync(finalQuizId);
+            if (finalQuiz == null)
+            {
+                throw new Exception("Bài final quiz không tìm thấy.");
+            }
 
             return new BaseResponse<FinalQuizResponse>(
-                "Final Quiz retrieved successfully",
+                "Lấy bài kiểm tra thành công",
                 StatusCodeEnum.OK_200,
-                finalQuizResponse
+                finalQuiz
             );
         }
 
@@ -233,51 +242,5 @@ namespace Service
                     StatusCodeEnum.OK_200,
                     result);
         }
-
-        //public async Task CreateQuizForTrelloAsync(int courseId, int lessonId, string quizTitle, List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
-        //{
-        //    quizTitle = quizTitle.Replace("[Test]", "").Trim();
-        //    string quizDescription = "This is a quiz imported from Trello.";
-        //    List<Question> questions = new List<Question>();
-        //    foreach (var trelloCardResponse in trelloCardResponses)
-        //    {
-        //        if (trelloCardResponse.Name.Contains("[Description]"))
-        //        {
-        //            quizDescription = trelloCardResponse.Description;
-        //        }
-        //        else
-        //        {
-        //            var attachments = await _trelloCardService.GetTrelloCardAttachments(trelloCardResponse.Id, trelloToken);
-
-        //            // get first attachment that is image
-        //            var imageUrl = string.Empty;
-        //            if (!CommonUtils.isEmtyList(attachments))
-        //            {
-        //                var imageAttachment = attachments.FirstOrDefault();
-        //                imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
-        //            }
-
-        //            questions.Add(new Question
-        //            {
-        //                QuestionContent = trelloCardResponse.Name,
-        //                CorrectAnswer = trelloCardResponse.Description,
-        //                PictureUrl = imageUrl,
-        //                CreatedAt = DateTime.UtcNow,
-        //                UpdatedAt = DateTime.UtcNow
-        //            });
-        //        }
-        //    }
-        //    Quiz quiz = new Quiz
-        //    {
-        //        CourseId = courseId,
-        //        LessonId = lessonId,
-        //        QuizTitle = quizTitle,
-        //        QuizDescription = quizDescription,
-        //        CreatedAt = DateTime.UtcNow,
-        //        UpdatedAt = DateTime.UtcNow,
-        //        Questions = questions
-        //    };
-        //    await _quizRepository.AddAsync(quiz);
-        //}
     }
 }

@@ -16,6 +16,9 @@ namespace BusinessObject.DTOs.Request.CourseContent
         [Required]
         public int CourseId { get; set; }
 
+        //[Required]
+        //public int ChapterId { get; set; }
+
         [Required]
         public int Order { get; set; }
 
@@ -57,10 +60,9 @@ namespace BusinessObject.DTOs.Request.CourseContent
         [SwaggerSchema("Nội dung thành phần bài học", Nullable = false)]
         public string? Content { get; set; }
 
-        [Required]
         [StringLength(50)]
-        [SwaggerSchema("Thể loại thành phần bài học", Nullable = false, Description = "video, bài giảng, bài kiểm tra,...")]
-        public string ItemType { get; set; } = string.Empty; // video, text, quiz, assignment, etc.
+        [SwaggerSchema("Thể loại thành phần bài học (tự động detect từ file nếu upload)", Nullable = true, Description = "video, pdf, image, text - Tự động từ file extension")]
+        public string? ItemType { get; set; } // video, pdf, image, text - auto-detected from file
 
         [Required]
         [SwaggerSchema("Id bài học của item này", Nullable = false)]

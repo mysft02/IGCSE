@@ -12,6 +12,7 @@ using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
+using OfficeOpenXml.ConditionalFormatting.Contracts;
 
 namespace Service
 {
@@ -25,6 +26,9 @@ namespace Service
         private readonly TrelloCardService _trelloCardService;
         private readonly IWebHostEnvironment _env;
         private readonly IQuizUserAnswerRepository _quizUserAnswerRepository;
+        private readonly MediaService _mediaService;
+        private readonly IProcessRepository _processRepository;
+        private readonly ILessonRepository _lessonRepository;
 
         public QuizService(
             IMapper mapper, 
@@ -34,7 +38,10 @@ namespace Service
             IQuizResultRepository quizResultRepository, 
             TrelloCardService trelloCardService,
             IWebHostEnvironment env,
-            IQuizUserAnswerRepository quizUserAnswerRepository)
+            IQuizUserAnswerRepository quizUserAnswerRepository,
+            MediaService mediaService,
+            IProcessRepository processRepository,
+            ILessonRepository lessonRepository)
         {
             _mapper = mapper;
             _quizRepository = quizRepository;
@@ -44,6 +51,9 @@ namespace Service
             _trelloCardService = trelloCardService;
             _env = env;
             _quizUserAnswerRepository = quizUserAnswerRepository;
+            _mediaService = mediaService;
+            _processRepository = processRepository;
+            _lessonRepository = lessonRepository;
         }
 
         public async Task<BaseResponse<PaginatedResponse<QuizQueryResponse>>> GetAllQuizAsync(QuizQueryRequest request)
@@ -82,20 +92,25 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId)
+        public async Task<BaseResponse<QuizResponse>> GetQuizByIdAsync(int quizId, string userId)
         {
-            var quiz = await _quizRepository.GetByIdAsync(quizId);
-            if (quiz == null)
+            var checkAllowance = await _quizRepository.CheckAllowance(userId, quizId);
+            if (!checkAllowance)
             {
-                throw new Exception("Quiz not found");
+                throw new Exception("Bạn chưa mở khoá bài quiz này. Vui lòng hoàn thành bài học trước.");
             }
 
-            var quizResponse = _mapper.Map<QuizResponse>(quiz);
+            var quiz = await _quizRepository.GetByQuizIdAsync(quizId);
+
+            if (quiz == null)
+            {
+                throw new Exception("Không tìm thấy bài quiz này.");
+            }
 
             return new BaseResponse<QuizResponse>(
-                "Quiz retrieved successfully",
+                "Lấy bài quiz thành công.",
                 StatusCodeEnum.OK_200,
-                quizResponse
+                quiz
             );
         }
         
@@ -270,6 +285,37 @@ namespace Service
             }
 
             await _quizResultRepository.AddAsync(quizResult);
+
+            // Nếu quiz pass, unlock lesson tiếp theo
+            if (quizResult.IsPassed)
+            {
+                try
+                {
+                    // Lấy thông tin quiz để biết lessonId và courseId
+                    var quiz = await _quizRepository.GetByIdAsync(quizResult.QuizId);
+                    if (quiz != null)
+                    {
+                        // Lấy lesson tiếp theo
+                        var nextLesson = await _lessonRepository.GetNextLessonAsync(quiz.LessonId);
+                        
+                        if (nextLesson != null)
+                        {
+                            // Unlock lesson tiếp theo cho student
+                            await _processRepository.UnlockLessonForStudentAsync(
+                                userId, 
+                                nextLesson.LessonId, 
+                                quiz.CourseId
+                            );
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log lỗi nhưng không làm fail toàn bộ request
+                    // Có thể thêm logging service ở đây nếu cần
+                    Console.WriteLine($"Error unlocking next lesson: {ex.Message}");
+                }
+            }
 
             return new BaseResponse<List<QuizMarkResponse>>(
                     "Chấm bài quiz thành công",

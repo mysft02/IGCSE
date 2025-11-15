@@ -13,18 +13,26 @@ namespace IGCSE.Controller
     [ApiController]
     public class FinalQuizController : ControllerBase
     {
-        private readonly FinalQuizService _FinalQuizService;
+        private readonly FinalQuizService _finalQuizService;
 
-        public FinalQuizController(FinalQuizService FinalQuizService)
+        public FinalQuizController(FinalQuizService finalQuizService)
         {
-            _FinalQuizService = FinalQuizService;
+            _finalQuizService = finalQuizService;
         }
 
         [HttpGet("get-final-quiz-by-id")]
+        [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách Final Quiz theo id")]
         public async Task<ActionResult<BaseResponse<FinalQuizResponse>>> GetFinalQuizById([FromQuery] int id)
         {
-            var result = await _FinalQuizService.GetFinalQuizByIdAsync(id);
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _finalQuizService.GetFinalQuizByIdAsync(id, userId);
             return Ok(result);
         }
 
@@ -35,12 +43,12 @@ namespace IGCSE.Controller
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-            if (CommonUtils.isEmtyString(userId))
+            if (CommonUtils.IsEmptyString(userId))
             {
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
 
-            var result = await _FinalQuizService.MarkFinalQuizAsync(request, userId);
+            var result = await _finalQuizService.MarkFinalQuizAsync(request, userId);
             return Ok(result);
         }
     }

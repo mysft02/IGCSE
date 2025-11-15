@@ -131,30 +131,22 @@ namespace Service
 
         public async Task<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>> GetAllMockTestResultAsync(MockTestResultQueryRequest request)
         {
-            // Build filter expression
             var filter = request.BuildFilter<Mocktestresult>();
 
             // Get total count first (for pagination info)
             var totalCount = await _mockTestResultRepository.CountAsync(filter);
 
-            // Get filtered data with pagination
-            var items = await _mockTestResultRepository.FindWithIncludePagingAndCountAsync(
-            filter,
-                request.Page,
-                request.GetPageSize(),
-                x => x.MockTest
-            );
+            // Get filtered items
+            var items = await _mockTestResultRepository.GetMockTestResultList(request, filter);
 
             // Apply sorting to the paged results
-            var sortedItems = request.ApplySorting(items.Items);
+            var sortedItems = request.ApplySorting(items);
 
-            var itemList = sortedItems
-                .Select(token => new MockTestResultQueryResponse
-                {
-                    MockTest = _mapper.Map<MockTestResultResponse>(token.MockTest),
-                    Score = token.Score,
-                    DateTaken = token.CreatedAt
-                }).ToList();
+            // Apply pagination after sorting
+            var pagedItems = sortedItems
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
 
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
@@ -163,13 +155,26 @@ namespace Service
             {
                 Data = new PaginatedResponse<MockTestResultQueryResponse>
                 {
-                    Items = itemList,
+                    Items = pagedItems,
                     TotalCount = totalCount,
                     Page = request.Page,
                     Size = request.GetPageSize(),
                     TotalPages = totalPages
                 },
                 Message = "Lấy toàn bộ kết quả mock test thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
+        }
+
+        public async Task<BaseResponse<MockTestResultReviewResponse>> GetMockTestResultReviewByIdAsync(int id)
+        {
+            var item = await _mockTestResultRepository.GetMockTestResultWithReview(id);
+
+            // Map to response
+            return new BaseResponse<MockTestResultReviewResponse>
+            {
+                Data = item,
+                Message = "Lấy kết quả mock test thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
         }
@@ -189,12 +194,10 @@ namespace Service
                 throw new Exception("Bài thi thử không tìm thấy");
             }
 
-            var mockTestResponse = _mapper.Map<MockTestForStudentResponse>(mockTest);
-
             return new BaseResponse<MockTestForStudentResponse>(
                 "Lấy mock test thành công",
                 StatusCodeEnum.OK_200,
-                mockTestResponse
+                mockTest
             );
         }
 

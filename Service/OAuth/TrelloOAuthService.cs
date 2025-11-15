@@ -41,7 +41,7 @@ public class TrelloOAuthService
         
         var trelloUserInfo = await _trelloApiService.GetAsync<TrelloAccountResponse>(request);
         
-        if (CommonUtils.isEmtyObject(trelloUserInfo))
+        if (CommonUtils.IsEmptyObject(trelloUserInfo))
         {
             throw new Exception("Lấy thông tin người dùng Trello thất bại");
         }

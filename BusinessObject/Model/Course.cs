@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BusinessObject.Model;
 
@@ -12,7 +14,7 @@ public class Course
 
     public string Status { get; set; } = null!;
 
-    public int? CategoryId { get; set; }
+    public int? ModuleId { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
@@ -29,5 +31,10 @@ public class Course
     [JsonIgnore]
     public string EmbeddingData { get; set; } = null!;
 
-    public virtual Category? Category { get; set; }
+    [ForeignKey("ModuleId")]
+    public virtual Module? Module { get; set; }
+
+    public virtual Finalquiz FinalQuiz { get; set; }
+
+    public virtual ICollection<Coursesection> CourseSections { get; set; }
 }

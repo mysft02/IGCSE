@@ -15,22 +15,39 @@ public partial class IGCSEContext : IdentityDbContext<Account>
         : base(options) { }
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
-    public virtual DbSet<Category> Categories { get; set; }
+
     public virtual DbSet<Course> Courses { get; set; }
-    public virtual DbSet<Coursekey> Coursekeys { get; set; }
+
+    // public virtual DbSet<Coursekey> Coursekeys { get; set; } // removed coursekey usage
+
     public virtual DbSet<Coursesection> Coursesections { get; set; }
+
     public virtual DbSet<Lesson> Lessons { get; set; }
+
     public virtual DbSet<Lessonitem> Lessonitems { get; set; }
+
     public virtual DbSet<Process> Processes { get; set; }
+
     public virtual DbSet<Processitem> Processitems { get; set; }
+
     public virtual DbSet<Transactionhistory> Transactionhistories { get; set; }
     public virtual DbSet<Finalquiz> Finalquizzes { get; set; }
     public virtual DbSet<Finalquizresult> Finalquizresults { get; set; }
     public virtual DbSet<Finalquizuseranswer> Finalquizuseranswers { get; set; }
     public virtual DbSet<Question> Questions { get; set; }
+
     public virtual DbSet<Quiz> Quizzes { get; set; }
+
     public virtual DbSet<Quizresult> Quizresults { get; set; }
+
+    public virtual DbSet<Module> Modules { get; set; }
+
+    // public virtual DbSet<Chapter> Chapters { get; set; } // Chapter functionality removed
+
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
+
+    public virtual DbSet<Studentenrollment> Studentenrollments { get; set; }
+
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
     public virtual DbSet<Mocktest> Mocktests { get; set; }
     public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }
@@ -39,6 +56,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Package> Packages { get; set; }
     public virtual DbSet<Userpackage> Userpackages { get; set; }
     public virtual DbSet<Quizuseranswer> Quizuseranswers { get; set; }
+    public virtual DbSet<Createslot> Createslots { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -178,16 +196,6 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                   .HasDatabaseName("IX_RefreshTokens_AccountID");
         });
 
-        modelBuilder.Entity<Category>(entity =>
-        {
-            entity.HasKey(e => e.CategoryId).HasName("PRIMARY");
-            entity.ToTable("category");
-            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
-            entity.Property(e => e.CategoryName).HasMaxLength(255);
-            entity.Property(e => e.Description).HasColumnType("text");
-            entity.Property(e => e.IsActive).IsRequired().HasDefaultValueSql("'1'");
-        });
-
         modelBuilder.Entity<Course>(entity =>
         {
             entity.HasKey(e => e.CourseId).HasName("PRIMARY");
@@ -195,7 +203,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("course");
 
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
+            entity.Property(e => e.ModuleId).HasColumnName("ModuleID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CreatedBy).HasMaxLength(255);
             entity.Property(e => e.Description)
@@ -207,26 +215,12 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedBy).HasMaxLength(255);
-        });
-
-        modelBuilder.Entity<Coursekey>(entity =>
-        {
-            entity.HasKey(e => e.CourseKeyId).HasName("PRIMARY");
-
-            entity.ToTable("coursekey");
-
-            entity.Property(e => e.CourseKeyId).HasColumnName("CourseKeyID");
-            entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
-            entity.Property(e => e.CreatedBy).HasMaxLength(255);
-            entity.Property(e => e.KeyValue).HasMaxLength(100);
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasDefaultValueSql("'available'");
-            entity.Property(e => e.StudentId)
-                .HasMaxLength(255)
-                .HasColumnName("StudentID");
-            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            
+            // Configure the relationship with Module
+            entity.HasOne(d => d.Module)
+                  .WithMany(p => p.Courses)
+                  .HasForeignKey(d => d.ModuleId)
+                  .HasConstraintName("FK_Course_Module_ModuleID");
         });
 
         modelBuilder.Entity<Question>(entity =>
@@ -238,6 +232,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
             entity.Property(e => e.CorrectAnswer).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.PictureUrl).HasMaxLength(255);
             entity.Property(e => e.QuestionContent).HasMaxLength(500);
             entity.Property(e => e.QuizId).HasColumnName("QuizID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -290,9 +285,12 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("coursesection");
             entity.Property(e => e.CourseSectionId).HasColumnName("CourseSectionID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            // entity.Property(e => e.ChapterId).HasColumnName("ChapterID"); // Chapter removed
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.Order).HasColumnName("Order");
+            entity.Property(e => e.IsActive).HasColumnName("IsActive");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
@@ -327,7 +325,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.HasKey(e => e.ProcessId).HasName("PRIMARY");
             entity.ToTable("process");
             entity.Property(e => e.ProcessId).HasColumnName("ProcessID");
-            entity.Property(e => e.CourseKeyId).HasColumnName("CourseKeyID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.StudentId).HasColumnName("StudentID");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.LessonId).HasColumnName("LessonID");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
@@ -345,6 +344,37 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<Studentenrollment>(entity =>
+        {
+            entity.HasKey(e => e.EnrollmentId).HasName("PRIMARY");
+            entity.ToTable("studentenrollment");
+            entity.Property(e => e.EnrollmentId).HasColumnName("EnrollmentID");
+            entity.Property(e => e.StudentId).HasMaxLength(450).HasColumnName("StudentID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.EnrolledAt).HasColumnType("datetime");
+            entity.Property(e => e.ParentId).HasMaxLength(450).HasColumnName("ParentID");
+
+            entity.HasIndex(e => new { e.StudentId, e.CourseId }, "uk_student_course_enrollment").IsUnique();
+
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_studentenrollment_student");
+
+            entity.HasOne(e => e.Course)
+                .WithMany()
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_studentenrollment_course");
+
+            entity.HasOne(e => e.Parent)
+                .WithMany()
+                .HasForeignKey(e => e.ParentId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_studentenrollment_parent");
+        });
+
         modelBuilder.Entity<Quizresult>(entity =>
         {
             entity.HasKey(e => e.QuizResultId).HasName("PRIMARY");
@@ -358,6 +388,31 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.UserId)
                 .HasMaxLength(255)
                 .HasColumnName("UserID");
+        });
+
+        modelBuilder.Entity<Module>(entity =>
+        {
+            entity.HasKey(e => e.ModuleID).HasName("PRIMARY");
+            entity.ToTable("module");
+            entity.Property(e => e.ModuleID).HasColumnName("ModuleID");
+            entity.Property(e => e.EmbeddingDataSubject).HasColumnName("EmbeddingDataSubject");
+            entity.Property(e => e.ModuleName).HasMaxLength(255).HasColumnName("ModuleName");
+            entity.Property(e => e.Description).HasColumnType("text");
+            entity.Property(e => e.IsActive).HasColumnType("tinyint(1)").IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Chapter>(entity =>
+        {
+            entity.HasKey(e => e.ChapterID).HasName("PRIMARY");
+            entity.ToTable("chapter");
+            entity.Property(e => e.ChapterID).HasColumnName("ChapterID");
+            entity.Property(e => e.ModuleID).IsRequired();
+            entity.Property(e => e.ChapterName).HasMaxLength(255);
+            entity.Property(e => e.ChapterDescription).HasColumnType("text");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<Parentstudentlink>(entity =>
@@ -500,8 +555,16 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<Createslot>(entity =>
+        {
+            entity.HasKey(e => e.CreateSlotId).HasName("PRIMARY");
+
+            entity.ToTable("createslot");
+
+            entity.Property(e => e.TeacherId).HasMaxLength(255);
+        });
+
         OnModelCreatingPartial(modelBuilder);
     }
-
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

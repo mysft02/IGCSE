@@ -5,6 +5,7 @@ namespace BusinessObject.DTOs.Request.Accounts
     public class AccountListQuery
     {
         public int Page { get; set; } = 1;
+
         public int PageSize { get; set; } = 10;
 
         [SwaggerSchema("Tìm theo tên người dùng (nếu có)")]
@@ -17,6 +18,9 @@ namespace BusinessObject.DTOs.Request.Accounts
         public bool? IsActive { get; set; } = null;
     }
 }
+
+
+
 
 
 

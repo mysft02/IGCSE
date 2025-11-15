@@ -6,5 +6,6 @@ namespace Repository.IRepositories
 {
     public interface IPaymentRepository : IBaseRepository<Transactionhistory>
     {
+        Task<Transactionhistory?> GetByUserAndCourseAsync(string userId, int courseId);
     }
 }

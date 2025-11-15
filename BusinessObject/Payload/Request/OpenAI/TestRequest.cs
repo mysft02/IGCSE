@@ -1,5 +1,4 @@
-﻿
-namespace BusinessObject.Payload.Request.OpenAI
+﻿namespace BusinessObject.Payload.Request.OpenAI
 {
     public class TestRequest
     {

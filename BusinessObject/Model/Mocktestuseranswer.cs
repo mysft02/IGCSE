@@ -12,4 +12,8 @@ public class Mocktestuseranswer
     public string? Answer { get; set; }
 
     public decimal Score { get; set; }
+
+    public virtual Mocktestquestion MockTestQuestion { get; set; }
+
+    public virtual Mocktestresult MockTestResult { get; set; }
 }

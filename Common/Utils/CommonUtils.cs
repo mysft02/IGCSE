@@ -229,29 +229,11 @@ namespace Common.Utils
             return dot / denominator;
         }
 
-        public static bool isEmtyString(string? str)
-        {
-            if (str == null)
-            {
-                return true;
-            }
-            return string.IsNullOrWhiteSpace(str);
-        }
-        
-        public static bool isEmtyObject(object? obj)
-        {
-            if (obj == null)
-            {
-                return true;
-            }
-            return false;
-        }
-
         public static string GeneratePayOSSignature(object body, string checksumKey)
         {
             var props = body.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.GetValue(body) != null)
-                .Select(p =>
+                .Select(p => 
                 {
                     var jsonPropertyName = p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name;
                     return new { Key = jsonPropertyName, Value = p.GetValue(body)!.ToString() };
@@ -401,7 +383,7 @@ namespace Common.Utils
             }
             return string.IsNullOrWhiteSpace(str);
         }
-
+        
         public static bool IsEmptyObject(object? obj)
         {
             if (obj == null)
@@ -448,6 +430,29 @@ namespace Common.Utils
 
             // Trả về chuỗi base64 đầy đủ để gửi qua API
             return $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
+        }
+
+        public static string GetMediaUrl(string relativePath, string webRootPath, IHttpContextAccessor httpContextAccessor)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+                throw new Exception("Lỗi khi xử lí hình ảnh.");
+
+            // loại bỏ / hoặc \
+            var cleanRelativePath = relativePath.TrimStart('/', '\\');
+
+            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
+
+            if (!File.Exists(fullPath))
+                throw new Exception("Lỗi khi xử lí hình ảnh.");
+
+            var request = httpContextAccessor.HttpContext?.Request;
+
+            // ✅ Encode relativePath để Swagger hiển thị đúng images%2F...
+            var encodedPath = Uri.EscapeDataString(cleanRelativePath);
+
+            var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
+
+            return result;
         }
     }
 }

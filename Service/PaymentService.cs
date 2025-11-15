@@ -8,40 +8,54 @@ using Service.PayOS;
 using BusinessObject.DTOs.Response;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
-using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Request.Payments;
 
 namespace Service
 {
     public class PaymentService
     {
-        private readonly ICoursekeyRepository _coursekeyRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly UserManager<Account> _userManager;
         private readonly IPaymentRepository _paymentRepository;
         private readonly ICourseRepository _courseRepository;
         private readonly PayOSApiService _payOSApiService;
         private readonly IPackageRepository _packageRepository;
+        private readonly IParentStudentLinkRepository _parentStudentLinkRepository;
+        private readonly CourseService _courseService;
+        private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
+        private readonly IProcessRepository _processRepository;
+        private readonly IUserPackageRepository _userPackageRepository;
+        private readonly ICreateSlotRepository _createSlotRepository;
 
         public PaymentService(
-            ICoursekeyRepository coursekeyRepository,
             IAccountRepository accountRepository,
             UserManager<Account> userManager,
             IPaymentRepository paymentRepository,
             ICourseRepository courseRepository,
             PayOSApiService payOSApiService,
-            IPackageRepository packageRepository)
+            IPackageRepository packageRepository,
+            IParentStudentLinkRepository parentStudentLinkRepository,
+            CourseService courseService,
+            IStudentEnrollmentRepository studentEnrollmentRepository,
+            IProcessRepository processRepository,
+            IUserPackageRepository userPackageRepository,
+            ICreateSlotRepository createSlotRepository)
         {
-            _coursekeyRepository = coursekeyRepository;
             _accountRepository = accountRepository;
             _userManager = userManager;
             _paymentRepository = paymentRepository;
             _courseRepository = courseRepository;
             _payOSApiService = payOSApiService;
             _packageRepository = packageRepository;
+            _parentStudentLinkRepository = parentStudentLinkRepository;
+            _courseService = courseService;
+            _studentEnrollmentRepository = studentEnrollmentRepository;
+            _processRepository = processRepository;
+            _userPackageRepository = userPackageRepository;
+            _createSlotRepository = createSlotRepository;
         }
 
-        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId)
+        public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId, string userRole)
         {
             if(request == null)
             {
@@ -93,49 +107,109 @@ namespace Service
                 TransactionDate = DateTime.Parse(paymentResponse.Data.CreatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind)
             };
 
-            // Chỉ lưu transaction nếu có CourseId (vì model yêu cầu CourseId)
             if (courseId.HasValue)
             {
                 transaction.ItemId = courseId.Value;
 
-                // Tạo CourseKey khi thanh toán thành công cho khóa học
-                var uniqueKeyValue = Guid.NewGuid().ToString("N");
-                var courseKey = new Coursekey
+                // Tự động enroll tất cả students liên kết với Parent vào khóa học
+                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
+                
+                foreach (var student in linkedStudents)
                 {
-                    CourseId = courseId.Value,
-                    StudentId = null,
-                    CreatedBy = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Status = "available",
-                    KeyValue = uniqueKeyValue
-                };
-                await _coursekeyRepository.AddAsync(courseKey);
+                    try
+                    {
+                        // 1. Tạo enrollment record
+                        var enrollment = new Studentenrollment
+                        {
+                            StudentId = student.Id,
+                            CourseId = courseId.Value,
+                            EnrolledAt = DateTime.UtcNow,
+                            ParentId = userId  // Parent đã mua
+                        };
+                        await _studentEnrollmentRepository.AddAsync(enrollment);
 
-                // Gửi key cho Parent
-                await SendKeyToParentAsync(userId, uniqueKeyValue, courseId.Value);
+                        // 2. Khởi tạo tiến trình học cho từng student
+                        await _courseService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error nhưng không throw để không ảnh hưởng đến các student khác
+                        Console.WriteLine($"Error enrolling student {student.Id} to course {courseId.Value}: {ex.Message}");
+                    }
+                }
             }
             else if (packageId.HasValue)
             {
                 transaction.ItemId = packageId.Value;
-
-                var userPackage = new Userpackage
+                var newUserPackage = new Userpackage
                 {
-                    UserId = userId,
                     PackageId = packageId.Value,
                     Price = paymentResponse.Data.AmountPaid,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
                 };
 
-                await _packageRepository.AddUserPackageAsync(userPackage);
+                var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == packageId, xc => xc.Userpackages);
+                if(package == null)
+                {
+                    throw new Exception("Gói bạn cần mua không tìm thấy.");
+                }
+
+                if(userRole == "Parent")
+                {
+                    var userPackage = package.Userpackages.FirstOrDefault(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == userId && x.PackageId == packageId);
+
+                    newUserPackage.UserId = userPackage.UserId.Split("_")[0];
+
+                    await _userPackageRepository.DeleteAsync(userPackage);
+                    await _userPackageRepository.AddAsync(newUserPackage);
+                }
+                else
+                {
+                    var teacherPackage = package.Userpackages.FirstOrDefault(x => x.UserId == userId);
+
+                    if(teacherPackage != null)
+                    {
+                        teacherPackage.Price = paymentResponse.Data.AmountPaid;
+                        teacherPackage.IsActive = true;
+                        teacherPackage.UpdatedAt = DateTime.UtcNow;
+
+                        await _userPackageRepository.UpdateAsync(teacherPackage);
+                    }
+                    else
+                    {
+                        newUserPackage.UserId = userId;
+                        await _userPackageRepository.AddAsync(newUserPackage);
+                    }
+
+                    var currSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+                    if (currSlot != null)
+                    {
+                        currSlot.Slot += package.Slot;
+                        currSlot.AvailableSlot += package.Slot;
+
+                        await _createSlotRepository.UpdateAsync(currSlot);
+                    }
+                    else
+                    {
+                        var newSlot = new Createslot
+                        {
+                            Slot = package.Slot,
+                            AvailableSlot = package.Slot,
+                            TeacherId = userId,
+                            PackageId = packageId.Value
+                        };
+
+                        await _createSlotRepository.AddAsync(newSlot);
+                    }
+                }
             }
 
             await _paymentRepository.AddAsync(transaction);
 
             var successMessage = courseId.HasValue 
-                ? "Thanh toán thành công! Mã khóa học đã được gửi cho phụ huynh."
+                ? "Thanh toán thành công! Các học sinh đã được đăng ký vào khóa học."
                 : "Thanh toán thành công! Gói đăng kí đã được kích hoạt.";
 
             return new BaseResponse<PayOSPaymentReturnResponse>(
@@ -145,76 +219,7 @@ namespace Service
                 );
         }
 
-        public async Task<List<CourseKeyResponse>> GetAllCourseKeysAsync()
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync();
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<List<CourseKeyResponse>> GetFilteredCourseKeysAsync(string? status = null, string? parentId = null, int? courseId = null)
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetAllCourseKeysAsync(status, parentId, courseId);
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<List<CourseKeyResponse>> GetCourseKeysByParentAsync(string parentId)
-        {
-            try
-            {
-                var courseKeys = await _coursekeyRepository.GetByParentIdAsync(parentId);
-
-                var response = courseKeys.Select(k => new CourseKeyResponse
-                {
-                    KeyValue = k.KeyValue,
-                    CourseId = k.CourseId,
-                    StudentId = k.StudentId,
-                    CreatedAt = k.CreatedAt,
-                    Status = k.Status
-                }).ToList();
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                return new List<CourseKeyResponse>();
-            }
-        }
-
-        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId)
+        public async Task<BaseResponse<PayOSApiResponse>> GetPayOSPaymentUrlAsync(PayOSPaymentRequest request, string userId, string userRole)
         {
             var body = new PayOSApiBody
             {
@@ -233,33 +238,93 @@ namespace Service
 
             if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
-                var courseCheck = await _courseRepository.CheckDuplicate(request.CourseId, userId);
-                if (courseCheck)
+                // Kiểm tra xem parent hoặc bất kỳ student nào của parent đã enroll khóa học này chưa
+                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
+
+                foreach (var student in linkedStudents)
                 {
-                    throw new Exception("Bạn đã mua khóa học này rồi.");
+                    var isEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(student.Id, request.CourseId.Value);
+                    if (isEnrolled)
+                    {
+                        throw new Exception($"Học sinh {student.Name ?? student.UserName} đã được đăng ký vào khóa học này rồi.");
+                    }
+
+                    if (userRole == "Teacher")
+                    {
+                        throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
+                    }
+
+                    if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
+                    {
+                        throw new Exception("Không tìm thấy khoá học này.");
+                    }
+
+                    var existingCourse = await _processRepository.FindOneAsync(x => x.CourseId == request.CourseId && x.StudentId == request.DestUserId);
+                    if (existingCourse != null)
+                    {
+                        throw new Exception("Bạn đã mua khóa học cho học sinh này rồi.");
+                    }
+
+                    body.Description = $"Thanh toán cho khóa học {request.CourseId}.";
                 }
-                
-                body.Description = $"Thanh toán cho khóa học {request.CourseId}.";
             }
             else
             {
-                var packageCheck = await _packageRepository.CheckDuplicate(request.PackageId, userId);
-                if (packageCheck)
+                var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == request.PackageId, xc => xc.Userpackages);
+
+                if (package == null)
                 {
-                    throw new Exception("Bạn đã mua gói đăng kí này rồi.");
+                    throw new Exception("Gói bạn cần mua không tìm thấy");
+                }
+
+                if (userRole == "Parent")
+                {
+                    if (package.IsMockTest == false)
+                    {
+                        throw new Exception("Gói này dành cho giáo viên. Bạn không thể mua.");
+                    }
+
+                    var packageCheck = package.Userpackages.FirstOrDefault(x => x.UserId == request.DestUserId);
+
+                    if (packageCheck != null)
+                    {
+                        throw new Exception("Bạn đã mua gói này rồi.");
+                    }
+
+                    var userPackage = new Userpackage
+                    {
+                        PackageId = request.PackageId,
+                        UserId = request.DestUserId + "_" + userId,
+                        IsActive = false,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                    };
+
+                    await _userPackageRepository.AddOrUpdateAsync(userPackage, c => new object[] { c.PackageId, c.UserId });
+                }
+                else
+                {
+                    if (package.IsMockTest == true)
+                    {
+                        throw new Exception("Gói này dành cho phụ huynh. Bạn không thể mua.");
+                    }
                 }
 
                 body.Description = $"Thanh toán cho gói {request.PackageId}.";
             }
+            // Kiểm tra API keys trước khi tạo signature
+            var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY");
+            var clientId = CommonUtils.GetApiKey("PAYOS_CLIENT_ID");
+            var apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY");
 
-            var signature = CommonUtils.GeneratePayOSSignature(body, CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY"));
+            var signature = CommonUtils.GeneratePayOSSignature(body, checksumKey);
 
             body.Signature = signature;
 
             var apiRequest = PayOSApiRequest.Builder()
                 .CallUrl("/v2/payment-requests")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddHeader("x-client-id", clientId)
+                .AddHeader("x-api-key", apiKey)
                 .Body(body)
                 .Build();
 
@@ -325,27 +390,6 @@ namespace Service
                 StatusCodeEnum.OK_200,
                 response
                 );
-        }
-
-        private async Task SendKeyToParentAsync(string parentId, string keyValue, int courseId)
-        {
-            var parent = await _accountRepository.GetByStringId(parentId);
-            if (parent == null)
-            {
-                throw new Exception("Không tìm thấy thông tin phụ huynh");
-            }
-
-            // TODO: Implement gửi email/SMS cho Parent
-            // Hiện tại chỉ log ra console
-            Console.WriteLine($"=== THÔNG BÁO CHO PHỤ HUYNH ===");
-            Console.WriteLine($"Phụ huynh: {parent.Name} ({parent.Email})");
-            Console.WriteLine($"Khóa học ID: {courseId}");
-            Console.WriteLine($"Mã khóa học: {keyValue}");
-            Console.WriteLine($"Hướng dẫn: Đưa mã này cho học sinh để kích hoạt khóa học");
-            Console.WriteLine($"================================");
-
-            // TODO: Gửi email thực tế
-            // await _emailService.SendCourseKeyAsync(parent.Email, keyValue, courseId);
         }
     }
 }

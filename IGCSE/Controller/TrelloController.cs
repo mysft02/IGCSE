@@ -2,11 +2,9 @@ using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Trellos;
 using BusinessObject.Model;
 using BusinessObject.Payload.Request.Filter;
-using Common.Constants;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Repository.IRepositories;
 using Service;
 using Service.OAuth;
 using Swashbuckle.AspNetCore.Annotations;
@@ -33,7 +31,7 @@ public class TrelloController : ControllerBase
     public async Task<IActionResult> SearchTrelloTokens([FromQuery] TrelloTokenQueryRequest request)
     {
         var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-        if (CommonUtils.isEmtyString(userId))
+        if (CommonUtils.IsEmptyString(userId))
         { 
             throw new Exception("Không tìm thấy thông tin người dùng");
         }
@@ -51,7 +49,7 @@ public class TrelloController : ControllerBase
     public async Task<IActionResult> GetTrelloBoardsByUserId([FromRoute] string id)
     {
         var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-        if (CommonUtils.isEmtyString(userId))
+        if (CommonUtils.IsEmptyString(userId))
         { 
             throw new Exception("Không tìm thấy thông tin người dùng");
         }
@@ -71,7 +69,7 @@ public class TrelloController : ControllerBase
     public async Task<IActionResult> AutoUploadFromTrello(string id, string boardId)
     {
         var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-        if (CommonUtils.isEmtyString(userId))
+        if (CommonUtils.IsEmptyString(userId))
         { 
             throw new Exception("Không tìm thấy thông tin người dùng");
         }
@@ -91,7 +89,7 @@ public class TrelloController : ControllerBase
     public async Task<IActionResult> AutoUploadMockTestFromTrello(string id, string boardId)
     {
         var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-        if (CommonUtils.isEmtyString(userId))
+        if (CommonUtils.IsEmptyString(userId))
         {
             throw new Exception("Không tìm thấy thông tin người dùng");
         }

@@ -1,4 +1,6 @@
-﻿namespace BusinessObject.DTOs.Response.MockTest
+﻿using BusinessObject.DTOs.Response.MockTestQuestion;
+
+namespace BusinessObject.DTOs.Response.MockTest
 {
     public class MockTestResultResponse
     {

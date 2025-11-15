@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 50
+      author: quanghuy
+      changes:
+        - createTable:
+            tableName: studentenrollment
+            columns:
+              - column:
+                  name: EnrollmentID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: StudentID
+                  type: VARCHAR(450)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: EnrolledAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ParentID
+                  type: VARCHAR(450)
+                  constraints:
+                    nullable: true
+        - addUniqueConstraint:
+            tableName: studentenrollment
+            columnNames: StudentID, CourseID
+            constraintName: uk_student_course_enrollment
+      rollback:
+        - dropTable:
+            tableName: studentenrollment
+      tags:
+        - studentenrollment
+

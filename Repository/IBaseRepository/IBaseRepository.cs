@@ -15,10 +15,11 @@ namespace Repository.IBaseRepository
         Task<List<T>> UpdateRange(List<T> entities);
         Task<List<T>> DeleteRange(List<T> entities);
         Task<T> AddOrUpdateAsync(T entity, Func<T, object> keySelector);
-        
+
         // Query methods
-        Task<List<T>> FindAsync(Expression<Func<T, bool>>? filter = null);
+        Task<List<T>> FindAsync(params Expression<Func<T, bool>>[] filters);
         Task<T?> FindOneAsync(Expression<Func<T, bool>> filter);
+        Task<T?> FindOneWithIncludeAsync(Expression<Func<T, bool>> filter, params Expression<Func<T, object>>[] includes);
 
         Task<int> CountAsync(Expression<Func<T, bool>>? filter = null);
         Task<List<T>> FindWithPagingAsync(Expression<Func<T, bool>>? filter = null, int page = 0, int size = 10);

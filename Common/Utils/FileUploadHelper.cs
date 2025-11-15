@@ -5,12 +5,12 @@ namespace Common.Utils
     public static class FileUploadHelper
     {
         private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        private static readonly long MaxFileSize = 5 * 1024 * 1024; // 5MB
+        private static readonly long MaxFileSize = 5 * 1024 * 1024; 
         private static readonly string[] AllowedDocumentExtensions = { ".pdf" };
         private static readonly string[] AllowedVideoExtensions = { ".mp4", ".webm", ".ogg" };
-        private const string ImagesFolder = "wwwroot/images/courses";
-        private const string LessonDocsFolder = "wwwroot/lessons/docs";
-        private const string LessonVideosFolder = "wwwroot/lessons/videos";
+        private const string ImagesFolder = "courses/images";
+        private const string LessonDocsFolder = "lessons/docs";
+        private const string LessonVideosFolder = "lessons/videos";
 
         /// <summary>
         /// Uploads an image file and returns the relative URL path
@@ -56,7 +56,7 @@ namespace Common.Utils
             }
 
             // Return relative URL path
-            return $"/images/courses/{fileName}";
+            return $"/courses/images/{fileName}";
         }
 
         /// <summary>

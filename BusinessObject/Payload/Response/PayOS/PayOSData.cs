@@ -29,7 +29,7 @@ namespace BusinessObject.Payload.Response.PayOS
         public long OrderCode { get; set; }
         
         [JsonPropertyName("expiredAt")]
-        public long ExpiredAt { get; set; }
+        public long? ExpiredAt { get; set; }
         
         [JsonPropertyName("status")]
         public string? Status { get; set; }
