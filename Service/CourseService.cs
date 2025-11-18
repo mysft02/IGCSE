@@ -251,7 +251,7 @@ namespace Service
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
-                if(course.ImageUrl != null)
+                if(!string.IsNullOrEmpty(course.ImageUrl))
                 {
                     course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
                 }
@@ -437,7 +437,7 @@ namespace Service
             var pagedItems = pagedCourses.Select(_mapper.Map<CourseResponse>).ToList();
             foreach (var course in pagedItems)
             {
-                if (course.ImageUrl != null)
+                if (!string.IsNullOrEmpty(course.ImageUrl))
                 {
                     course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
                 }
@@ -500,7 +500,7 @@ namespace Service
             {
                 // 1. Get course with related data
                 var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
-                if (course == null) 
+                if (course == null)
                     throw new Exception("Course not found");
 
                 // 2. Map course to DTO
@@ -513,7 +513,7 @@ namespace Service
                 if (!string.IsNullOrEmpty(studentId))
                 {
                     studentProcesses = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
-                    
+
                     // Lấy tất cả process items cho student
                     processItemsDict = new Dictionary<int, List<Processitem>>();
                     foreach (var process in studentProcesses)
@@ -524,11 +524,11 @@ namespace Service
                 }
 
                 var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
-                
+
                 // Biến để tính overall progress
                 int totalLessons = 0;
                 int completedLessons = 0;
-                
+
                 if (sections != null && sections.Any())
                 {
                     courseDetailResponse.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
@@ -540,7 +540,7 @@ namespace Service
                         if (lessons != null && lessons.Any())
                         {
                             section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
-                            foreach(var c in section.Lessons)
+                            foreach (var c in section.Lessons)
                             {
                                 var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
                                 c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
@@ -595,7 +595,7 @@ namespace Service
                 if (studentProcesses != null && studentProcesses.Any())
                 {
                     courseDetailResponse.IsEnrolled = true;
-                    
+
                     // Tính overall progress (phần trăm hoàn thành)
                     if (totalLessons > 0)
                     {
@@ -612,7 +612,10 @@ namespace Service
                     courseDetailResponse.OverallProgress = null; // Không có progress nếu chưa enroll
                 }
 
-                courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                if (!string.IsNullOrEmpty(course.ImageUrl))
+                {
+                    courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                }
 
                 return new BaseResponse<CourseDetailResponse>(
                     "Course detail retrieved successfully",
@@ -636,6 +639,7 @@ namespace Service
             }
 
             var result = _mapper.Map<LessonItemDetail>(lessonItemDetail);
+            result.Content = await _mediaService.GetMediaUrlAsync(result.Content);
 
             return new BaseResponse<LessonItemDetail>
             {
@@ -707,7 +711,7 @@ namespace Service
                     var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
                     if (course == null) continue;
                     var first = g.MinBy(p => p.Course.CreatedAt ?? DateTime.UtcNow);
-                    responses.Add(new CourseRegistrationResponse
+                    var result = new CourseRegistrationResponse
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
@@ -715,7 +719,13 @@ namespace Service
                         StudentName = "",
                         EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
                         Status = "Active"
-                    });
+                    };
+                    if (!string.IsNullOrEmpty(course.ImageUrl))
+                    {
+                        result.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+
+                    responses.Add(result);
                 }
 
                 // Apply filters
@@ -1157,7 +1167,7 @@ namespace Service
                             ? Math.Round((double)completedLessons / totalLessons * 100, 2) 
                             : 0;
 
-                        studentProgress.Courses.Add(new CourseProgressSummary
+                        var courseProgress = new CourseProgressSummary
                         {
                             CourseId = courseId,
                             CourseName = course.Name,
@@ -1166,7 +1176,14 @@ namespace Service
                             OverallProgress = overallProgress,
                             TotalLessons = totalLessons,
                             CompletedLessons = completedLessons
-                        });
+                        };
+
+                        if (!string.IsNullOrEmpty(courseProgress.CourseImageUrl))
+                        {
+                            courseProgress.CourseImageUrl = await _mediaService.GetMediaUrlAsync(courseProgress.CourseImageUrl);
+                        }
+
+                        studentProgress.Courses.Add(courseProgress);
                     }
 
                     result.Add(studentProgress);
