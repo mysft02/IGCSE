@@ -1,4 +1,5 @@
 using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Response.Quizzes;
 
 namespace BusinessObject.DTOs.Response.Courses
 {
@@ -59,17 +60,24 @@ namespace BusinessObject.DTOs.Response.Courses
         public bool IsUnlocked { get; set; } = false;  // Trạng thái mở khóa bài học
         public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành bài học
         public List<LessonItemDetailResponse> LessonItems { get; set; } = new();
+        public QuizResponse Quiz { get; set; }
     }
     
     public class LessonItemDetailResponse
     {
         public long LessonItemId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string Content { get; set; } = string.Empty;
-        public string ItemType { get; set; } = string.Empty; // video, text, quiz, etc.
         public int Order { get; set; }
         public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành item
         public DateTime? CompletedAt { get; set; } // Thời gian hoàn thành
+    }
+
+    public class LessonItemDetail
+    {
+        public long LessonItemId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string ItemType { get; set; } = string.Empty; // video, text, quiz, etc.
     }
 }
