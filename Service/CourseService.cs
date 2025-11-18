@@ -509,6 +509,11 @@ namespace Service
                         if (lessons != null && lessons.Any())
                         {
                             section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+                            foreach(var c in section.Lessons)
+                            {
+                                var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
+                                c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
+                            }
 
                             foreach (var lesson in section.Lessons)
                             {

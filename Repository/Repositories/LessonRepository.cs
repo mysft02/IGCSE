@@ -35,6 +35,7 @@ namespace Repository.Repositories
         {
             return await _context.Set<Lesson>()
                 .Include(l => l.CourseSection)
+                .Include(l => l.Quiz)
                 .Where(l => l.CourseSectionId == courseSectionId && l.IsActive == 1)
                 .OrderBy(l => l.Order)
                 .ToListAsync();

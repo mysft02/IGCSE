@@ -60,7 +60,14 @@ namespace BusinessObject.DTOs.Response.Courses
         public bool IsUnlocked { get; set; } = false;  // Trạng thái mở khóa bài học
         public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành bài học
         public List<LessonItemDetailResponse> LessonItems { get; set; } = new();
-        public QuizResponse Quiz { get; set; }
+        public LessonQuizResponse Quiz { get; set; }
+    }
+
+    public class LessonQuizResponse
+    {
+        public int QuizId { get; set; }
+        public string QuizTitle { get; set; }
+        public string QuizDescription { get; set; }
     }
     
     public class LessonItemDetailResponse

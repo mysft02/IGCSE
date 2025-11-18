@@ -168,8 +168,10 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.LessonItemName, opt => opt.MapFrom(src => src.LessonItem.Name));
 
             CreateMap<CourseSectionRequest, Coursesection>();
+
             CreateMap<Quiz, QuizResponse>().ReverseMap();
             CreateMap<Quiz, QuizQueryResponse>().ReverseMap();
+            CreateMap<Quiz, LessonQuizResponse>().ReverseMap();
 
             CreateMap<Question, QuestionResponse>().ReverseMap();
 
