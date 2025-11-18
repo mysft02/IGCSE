@@ -4,6 +4,6 @@
     {
         public string ParentId { get; set; }
 
-        public string StudentId { get; set; }
+        public string StudentEmail { get; set; }
     }
 }

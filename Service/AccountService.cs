@@ -424,44 +424,36 @@ namespace Service
         public async Task<BaseResponse<ParentStudentLinkResponse>> LinkStudentToParentAsync(ParentStudentLinkRequest request)
         {
             var parent = await _accountRepository.GetByStringId(request.ParentId);
-            var student = await _accountRepository.GetByStringId(request.StudentId);
+            var student = await _accountRepository.FindOneAsync(x => x.Email == request.StudentEmail);
 
-            if (parent == null || student == null)
+            if (student == null)
             {
-                throw new Exception("Parent or student not found.");
+                throw new Exception("Không tìm thấy tài khoản học sinh này.");
             }
 
-            var parentRole = await _userManager.GetRolesAsync(parent);
             var studentRole = await _userManager.GetRolesAsync(student);
-
-            if (!parentRole.Contains("Parent"))
-            {
-                throw new Exception("You are not a parent.");
-            }
-
             if (!studentRole.Contains("Student"))
             {
-                throw new Exception("You are not a student.");
+                throw new Exception("Tài khoản này không phải học sinh.");
+            }
+
+            var checkDuplicate = await _parentStudentLinkRepository.FindOneAsync(x => x.ParentId == request.ParentId && x.StudentId == student.Id);
+            if(checkDuplicate != null)
+            {
+                throw new Exception("Bạn đã liên kết tài khoản học sinh này rồi");
             }
 
             var parentStudentLink = new Parentstudentlink
             {
                 ParentId = request.ParentId,
-                StudentId = request.StudentId,
+                StudentId = student.Id,
             };
-
-            var checkDuplicate = await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(request.ParentId, request.StudentId);
-
-            if(checkDuplicate == true)
-            {
-                throw new Exception("Parent-Student link already exists.");
-            }
 
             var result = await _parentStudentLinkRepository.AddAsync(parentStudentLink);
             var response = _mapper.Map<ParentStudentLinkResponse>(result);
 
             return new BaseResponse<ParentStudentLinkResponse>(
-                "Parent-Student link created successfully",
+                "Liên kết tài khoản học sinh thành công",
                 StatusCodeEnum.Created_201,
                 response
             );

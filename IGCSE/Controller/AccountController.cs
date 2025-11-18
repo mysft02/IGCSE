@@ -6,6 +6,7 @@ using BusinessObject.DTOs.Response.Accounts;
 using BusinessObject.DTOs.Request.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using BusinessObject.DTOs.Response.ParentStudentLink;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace IGCSE.Controller
 {
@@ -109,7 +110,8 @@ namespace IGCSE.Controller
 
         [HttpPost("link-student-to-parent")]
         [Authorize(Roles = "Parent")]
-        public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] string studentId)
+        [SwaggerOperation(Summary = "Liên kết tài khoản học sinh với phụ huynh", Description = "Truyền vào `email` của tài khoản học sinh cần liên kết khi cần liên kết tài khoản học sinh với phụ huynh, kết quả trả về sẽ là `id` của `parent` và `student`")]
+        public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] string studentEmail)
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;
@@ -134,7 +136,7 @@ namespace IGCSE.Controller
             var request = new ParentStudentLinkRequest
             {
                 ParentId = userId,
-                StudentId = studentId
+                StudentEmail = studentEmail
             };
 
             var result = await _accountService.LinkStudentToParentAsync(request);

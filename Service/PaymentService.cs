@@ -265,7 +265,7 @@ namespace Service
                         throw new Exception("Bạn đã mua khóa học cho học sinh này rồi.");
                     }
 
-                    body.Description = $"Thanh toán cho khóa học {request.CourseId}.";
+                    body.Description = $"Thanh toán khóa học {request.CourseId}.";
                 }
             }
             else
@@ -310,7 +310,7 @@ namespace Service
                     }
                 }
 
-                body.Description = $"Thanh toán cho gói {request.PackageId}.";
+                body.Description = $"Thanh toán gói {request.PackageId}.";
             }
             // Kiểm tra API keys trước khi tạo signature
             var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY");
