@@ -13,13 +13,11 @@ namespace BusinessObject.DTOs.Request.Courses
         [SwaggerSchema("Tìm kiếm theo tên khóa học")]
         public string? SearchByCourseName { get; set; }
 
-        [SwaggerSchema("Filter theo trạng thái (Active, Inactive)")]
-        public string? Status { get; set; }
-
         public int GetPageSize()
         {
             return Size > 0 ? Size : 10;
         }
     }
 }
+
 
