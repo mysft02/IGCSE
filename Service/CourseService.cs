@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Identity;
 using Repository.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Service.Trello;
 
 namespace Service
 {
@@ -35,6 +36,7 @@ namespace Service
         private readonly UserManager<Account> _userManager;
         private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
         private readonly MediaService _mediaService;
+        private readonly TrelloCardService _trelloCardService;
 
         public CourseService(
             IMapper mapper,
@@ -50,7 +52,8 @@ namespace Service
             IAccountRepository accountRepository,
             UserManager<Account> userManager,
             IStudentEnrollmentRepository studentEnrollmentRepository,
-            MediaService mediaService)
+            MediaService mediaService,
+            TrelloCardService trelloCardService)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -66,6 +69,7 @@ namespace Service
             _userManager = userManager;
             _studentEnrollmentRepository = studentEnrollmentRepository;
             _mediaService = mediaService;
+            _trelloCardService = trelloCardService;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
@@ -411,14 +415,14 @@ namespace Service
                 filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
             }
             
-            if (!string.IsNullOrEmpty(request.Status))
-            {
-                filtered = filtered.Where(c => c.Status == request.Status);
-            }
-            else
-            {
-                filtered = filtered.OrderByDescending(c => c.CreatedAt);
-            }
+            //if (!string.IsNullOrEmpty(request.Status))
+            //{
+            //    filtered = filtered.Where(c => c.Status == request.Status);
+            //}
+            //else
+            //{
+            //    filtered = filtered.OrderByDescending(c => c.CreatedAt);
+            //}
 
             // Get total count before pagination
             var totalCount = filtered.Count();
@@ -641,36 +645,46 @@ namespace Service
             };
         }
 
-        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId)
+        public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId, TrelloToken trelloToken)
         {
             courseName = courseName.Replace("[course]", "").Trim();
-            string description = "This is a course imported from Trello.";
-            decimal price = 0;
-            
-            foreach (var trelloCardResponse in trelloCardResponses)
-            {
-                if (trelloCardResponse.Name.Contains("Description"))
-                {
-                    description = trelloCardResponse.Description;
-                }
-                if (trelloCardResponse.Name.Contains("Price"))
-                {
-                    price = decimal.Parse(trelloCardResponse.Description);
-                }
-            }
-            
+
             var course = new Course
             {
                 Name = courseName,
-                Description = description,
-                Price = price,
-                ImageUrl = "",
                 Status = "Open",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = userId,
                 UpdatedBy = userId
             };
+
+            foreach (var trelloCardResponse in trelloCardResponses)
+            {
+                if (trelloCardResponse.Name.Contains("Description"))
+                {
+                    course.Description = trelloCardResponse.Description;
+                }
+                if (trelloCardResponse.Name.Contains("Price"))
+                {
+                    course.Price = decimal.Parse(trelloCardResponse.Description);
+                }
+                if (trelloCardResponse.Name.Contains("Image"))
+                {
+                    var attachments = await _trelloCardService.GetTrelloCardAttachments(trelloCardResponse.Id, trelloToken);
+
+                    // get first attachment that is image
+                    var imageUrl = string.Empty;
+                    if (!CommonUtils.isEmtyList(attachments))
+                    {
+                        var imageAttachment = attachments.FirstOrDefault();
+                        imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                    }
+
+                    course.ImageUrl = imageUrl;
+                }
+            }
+
             var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
             course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
             var createdCourse = await _courseRepository.AddAsync(course);
@@ -712,14 +726,14 @@ namespace Service
                     filtered = filtered.Where(r => r.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
                 }
                 
-                if (!string.IsNullOrEmpty(request.Status))
-                {
-                    filtered = filtered.Where(r => r.Status.Equals(request.Status, StringComparison.OrdinalIgnoreCase));
-                }
-                else
-                {
-                    filtered = filtered.OrderByDescending(r => r.EnrollmentDate);
-                }
+                //if (!string.IsNullOrEmpty(request.Status))
+                //{
+                //    filtered = filtered.Where(r => r.Status.Equals(request.Status, StringComparison.OrdinalIgnoreCase));
+                //}
+                //else
+                //{
+                //    filtered = filtered.OrderByDescending(r => r.EnrollmentDate);
+                //}
 
                 // Get total count before pagination
                 var totalCount = filtered.Count();

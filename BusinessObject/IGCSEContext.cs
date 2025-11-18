@@ -285,7 +285,6 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("coursesection");
             entity.Property(e => e.CourseSectionId).HasColumnName("CourseSectionID");
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
-            // entity.Property(e => e.ChapterId).HasColumnName("ChapterID"); // Chapter removed
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Name).HasMaxLength(255);

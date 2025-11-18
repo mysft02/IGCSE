@@ -118,7 +118,7 @@ public class TrelloTokenService
     public async Task<string> AutoUploadFromTrelloAsync(string userId, string trelloId, string boardId)
     {
         var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
-        if(createSlot != null)
+        if(createSlot == null)
         {
             throw new Exception("Bạn chưa mua gói để tạo mới khoá học. Vui lòng mua gói trước.");
         }
@@ -178,7 +178,7 @@ public class TrelloTokenService
                 if (ExtractTypeTrelloListContent(list.Name) == "Course")
                 {
                     //create course
-                    course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId);
+                    course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId, trelloToken);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Section")
                 {
