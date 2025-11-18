@@ -21,14 +21,6 @@ namespace IGCSE.Controller
             _quizService = quizService;
         }
 
-        [HttpGet("get-all-quiz")]
-        [SwaggerOperation(Summary = "Lấy toàn bộ danh sách quiz (có phân trang)")]
-        public async Task<ActionResult<BaseResponse<PaginatedResponse<Quiz>>>> GetAllQuizAsync([FromQuery] QuizQueryRequest request)
-        {
-            var result = await _quizService.GetAllQuizAsync(request);
-            return Ok(result);
-        }
-
         [HttpGet("get-quiz-by-id")]
         [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách quiz theo id")]

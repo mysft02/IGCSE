@@ -6,6 +6,7 @@ namespace BusinessObject.DTOs.Response.CourseRegistration
     {
         public int CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
+        public string ImageUrl { get; set; }
         public string StudentId { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
