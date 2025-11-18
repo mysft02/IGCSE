@@ -145,12 +145,15 @@ namespace BusinessObject.Mapping
             CreateMap<Lessonitem, LessonItemDetailResponse>()
                 .ForMember(dest => dest.LessonItemId, opt => opt.MapFrom(src => src.LessonItemId))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content ?? string.Empty))
-                .ForMember(dest => dest.ItemType, opt => opt.MapFrom(src => src.ItemType ?? "text"))
                 .ForMember(dest => dest.Order, opt => opt.MapFrom(src => src.Order))
                 .ForMember(dest => dest.IsCompleted, opt => opt.Ignore())
                 .ForMember(dest => dest.CompletedAt, opt => opt.Ignore());
+
+            CreateMap<Lessonitem, LessonItemDetail>()
+                .ForMember(dest => dest.LessonItemId, opt => opt.MapFrom(src => src.LessonItemId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ReverseMap();
             // Tree with children: List<Chapter> to List<ChapterDetailResponse> & List<Module> to List<ModuleDetailResponse>
             // Use ForMember with child mapping if necessary or configure AllowNullCollections, PreserveReferences if recursion.
             // Tương tự cho các class detail khác nếu cần custom.
@@ -165,8 +168,10 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.LessonItemName, opt => opt.MapFrom(src => src.LessonItem.Name));
 
             CreateMap<CourseSectionRequest, Coursesection>();
+
             CreateMap<Quiz, QuizResponse>().ReverseMap();
             CreateMap<Quiz, QuizQueryResponse>().ReverseMap();
+            CreateMap<Quiz, LessonQuizResponse>().ReverseMap();
 
             CreateMap<Question, QuestionResponse>().ReverseMap();
 

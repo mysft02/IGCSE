@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
 using Common.Constants;
+using System.Security.Claims;
 
 
 namespace IGCSE.Controller
@@ -185,6 +186,23 @@ namespace IGCSE.Controller
                     null
                 ));
             }
+        }
+
+        [HttpGet("get-lesson-item-detail")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của bài học")]
+        public async Task<ActionResult<BaseResponse<LessonDetailResponse>>> GetLessonItemDetail([FromQuery]int lessonItemId)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _courseService.GetLessonItemDetailAsync(userId, lessonItemId);
+
+            return Ok(result);
         }
 
         [HttpGet("get-linked-students-progress")]

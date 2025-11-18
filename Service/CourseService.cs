@@ -13,6 +13,7 @@ using BusinessObject.Payload.Response.Trello;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.ParentStudentLink;
 using Microsoft.AspNetCore.Identity;
+using Repository.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 
@@ -409,6 +410,11 @@ namespace Service
             {
                 filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
             }
+            
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                filtered = filtered.Where(c => c.Status == request.Status);
+            }
             else
             {
                 filtered = filtered.OrderByDescending(c => c.CreatedAt);
@@ -530,7 +536,12 @@ namespace Service
                         if (lessons != null && lessons.Any())
                         {
                             section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
-                            
+                            foreach(var c in section.Lessons)
+                            {
+                                var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
+                                c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
+                            }
+
                             foreach (var lesson in section.Lessons)
                             {
                                 // Lấy lesson items
@@ -552,7 +563,7 @@ namespace Service
                                         // Kiểm tra lesson đã hoàn thành chưa
                                         var completedItems = processItemsDict.GetValueOrDefault(process.ProcessId, new List<Processitem>());
                                         lesson.IsCompleted = lessonItems.Count() > 0 && completedItems.Count == lessonItems.Count();
-                                        
+
                                         // Đếm số lessons đã hoàn thành
                                         if (lesson.IsCompleted)
                                         {
@@ -612,6 +623,24 @@ namespace Service
             }
         }
 
+        public async Task<BaseResponse<LessonItemDetail>> GetLessonItemDetailAsync(string userId, int lessonItemId)
+        {
+            var lessonItemDetail = await _lessonitemRepository.FindOneAsync(x => x.LessonItemId == lessonItemId);
+            if (lessonItemDetail == null)
+            {
+                throw new Exception("Không tìm thấy nội dung bài học.");
+            }
+
+            var result = _mapper.Map<LessonItemDetail>(lessonItemDetail);
+
+            return new BaseResponse<LessonItemDetail>
+            {
+                Message = "Lấy nội dung bài học thành công.",
+                Data = result,
+                StatusCode = StatusCodeEnum.OK_200,
+            };
+        }
+
         public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId)
         {
             courseName = courseName.Replace("[course]", "").Trim();
@@ -655,7 +684,7 @@ namespace Service
             try
             {
                 // Lấy từ process table như cũ
-                var processes = (await _processRepository.GetByStudentAsync(studentId)).ToList();
+                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId, c => c.Course);
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
                 
@@ -663,14 +692,14 @@ namespace Service
                 {
                     var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
                     if (course == null) continue;
-                    var first = g.MinBy(p => p.CreatedAt ?? DateTime.UtcNow);
+                    var first = g.MinBy(p => p.Course.CreatedAt ?? DateTime.UtcNow);
                     responses.Add(new CourseRegistrationResponse
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
                         StudentId = studentId,
                         StudentName = "",
-                        EnrollmentDate = first?.CreatedAt ?? DateTime.UtcNow,
+                        EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
                         Status = "Active"
                     });
                 }
@@ -682,7 +711,11 @@ namespace Service
                 {
                     filtered = filtered.Where(r => r.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
                 }
-
+                
+                if (!string.IsNullOrEmpty(request.Status))
+                {
+                    filtered = filtered.Where(r => r.Status.Equals(request.Status, StringComparison.OrdinalIgnoreCase));
+                }
                 else
                 {
                     filtered = filtered.OrderByDescending(r => r.EnrollmentDate);

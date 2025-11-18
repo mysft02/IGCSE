@@ -19,4 +19,6 @@ public class Lesson
     public DateTime? UpdatedAt { get; set; }
 
     public virtual Coursesection CourseSection { get; set; } = null!;
+
+    public virtual Quiz Quiz { get; set; }
 }

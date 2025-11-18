@@ -29,7 +29,10 @@ public class SectionService
             CourseId = courseId,
             Name = sectionName,
             Description = description,
-            Order = sectionOrder
+            Order = sectionOrder,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now,
+            IsActive = 1
         };
         var createdSection = await _courseSectionRepository.AddAsync(courseSection);
         return createdSection;
