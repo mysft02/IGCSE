@@ -761,7 +761,7 @@ namespace Service
             var course = new Course
             {
                 Name = courseName,
-                Status = "Open",
+                Status = "Pending", // Luôn tạo với trạng thái Pending để chờ duyệt
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = userId,
