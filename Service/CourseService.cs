@@ -230,7 +230,18 @@ namespace Service
                 var courseResponse = _mapper.Map<CourseResponse>(course);
                 if (course.ImageUrl != null)
                 {
-                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    try
+                    {
+                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
                 }
                 courseResponses.Add(courseResponse);
             }
@@ -253,7 +264,20 @@ namespace Service
             {
                 if(!string.IsNullOrEmpty(course.ImageUrl))
                 {
-                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    try
+                    {
+                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        // Nếu file không tồn tại, giữ nguyên ImageUrl hoặc set về null/empty
+                        course.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        // Xử lý các lỗi khác, giữ nguyên ImageUrl hoặc set về null/empty
+                        course.ImageUrl = string.Empty;
+                    }
                 }
             }
 
@@ -391,7 +415,18 @@ namespace Service
                 var courseResponse = _mapper.Map<CourseResponse>(course);
                 if (courseResponse.ImageUrl != null)
                 {
-                    courseResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                    try
+                    {
+                        courseResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        courseResponse.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        courseResponse.ImageUrl = string.Empty;
+                    }
                 }
                 courseResponses.Add(courseResponse);
             }
@@ -439,7 +474,18 @@ namespace Service
             {
                 if (!string.IsNullOrEmpty(course.ImageUrl))
                 {
-                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    try
+                    {
+                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
                 }
             }
 
@@ -614,7 +660,18 @@ namespace Service
 
                 if (!string.IsNullOrEmpty(course.ImageUrl))
                 {
-                    courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                    try
+                    {
+                        courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        courseDetailResponse.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        courseDetailResponse.ImageUrl = string.Empty;
+                    }
                 }
 
                 return new BaseResponse<CourseDetailResponse>(
@@ -639,7 +696,18 @@ namespace Service
             }
 
             var result = _mapper.Map<LessonItemDetail>(lessonItemDetail);
-            result.Content = await _mediaService.GetMediaUrlAsync(result.Content);
+            try
+            {
+                result.Content = await _mediaService.GetMediaUrlAsync(result.Content);
+            }
+            catch (FileNotFoundException)
+            {
+                result.Content = string.Empty;
+            }
+            catch (Exception)
+            {
+                result.Content = string.Empty;
+            }
 
             return new BaseResponse<LessonItemDetail>
             {
@@ -722,7 +790,18 @@ namespace Service
                     };
                     if (!string.IsNullOrEmpty(course.ImageUrl))
                     {
-                        result.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                        try
+                        {
+                            result.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            result.ImageUrl = string.Empty;
+                        }
+                        catch (Exception)
+                        {
+                            result.ImageUrl = string.Empty;
+                        }
                     }
 
                     responses.Add(result);
@@ -1180,7 +1259,18 @@ namespace Service
 
                         if (!string.IsNullOrEmpty(courseProgress.CourseImageUrl))
                         {
-                            courseProgress.CourseImageUrl = await _mediaService.GetMediaUrlAsync(courseProgress.CourseImageUrl);
+                            try
+                            {
+                                courseProgress.CourseImageUrl = await _mediaService.GetMediaUrlAsync(courseProgress.CourseImageUrl);
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                courseProgress.CourseImageUrl = string.Empty;
+                            }
+                            catch (Exception)
+                            {
+                                courseProgress.CourseImageUrl = string.Empty;
+                            }
                         }
 
                         studentProgress.Courses.Add(courseProgress);

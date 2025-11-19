@@ -164,7 +164,7 @@ namespace IGCSE.Controller
                     studentId = User.FindFirst("AccountID")?.Value;
                     
                     // Chỉ hiển thị progress nếu là Student role
-                    var roles = User.FindAll("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                    var roles = User.FindAll(ClaimTypes.Role)
                                    .Select(c => c.Value)
                                    .ToList();
                     
