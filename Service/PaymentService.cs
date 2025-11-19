@@ -9,6 +9,10 @@ using BusinessObject.DTOs.Response;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Request.Payments;
+using BusinessObject.DTOs.Response.Payment;
+using Org.BouncyCastle.Asn1.Ocsp;
+using BusinessObject.DTOs.Response.MockTest;
+using Repository.Repositories;
 
 namespace Service
 {
@@ -389,7 +393,51 @@ namespace Service
                 "Thanh toán thành công",
                 StatusCodeEnum.OK_200,
                 response
-                );
+            );
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<TransactionHistoryResponse>>> GetTransactionHistory(TransactionHistoryQueryRequest request)
+        {
+            var filter = request.BuildFilter<Transactionhistory>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _paymentRepository.CountAsync(filter);
+
+            // Get filtered data with pagination
+            var items = await _paymentRepository.FindWithPagingAsync(
+            filter,
+                request.Page,
+                request.GetPageSize()
+            );
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items);
+
+            var itemList = sortedItems
+                .Select(token => new TransactionHistoryResponse
+                {
+                    TransactionId = token.TransactionId,
+                    Amount = token.Amount,
+                    TransactionDate = token.TransactionDate,
+                })
+                .ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<TransactionHistoryResponse>>
+            {
+                Data = new PaginatedResponse<TransactionHistoryResponse>
+                {
+                    Items = itemList,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy lịch sử thanh toán thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
         }
     }
 }

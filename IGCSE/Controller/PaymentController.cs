@@ -1,6 +1,9 @@
 using BusinessObject.DTOs.Request.Payments;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Response.Payment;
+using BusinessObject.Model;
+using BusinessObject.Payload.Request.Filter;
 using BusinessObject.Payload.Request.PayOS;
 using BusinessObject.Payload.Response.PayOS;
 using Microsoft.AspNetCore.Authorization;
@@ -87,6 +90,24 @@ namespace IGCSE.Controller
             //}
 
             var result = await _paymentService.CreateOrUpdateWebhookUrl(url);
+            return Ok(result);
+        }
+
+        [HttpGet("get-transaction-history")]
+        [Authorize]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<TransactionHistoryResponse>>>> GetTransactionHistory([FromQuery] TransactionHistoryQueryRequest request)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            request.userID = userId;
+
+            var result = await _paymentService.GetTransactionHistory(request);
             return Ok(result);
         }
     }
