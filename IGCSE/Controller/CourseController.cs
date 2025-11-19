@@ -238,27 +238,18 @@ namespace IGCSE.Controller
         [SwaggerOperation(Summary = "Xem danh sách khóa học Parent đã mua (Parent)", Description = "Api dùng để lấy danh sách các khóa học mà phụ huynh đã thanh toán ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>>> GetCourseBuyByParent([FromQuery] ParentEnrollmentQueryRequest request)
         {
-            try
-            {
-                var user = HttpContext.User;
-                var parentId = user.FindFirst("AccountID")?.Value;
+            var user = HttpContext.User;
+            var parentId = user.FindFirst("AccountID")?.Value;
 
-                if (string.IsNullOrEmpty(parentId))
-                {
-                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
-                }
-
-                var result = await _courseService.GetCourseBuyByParentAsync(parentId, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
+            if (string.IsNullOrEmpty(parentId))
             {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    StatusCodeEnum.BadRequest_400,
-                    null
-                ));
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
             }
+
+            request.userID = parentId;
+
+            var result = await _courseService.GetCourseBuyByParentAsync(parentId, request);
+            return Ok(result);
         }
     }
 }

@@ -1254,86 +1254,30 @@ namespace Service
 
         public async Task<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>> GetCourseBuyByParentAsync(string parentId, ParentEnrollmentQueryRequest request)
         {
-            try
+            var filter = request.BuildFilter<Studentenrollment>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _studentEnrollmentRepository.CountAsync(filter);
+
+            // Get filtered items
+            var items = await _studentEnrollmentRepository.GetListBoughtCourses(request, filter);
+            foreach(var item in items)
             {
-                // Kiểm tra parent tồn tại
-                var parent = await _accountRepository.GetByStringId(parentId);
-                if (parent == null)
+                if (!string.IsNullOrEmpty(item.ImageUrl))
                 {
-                    throw new Exception("Parent not found.");
+                    item.ImageUrl = await _mediaService.GetMediaUrlAsync(item.ImageUrl);
                 }
+            }
 
-                // Kiểm tra role là Parent
-                var parentRole = await _userManager.GetRolesAsync(parent);
-                if (!parentRole.Contains("Parent"))
-                {
-                    throw new Exception("You are not a parent.");
-                }
+            // Apply pagination after sorting
+            var pagedItems = items
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
 
-                // Lấy tất cả enrollments do parent mua
-                var enrollments = (await _studentEnrollmentRepository.GetByParentIdAsync(parentId)).ToList();
-                
-                var responses = enrollments.Select(e => new ParentEnrollmentResponse
-                {
-                    EnrollmentId = e.EnrollmentId,
-                    StudentId = e.StudentId,
-                    StudentName = e.Student?.Name ?? e.Student?.UserName ?? "Unknown",
-                    CourseId = e.CourseId,
-                    CourseName = e.Course?.Name ?? "Unknown",
-                    CoursePrice = e.Course?.Price ?? 0,
-                    EnrolledAt = e.EnrolledAt,
-                }).ToList();
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
-                // Apply filters
-                var filtered = responses.AsQueryable();
-                
-                if (!string.IsNullOrEmpty(request.SearchByStudentName))
-                {
-                    filtered = filtered.Where(e => e.StudentName.Contains(request.SearchByStudentName, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (!string.IsNullOrEmpty(request.SearchByCourseName))
-                {
-                    filtered = filtered.Where(e => e.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (!string.IsNullOrEmpty(request.StudentId))
-                {
-                    filtered = filtered.Where(e => e.StudentId == request.StudentId);
-                }
-                
-                if (request.CourseId.HasValue)
-                {
-                    filtered = filtered.Where(e => e.CourseId == request.CourseId.Value);
-                }
-                
-                if (request.EnrolledFrom.HasValue)
-                {
-                    filtered = filtered.Where(e => e.EnrolledAt >= request.EnrolledFrom.Value);
-                }
-                
-                if (request.EnrolledTo.HasValue)
-                {
-                    filtered = filtered.Where(e => e.EnrolledAt <= request.EnrolledTo.Value);
-                }
-
-                else
-                {
-                    filtered = filtered.OrderByDescending(e => e.EnrolledAt);
-                }
-
-                // Get total count before pagination
-                var totalCount = filtered.Count();
-
-                // Apply pagination
-                var pagedItems = filtered
-                    .Skip(request.Page * request.GetPageSize())
-                    .Take(request.GetPageSize())
-                    .ToList();
-
-                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
-
-                return new BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>(
+            return new BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>(
                     $"Tìm thấy {totalCount} enrollments",
                     StatusCodeEnum.OK_200,
                     new PaginatedResponse<ParentEnrollmentResponse>
@@ -1345,11 +1289,6 @@ namespace Service
                         TotalPages = totalPages
                     }
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Lỗi khi lấy danh sách enrollments: {ex.Message}");
-            }
         }
     }
 }
