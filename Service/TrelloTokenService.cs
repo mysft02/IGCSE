@@ -179,6 +179,10 @@ public class TrelloTokenService
                 {
                     //create course
                     course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId, trelloToken);
+                    
+                    // Trừ AvailableSlot ngay sau khi tạo course thành công
+                    createSlot.AvailableSlot -= 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Section")
                 {
@@ -217,9 +221,6 @@ public class TrelloTokenService
             };
 
             await _finalQuizRepository.AddAsync(finalQuiz);
-
-            createSlot.AvailableSlot -= 1;
-            await _createSlotRepository.UpdateAsync(createSlot);
         }
         catch (Exception e)
         {
