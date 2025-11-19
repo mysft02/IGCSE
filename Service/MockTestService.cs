@@ -244,16 +244,11 @@ namespace Service
                     QuestionId = questionText.MockTestQuestionId
                 };
 
-                if(questionText.ImageUrl != null)
-                {
-                    questionRequest.ImageBase64 = CommonUtils.GetBase64FromWwwRoot(_env.WebRootPath, questionText.ImageUrl);
-                }
-
                 questions.Add(questionRequest);
             }
 
             var contentText = string.Join("\n", questions.Select(q =>
-                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nImage: {q.ImageBase64}\nMark: {q.Mark}\nPartial mark: {q.PartialMark}"));
+                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nMark: {q.Mark}\nPartial mark: {q.PartialMark}"));
 
             var input = new[]
             {
