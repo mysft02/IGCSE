@@ -1,5 +1,8 @@
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.ParentStudentLink;
 using BusinessObject.Model;
 using Repository.IBaseRepository;
+using System.Linq.Expressions;
 
 namespace Repository.IRepositories
 {
@@ -10,6 +13,8 @@ namespace Repository.IRepositories
         Task<Studentenrollment?> GetByStudentAndCourseAsync(string studentId, int courseId);
         Task<bool> IsStudentEnrolledAsync(string studentId, int courseId);
         Task<IEnumerable<Studentenrollment>> GetByParentIdAsync(string parentId);
+
+        Task<List<ParentEnrollmentResponse>> GetListBoughtCourses(ParentEnrollmentQueryRequest request, Expression<Func<Studentenrollment, bool>>? filter = null);
     }
 }
 

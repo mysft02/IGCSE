@@ -4,7 +4,7 @@ namespace BusinessObject.DTOs.Response.Payment
 {
     public class TransactionHistoryResponse
     {
-        public Course Course { get; set; }
+        public int TransactionId { get; set; }
 
         public decimal Amount { get; set; }
 

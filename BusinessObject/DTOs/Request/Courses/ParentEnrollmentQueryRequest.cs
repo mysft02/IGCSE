@@ -1,36 +1,61 @@
-using Swashbuckle.AspNetCore.Annotations;
+using BusinessObject.Model;
+using BusinessObject.Payload.Request.Filter;
+using System.Linq.Expressions;
 
 namespace BusinessObject.DTOs.Request.Courses
 {
-    public class ParentEnrollmentQueryRequest
+    public class ParentEnrollmentQueryRequest : BaseQueryRequest
     {
-        [SwaggerSchema("Số trang (bắt đầu từ 0)")]
-        public int Page { get; set; } = 0;
-
-        [SwaggerSchema("Số lượng item mỗi trang")]
-        public int Size { get; set; } = 10;
-
-        [SwaggerSchema("Tìm kiếm theo tên học sinh")]
-        public string? SearchByStudentName { get; set; }
-
-        [SwaggerSchema("Tìm kiếm theo tên khóa học")]
-        public string? SearchByCourseName { get; set; }
-
-        [SwaggerSchema("Filter theo Student ID")]
-        public string? StudentId { get; set; }
-
-        [SwaggerSchema("Filter theo Course ID")]
-        public long? CourseId { get; set; }
-
-        [SwaggerSchema("Filter theo ngày đăng ký từ")]
-        public DateTime? EnrolledFrom { get; set; }
-
-        [SwaggerSchema("Filter theo ngày đăng ký đến")]
-        public DateTime? EnrolledTo { get; set; }
-
-        public int GetPageSize()
+        public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
         {
-            return Size > 0 ? Size : 10;
+            if (typeof(T) != typeof(Studentenrollment))
+            {
+                throw new NotSupportedException($"ParentEnrollmentQueryRequest only supports Studentenrollment type, got {typeof(T).Name}");
+            }
+
+            return BuildStudentEnrollmentFilter() as Expression<Func<T, bool>>;
+        }
+
+        public List<Studentenrollment> ApplySorting(List<Studentenrollment> tests)
+        {
+            if (string.IsNullOrEmpty(SortBy))
+                return tests;
+
+            var isAscending = string.IsNullOrEmpty(SortOrder) || SortOrder.ToLower() == "asc";
+
+            return SortBy.ToLower() switch
+            {
+                "enrollmentid" => isAscending
+                    ? tests.OrderBy(t => t.EnrollmentId).ToList()
+                    : tests.OrderByDescending(t => t.EnrollmentId).ToList(),
+                _ => tests
+            };
+        }
+
+        public List<Studentenrollment> ApplyPagination(List<Studentenrollment> tests)
+        {
+            return tests
+                .Skip(Page * GetPageSize())
+                .Take(GetPageSize())
+                .ToList();
+        }
+
+        private Expression<Func<Studentenrollment, bool>>? BuildStudentEnrollmentFilter()
+        {
+            var predicates = new List<Expression<Func<Studentenrollment, bool>>>();
+
+            // Combine all predicates with AND
+            if (!predicates.Any())
+                return null;
+
+            return predicates.Aggregate((expr1, expr2) =>
+            {
+                var parameter = Expression.Parameter(typeof(Studentenrollment), "x");
+                var body1 = Expression.Invoke(expr1, parameter);
+                var body2 = Expression.Invoke(expr2, parameter);
+                var combined = Expression.AndAlso(body1, body2);
+                return Expression.Lambda<Func<Studentenrollment, bool>>(combined, parameter);
+            });
         }
     }
 }
