@@ -116,9 +116,11 @@ namespace Service
             {
                 transaction.ItemId = courseId.Value;
 
-                var userPackage = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
+                var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
+                studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
+                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
 
-                await _courseService.InitializeCourseProgressForStudentAsync(userPackage.StudentId, courseId.Value);
+                await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
             }
             else if (packageId.HasValue)
             {
@@ -233,25 +235,26 @@ namespace Service
                     throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
                 }
                 
-                var existed = await _parentStudentLinkRepository.FindOneAsync(x => x.ParentId == userId && x.StudentId == request.DestUserId);
-                if(existed != null)
+                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId);
+                if(existed == null)
                 {
-                    throw new Exception("Bạn đã mua khoá học cho tài khoản student này rồi.");
+                    var enroll = new Studentenrollment
+                    {
+                        StudentId = request.DestUserId,
+                        CourseId = (int)request.CourseId,
+                        EnrolledAt = DateTime.Now,
+                        ParentId = userId + "_" + body.OrderCode
+                    };
+
+                    await _studentEnrollmentRepository.AddAsync(enroll);
                 }
 
                 if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
                 {
                     throw new Exception("Không tìm thấy khoá học này.");
                 }
-
-                var enroll = new Studentenrollment
-                {
-                    StudentId = request.DestUserId,
-                    EnrolledAt = DateTime.Now,
-                    ParentId = userId + "_" + body.OrderCode
-                };
-
-                await _studentEnrollmentRepository.AddAsync(enroll);
+                
+                body.Description = $"Thanh toán khoá học {request.CourseId}.";
             }
             else
             {
