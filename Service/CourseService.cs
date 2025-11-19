@@ -37,6 +37,7 @@ namespace Service
         private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
         private readonly MediaService _mediaService;
         private readonly TrelloCardService _trelloCardService;
+        private readonly ICreateSlotRepository _createSlotRepository;
 
         public CourseService(
             IMapper mapper,
@@ -53,7 +54,8 @@ namespace Service
             UserManager<Account> userManager,
             IStudentEnrollmentRepository studentEnrollmentRepository,
             MediaService mediaService,
-            TrelloCardService trelloCardService)
+            TrelloCardService trelloCardService,
+            ICreateSlotRepository createSlotRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -70,6 +72,7 @@ namespace Service
             _studentEnrollmentRepository = studentEnrollmentRepository;
             _mediaService = mediaService;
             _trelloCardService = trelloCardService;
+            _createSlotRepository = createSlotRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
@@ -82,7 +85,7 @@ namespace Service
                 Price = request.Price,
                 ImageUrl = request.ImageUrl,
                 ModuleId = request.ModuleId,
-                Status = "Open",
+                Status = "Pending", // Luôn tạo với trạng thái Pending
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = createdBy,
@@ -93,6 +96,17 @@ namespace Service
             course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
 
             var createdCourse = await _courseRepository.AddAsync(course);
+
+            // Giảm AvailableSlot khi teacher tạo khóa học
+            if (!string.IsNullOrEmpty(createdBy))
+            {
+                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == createdBy);
+                if (createSlot != null && createSlot.AvailableSlot > 0)
+                {
+                    createSlot.AvailableSlot -= 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+            }
 
             var courseResponse = _mapper.Map<CourseResponse>(createdCourse);
 
@@ -111,7 +125,13 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
-            course.Status = "Approved";
+            if (course.Status != "Pending")
+            {
+                throw new Exception($"Không thể duyệt khóa học. Trạng thái hiện tại: {course.Status}");
+            }
+
+            // Đổi trạng thái thành Open, không thay đổi AvailableSlot (đã -1 khi tạo rồi)
+            course.Status = "Open";
             course.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _courseRepository.UpdateAsync(course);
@@ -131,8 +151,25 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
+            if (course.Status != "Pending")
+            {
+                throw new Exception($"Không thể từ chối khóa học. Trạng thái hiện tại: {course.Status}");
+            }
+
+            // Đổi trạng thái thành Rejected và tăng AvailableSlot + 1 (trả lại slot)
             course.Status = "Rejected";
             course.UpdatedAt = DateTime.UtcNow;
+
+            // Trả lại AvailableSlot cho teacher
+            if (!string.IsNullOrEmpty(course.CreatedBy))
+            {
+                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == course.CreatedBy);
+                if (createSlot != null)
+                {
+                    createSlot.AvailableSlot += 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+            }
 
             var updated = await _courseRepository.UpdateAsync(course);
             var response = _mapper.Map<CourseResponse>(updated);
