@@ -798,8 +798,6 @@ namespace Service
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
-                        StudentId = studentId,
-                        StudentName = "",
                         EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
                         Status = "Active"
                     };
