@@ -24,7 +24,10 @@ namespace IGCSE.Controller
 
         [HttpGet("get-all-package")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy toàn bộ package (có phân trang)")]
+        [SwaggerOperation(Summary = "Lấy toàn bộ package (có phân trang)", Description = "Dùng để lấy toàn bộ package trong hệ thống. " +
+            "Nếu role là `parent` hoặc `student` thì sẽ mặc định lấy toàn bộ package dùng để mở khoá mocktest với cột `isMockTest` là `true`. " +
+            "Nếu role là `teacher` thì sẽ mặc định lấy toàn bộ package dùng để tạo thêm course với cột `isMockTest` là `false`. " +
+            "Cột `slot` chỉ có tác dụng với gói dành cho giáo viên thể hiện cho số lượng course có thể tạo thêm sau khi mua gói.")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<PackageQueryResponse>>>> GetAllPackages([FromQuery] PackageQueryRequest request)
         {
             var user = HttpContext.User;
