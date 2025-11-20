@@ -37,6 +37,7 @@ namespace Service
         private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
         private readonly MediaService _mediaService;
         private readonly TrelloCardService _trelloCardService;
+        private readonly ICreateSlotRepository _createSlotRepository;
 
         public CourseService(
             IMapper mapper,
@@ -53,7 +54,8 @@ namespace Service
             UserManager<Account> userManager,
             IStudentEnrollmentRepository studentEnrollmentRepository,
             MediaService mediaService,
-            TrelloCardService trelloCardService)
+            TrelloCardService trelloCardService,
+            ICreateSlotRepository createSlotRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -70,6 +72,7 @@ namespace Service
             _studentEnrollmentRepository = studentEnrollmentRepository;
             _mediaService = mediaService;
             _trelloCardService = trelloCardService;
+            _createSlotRepository = createSlotRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
@@ -82,7 +85,7 @@ namespace Service
                 Price = request.Price,
                 ImageUrl = request.ImageUrl,
                 ModuleId = request.ModuleId,
-                Status = "Open",
+                Status = "Pending", // Luôn tạo với trạng thái Pending
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = createdBy,
@@ -93,6 +96,17 @@ namespace Service
             course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
 
             var createdCourse = await _courseRepository.AddAsync(course);
+
+            // Giảm AvailableSlot khi teacher tạo khóa học
+            if (!string.IsNullOrEmpty(createdBy))
+            {
+                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == createdBy);
+                if (createSlot != null && createSlot.AvailableSlot > 0)
+                {
+                    createSlot.AvailableSlot -= 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+            }
 
             var courseResponse = _mapper.Map<CourseResponse>(createdCourse);
 
@@ -111,7 +125,13 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
-            course.Status = "Approved";
+            if (course.Status != "Pending")
+            {
+                throw new Exception($"Không thể duyệt khóa học. Trạng thái hiện tại: {course.Status}");
+            }
+
+            // Đổi trạng thái thành Open, không thay đổi AvailableSlot (đã -1 khi tạo rồi)
+            course.Status = "Open";
             course.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _courseRepository.UpdateAsync(course);
@@ -131,8 +151,25 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
+            if (course.Status != "Pending")
+            {
+                throw new Exception($"Không thể từ chối khóa học. Trạng thái hiện tại: {course.Status}");
+            }
+
+            // Đổi trạng thái thành Rejected và tăng AvailableSlot + 1 (trả lại slot)
             course.Status = "Rejected";
             course.UpdatedAt = DateTime.UtcNow;
+
+            // Trả lại AvailableSlot cho teacher
+            if (!string.IsNullOrEmpty(course.CreatedBy))
+            {
+                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == course.CreatedBy);
+                if (createSlot != null)
+                {
+                    createSlot.AvailableSlot += 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+            }
 
             var updated = await _courseRepository.UpdateAsync(course);
             var response = _mapper.Map<CourseResponse>(updated);
@@ -230,7 +267,18 @@ namespace Service
                 var courseResponse = _mapper.Map<CourseResponse>(course);
                 if (course.ImageUrl != null)
                 {
-                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    try
+                    {
+                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
                 }
                 courseResponses.Add(courseResponse);
             }
@@ -253,7 +301,20 @@ namespace Service
             {
                 if(!string.IsNullOrEmpty(course.ImageUrl))
                 {
-                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    try
+                    {
+                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        // Nếu file không tồn tại, giữ nguyên ImageUrl hoặc set về null/empty
+                        course.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        // Xử lý các lỗi khác, giữ nguyên ImageUrl hoặc set về null/empty
+                        course.ImageUrl = string.Empty;
+                    }
                 }
             }
 
@@ -391,7 +452,18 @@ namespace Service
                 var courseResponse = _mapper.Map<CourseResponse>(course);
                 if (courseResponse.ImageUrl != null)
                 {
-                    courseResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                    try
+                    {
+                        courseResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        courseResponse.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        courseResponse.ImageUrl = string.Empty;
+                    }
                 }
                 courseResponses.Add(courseResponse);
             }
@@ -439,7 +511,18 @@ namespace Service
             {
                 if (!string.IsNullOrEmpty(course.ImageUrl))
                 {
-                    course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    try
+                    {
+                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        course.ImageUrl = string.Empty;
+                    }
                 }
             }
 
@@ -614,7 +697,18 @@ namespace Service
 
                 if (!string.IsNullOrEmpty(course.ImageUrl))
                 {
-                    courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                    try
+                    {
+                        courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        courseDetailResponse.ImageUrl = string.Empty;
+                    }
+                    catch (Exception)
+                    {
+                        courseDetailResponse.ImageUrl = string.Empty;
+                    }
                 }
 
                 return new BaseResponse<CourseDetailResponse>(
@@ -639,7 +733,18 @@ namespace Service
             }
 
             var result = _mapper.Map<LessonItemDetail>(lessonItemDetail);
-            result.Content = await _mediaService.GetMediaUrlAsync(result.Content);
+            try
+            {
+                result.Content = await _mediaService.GetMediaUrlAsync(result.Content);
+            }
+            catch (FileNotFoundException)
+            {
+                result.Content = string.Empty;
+            }
+            catch (Exception)
+            {
+                result.Content = string.Empty;
+            }
 
             return new BaseResponse<LessonItemDetail>
             {
@@ -656,7 +761,7 @@ namespace Service
             var course = new Course
             {
                 Name = courseName,
-                Status = "Open",
+                Status = "Pending", // Luôn tạo với trạng thái Pending để chờ duyệt
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = userId,
@@ -722,7 +827,18 @@ namespace Service
                     };
                     if (!string.IsNullOrEmpty(course.ImageUrl))
                     {
-                        result.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                        try
+                        {
+                            result.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            result.ImageUrl = string.Empty;
+                        }
+                        catch (Exception)
+                        {
+                            result.ImageUrl = string.Empty;
+                        }
                     }
 
                     responses.Add(result);
@@ -1180,7 +1296,18 @@ namespace Service
 
                         if (!string.IsNullOrEmpty(courseProgress.CourseImageUrl))
                         {
-                            courseProgress.CourseImageUrl = await _mediaService.GetMediaUrlAsync(courseProgress.CourseImageUrl);
+                            try
+                            {
+                                courseProgress.CourseImageUrl = await _mediaService.GetMediaUrlAsync(courseProgress.CourseImageUrl);
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                courseProgress.CourseImageUrl = string.Empty;
+                            }
+                            catch (Exception)
+                            {
+                                courseProgress.CourseImageUrl = string.Empty;
+                            }
                         }
 
                         studentProgress.Courses.Add(courseProgress);

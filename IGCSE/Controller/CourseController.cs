@@ -164,7 +164,7 @@ namespace IGCSE.Controller
                     studentId = User.FindFirst("AccountID")?.Value;
                     
                     // Chỉ hiển thị progress nếu là Student role
-                    var roles = User.FindAll("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                    var roles = User.FindAll(ClaimTypes.Role)
                                    .Select(c => c.Value)
                                    .ToList();
                     
@@ -190,7 +190,7 @@ namespace IGCSE.Controller
 
         [HttpGet("get-lesson-item-detail")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của bài học")]
+        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của bài học", Description = "Api dùng để lấy thông tin chi tiết của bài học")]
         public async Task<ActionResult<BaseResponse<LessonDetailResponse>>> GetLessonItemDetail([FromQuery]int lessonItemId)
         {
             var user = HttpContext.User;
@@ -250,6 +250,46 @@ namespace IGCSE.Controller
 
             var result = await _courseService.GetCourseBuyByParentAsync(parentId, request);
             return Ok(result);
+        }
+
+        [HttpPut("{courseId}/approve")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(Summary = "Duyệt khóa học (Manager)", Description = "Api dùng để duyệt khóa học từ trạng thái Pending sang Open. Không thay đổi AvailableSlot")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> ApproveCourse(int courseId)
+        {
+            try
+            {
+                var result = await _courseService.ApproveCourseAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPut("{courseId}/reject")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(Summary = "Từ chối khóa học (Manager)", Description = "Api dùng để từ chối khóa học từ trạng thái Pending sang Rejected. AvailableSlot sẽ +1 để trả lại slot cho teacher.")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> RejectCourse(int courseId, [FromQuery] string? reason = null)
+        {
+            try
+            {
+                var result = await _courseService.RejectCourseAsync(courseId, reason);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
         }
     }
 }
