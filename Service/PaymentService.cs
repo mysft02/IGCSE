@@ -234,8 +234,13 @@ namespace Service
                 {
                     throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
                 }
-                
-                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId);
+
+                if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
+                {
+                    throw new Exception("Không tìm thấy khoá học này.");
+                }
+
+                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId && x.ParentId == userId);
                 if(existed == null)
                 {
                     var enroll = new Studentenrollment
@@ -248,12 +253,12 @@ namespace Service
 
                     await _studentEnrollmentRepository.AddAsync(enroll);
                 }
-
-                if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
+                else
                 {
-                    throw new Exception("Không tìm thấy khoá học này.");
+                    existed.ParentId = userId + "_" + body.OrderCode;
+                    await _studentEnrollmentRepository.UpdateAsync(existed);
                 }
-                
+
                 body.Description = $"Thanh toán khoá học {request.CourseId}.";
             }
             else
