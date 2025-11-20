@@ -117,11 +117,6 @@ namespace Service
                     RightAnswer = questionText.CorrectAnswer,
                 };
 
-                if (questionText.PictureUrl != null)
-                {
-                    questionRequest.ImageBase64 = CommonUtils.GetBase64FromWwwRoot(_env.WebRootPath, questionText.PictureUrl);
-                }
-
                 var finalQuizUserAnswer = new Finalquizuseranswer
                 {
                     QuestionId = userAnswer.QuestionId,
@@ -135,7 +130,7 @@ namespace Service
             }
 
             var contentText = string.Join("\n", questions.Select(q =>
-            $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nImage: {q.ImageBase64}"));
+            $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}"));
 
             var input = new[]
             {
@@ -147,7 +142,7 @@ namespace Service
                             new
                             {
                                 type = "input_text",
-                                text = $"Với danh sách câu hỏi sau, hãy chấm đúng/sai bằng cách so sánh Answer với Right answer. Nếu image không null thì hãy tạo hình ảnh từ base64 và dùng image như 1 phần của question. Viết NHẬN XÉT ngắn (<100 chữ) cho mỗi câu THEO ĐÚNG THỨ TỰ. Chỉ trả về các đoạn comment, ngăn cách bằng chuỗi |||, KHÔNG thêm bất cứ văn bản nào khác.\n{contentText}\nChỉ in: comment1 ||| comment2 ||| ... ||| commentN"
+                                text = $"Với danh sách câu hỏi sau, hãy chấm đúng/sai bằng cách so sánh Answer với Right answer. Viết NHẬN XÉT ngắn (<100 chữ) cho mỗi câu THEO ĐÚNG THỨ TỰ. Chỉ trả về các đoạn comment, ngăn cách bằng chuỗi |||, KHÔNG thêm bất cứ văn bản nào khác.\n{contentText}\nChỉ in: comment1 ||| comment2 ||| ... ||| commentN"
                             }
                         }
                     }

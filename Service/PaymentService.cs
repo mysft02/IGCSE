@@ -82,6 +82,7 @@ namespace Service
             var paymentResponse = await _payOSApiService.GetAsync<PayOSPaymentReturnResponse>(apiRequest);
 
             var desc = paymentResponse.Data.Transactions.First().Description;
+            var orderCode = paymentResponse.Data.OrderCode.ToString();
 
             int? courseId = null;
             int? packageId = null;
@@ -115,44 +116,15 @@ namespace Service
             {
                 transaction.ItemId = courseId.Value;
 
-                // Tự động enroll tất cả students liên kết với Parent vào khóa học
-                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
-                
-                foreach (var student in linkedStudents)
-                {
-                    try
-                    {
-                        // 1. Tạo enrollment record
-                        var enrollment = new Studentenrollment
-                        {
-                            StudentId = student.Id,
-                            CourseId = courseId.Value,
-                            EnrolledAt = DateTime.UtcNow,
-                            ParentId = userId  // Parent đã mua
-                        };
-                        await _studentEnrollmentRepository.AddAsync(enrollment);
+                var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
+                studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
+                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
 
-                        // 2. Khởi tạo tiến trình học cho từng student
-                        await _courseService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error nhưng không throw để không ảnh hưởng đến các student khác
-                        Console.WriteLine($"Error enrolling student {student.Id} to course {courseId.Value}: {ex.Message}");
-                    }
-                }
+                await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
             }
             else if (packageId.HasValue)
             {
                 transaction.ItemId = packageId.Value;
-                var newUserPackage = new Userpackage
-                {
-                    PackageId = packageId.Value,
-                    Price = paymentResponse.Data.AmountPaid,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                };
 
                 var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == packageId, xc => xc.Userpackages);
                 if(package == null)
@@ -160,14 +132,25 @@ namespace Service
                     throw new Exception("Gói bạn cần mua không tìm thấy.");
                 }
 
-                if(userRole == "Parent")
-                {
-                    var userPackage = package.Userpackages.FirstOrDefault(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == userId && x.PackageId == packageId);
+                var userPackage = package.Userpackages
+                        .FirstOrDefault(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == orderCode);
 
+                var newUserPackage = new Userpackage
+                {
+                    PackageId = packageId.Value,
+                    UserId = userId,
+                    Price = paymentResponse.Data.AmountPaid,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                };
+
+                if (userRole == "Parent")
+                {
                     newUserPackage.UserId = userPackage.UserId.Split("_")[0];
 
-                    await _userPackageRepository.DeleteAsync(userPackage);
                     await _userPackageRepository.AddAsync(newUserPackage);
+                    await _userPackageRepository.DeleteAsync(userPackage);
                 }
                 else
                 {
@@ -183,8 +166,8 @@ namespace Service
                     }
                     else
                     {
-                        newUserPackage.UserId = userId;
                         await _userPackageRepository.AddAsync(newUserPackage);
+                        await _userPackageRepository.DeleteAsync(userPackage);
                     }
 
                     var currSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
@@ -240,37 +223,43 @@ namespace Service
                 throw new Exception("Id Khóa học/ gói đăng kí trống.");
             }
 
+            if(request.DestUserId == null)
+            {
+                throw new Exception("Tài khoản học sinh không thể bỏ trống.");
+            }
+
             if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
-                // Kiểm tra xem parent hoặc bất kỳ student nào của parent đã enroll khóa học này chưa
-                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
-
-                foreach (var student in linkedStudents)
+                if (userRole == "Teacher")
                 {
-                    var isEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(student.Id, request.CourseId.Value);
-                    if (isEnrolled)
-                    {
-                        throw new Exception($"Học sinh {student.Name ?? student.UserName} đã được đăng ký vào khóa học này rồi.");
-                    }
-
-                    if (userRole == "Teacher")
-                    {
-                        throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
-                    }
-
-                    if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
-                    {
-                        throw new Exception("Không tìm thấy khoá học này.");
-                    }
-
-                    var existingCourse = await _processRepository.FindOneAsync(x => x.CourseId == request.CourseId && x.StudentId == request.DestUserId);
-                    if (existingCourse != null)
-                    {
-                        throw new Exception("Bạn đã mua khóa học cho học sinh này rồi.");
-                    }
-
-                    body.Description = $"Thanh toán khóa học {request.CourseId}.";
+                    throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
                 }
+
+                if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
+                {
+                    throw new Exception("Không tìm thấy khoá học này.");
+                }
+
+                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId && x.ParentId == userId);
+                if(existed == null)
+                {
+                    var enroll = new Studentenrollment
+                    {
+                        StudentId = request.DestUserId,
+                        CourseId = (int)request.CourseId,
+                        EnrolledAt = DateTime.Now,
+                        ParentId = userId + "_" + body.OrderCode
+                    };
+
+                    await _studentEnrollmentRepository.AddAsync(enroll);
+                }
+                else
+                {
+                    existed.ParentId = userId + "_" + body.OrderCode;
+                    await _studentEnrollmentRepository.UpdateAsync(existed);
+                }
+
+                body.Description = $"Thanh toán khoá học {request.CourseId}.";
             }
             else
             {
@@ -298,7 +287,7 @@ namespace Service
                     var userPackage = new Userpackage
                     {
                         PackageId = request.PackageId,
-                        UserId = request.DestUserId + "_" + userId,
+                        UserId = request.DestUserId + "_" + body.OrderCode,
                         IsActive = false,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
