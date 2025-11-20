@@ -44,6 +44,11 @@ namespace BusinessObject.DTOs.Request.Courses
         {
             var predicates = new List<Expression<Func<Studentenrollment, bool>>>();
 
+            if (!string.IsNullOrEmpty(userID))
+            {
+                predicates.Add(x => x.ParentId == userID);
+            }
+
             // Combine all predicates with AND
             if (!predicates.Any())
                 return null;
