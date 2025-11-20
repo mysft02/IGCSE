@@ -123,7 +123,7 @@ public class TrelloTokenService
             throw new Exception("Bạn chưa mua gói để tạo mới khoá học. Vui lòng mua gói trước.");
         }
 
-        if(createSlot.Slot <= createSlot.AvailableSlot)
+        if(createSlot.AvailableSlot <= 0)
         {
             throw new Exception("Bạn không còn suất tạo mới khoá học. Vui lòng mua thêm gói.");
         }
@@ -180,9 +180,6 @@ public class TrelloTokenService
                     //create course
                     course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId, trelloToken);
                     
-                    // Trừ AvailableSlot ngay sau khi tạo course thành công
-                    createSlot.AvailableSlot -= 1;
-                    await _createSlotRepository.UpdateAsync(createSlot);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Section")
                 {
@@ -210,6 +207,9 @@ public class TrelloTokenService
                     continue;
                 }
             }
+
+            createSlot.AvailableSlot -= 1;
+            await _createSlotRepository.UpdateAsync(createSlot);
 
             var finalQuiz = new Finalquiz
             {
