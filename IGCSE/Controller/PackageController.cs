@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Common.Utils;
 using BusinessObject.DTOs.Request.Packages;
 using BusinessObject.DTOs.Response.Packages;
+using System.Security.Claims;
 
 namespace IGCSE.Controller
 {
@@ -22,9 +23,22 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-package")]
+        [Authorize]
         [SwaggerOperation(Summary = "Lấy toàn bộ package (có phân trang)")]
-        public async Task<ActionResult<BaseResponse<PaginatedResponse<Package>>>> GetAllPackages([FromQuery] PackageQueryRequest request)
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<PackageQueryResponse>>>> GetAllPackages([FromQuery] PackageQueryRequest request)
         {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+            request.Role = userRole;
+            request.userID = userId;
+
             var result = await _packageService.GetAllPackagesAsync(request);
             return Ok(result);
         }
@@ -42,7 +56,8 @@ namespace IGCSE.Controller
         [SwaggerOperation(Summary = "Lấy toàn bộ package người dùng đã mua")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<PackageOwnedQueryResponse>>>> GetOwnedPackage([FromQuery] PackageOwnedQueryRequest request)
         {
-            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
 
             if (CommonUtils.IsEmptyString(userId))
             {

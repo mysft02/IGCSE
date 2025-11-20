@@ -40,7 +40,7 @@ namespace Service
                 _mapper.Map<Package>(result));
         }
 
-        public async Task<BaseResponse<PaginatedResponse<Package>>> GetAllPackagesAsync(PackageQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<PackageQueryResponse>>> GetAllPackagesAsync(PackageQueryRequest request)
         {
             // Build filter expression
             var filter = request.BuildFilter<Package>();
@@ -49,23 +49,36 @@ namespace Service
             var totalCount = await _packageRepository.CountAsync(filter);
 
             // Get filtered data with pagination
-            var items = await _packageRepository.FindWithPagingAsync(
+            var items = await _packageRepository.FindWithPagingAndCountAsync(
             filter,
                 request.Page,
                 request.GetPageSize()
             );
 
+            var pagedItems = items.Items
+                .Select(x => new PackageQueryResponse
+                {
+                    PackageId = x.PackageId,
+                    Title = x.Title,
+                    Description = x.Description,
+                    IsActive = x.IsActive,
+                    IsMockTest = x.IsMockTest,
+                    Price = x.Price,
+                    Slot = x.Slot
+                })
+                .ToList();
+
             // Apply sorting to the paged results
-            var sortedItems = request.ApplySorting(items);
+            var sortedItems = request.ApplySorting(pagedItems);
 
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
             // Map to response
-            return new BaseResponse<PaginatedResponse<Package>>
+            return new BaseResponse<PaginatedResponse<PackageQueryResponse>>
             {
-                Data = new PaginatedResponse<Package>
+                Data = new PaginatedResponse<PackageQueryResponse>
                 {
-                    Items = sortedItems.Select(token => _mapper.Map<Package>(token)).ToList(),
+                    Items = pagedItems,
                     TotalCount = totalCount,
                     Page = request.Page,
                     Size = request.GetPageSize(),
@@ -109,16 +122,17 @@ namespace Service
 
             var itemList = sortedItems
                 .Select(token => new PackageOwnedQueryResponse
-            {
-                PackageId = token.PackageId,
-                Title = token.Package.Title,
-                Description = token.Package.Description,
-                Price = token.Package.Price,
-                Slot = token.Package.Slot,
-                IsMockTest = token.Package.IsMockTest,
-                BuyDate = token.CreatedAt,
-                BuyPrice = token.Price,
-            }).ToList();
+                {
+                    PackageId = token.PackageId,
+                    Title = token.Package.Title,
+                    Description = token.Package.Description,
+                    Price = token.Package.Price,
+                    Slot = token.Package.Slot,
+                    IsMockTest = token.Package.IsMockTest,
+                    BuyDate = token.CreatedAt,
+                    BuyPrice = token.Price,
+                })
+                .ToList();
 
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
