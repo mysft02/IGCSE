@@ -223,13 +223,13 @@ namespace Service
                 throw new Exception("Id Khóa học/ gói đăng kí trống.");
             }
 
-            if(request.DestUserId == null)
-            {
-                throw new Exception("Tài khoản học sinh không thể bỏ trống.");
-            }
-
             if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
+                if (request.DestUserId == null)
+                {
+                    throw new Exception("Tài khoản học sinh không thể bỏ trống.");
+                }
+
                 if (userRole == "Teacher")
                 {
                     throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
@@ -272,6 +272,11 @@ namespace Service
 
                 if (userRole == "Parent")
                 {
+                    if (request.DestUserId == null)
+                    {
+                        throw new Exception("Tài khoản học sinh không thể bỏ trống.");
+                    }
+
                     if (package.IsMockTest == false)
                     {
                         throw new Exception("Gói này dành cho giáo viên. Bạn không thể mua.");
