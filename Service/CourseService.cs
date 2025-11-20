@@ -761,7 +761,8 @@ namespace Service
             var course = new Course
             {
                 Name = courseName,
-                Status = "Pending", // Luôn tạo với trạng thái Pending để chờ duyệt
+                Status = "Pending",
+                ImageUrl = "/courses/images/7daee94e-f728-48a8-95aa-ee68566b617e.jpg",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = userId,
