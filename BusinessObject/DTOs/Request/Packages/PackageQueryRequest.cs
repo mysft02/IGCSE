@@ -1,4 +1,5 @@
-﻿using BusinessObject.Model;
+﻿using BusinessObject.DTOs.Response.Packages;
+using BusinessObject.Model;
 using BusinessObject.Payload.Request.Filter;
 using System.Linq.Expressions;
 
@@ -6,7 +7,7 @@ namespace BusinessObject.DTOs.Request.Packages
 {
     public class PackageQueryRequest : BaseQueryRequest
     {
-        public int? PackageId { get; set; }
+        public string? Role { get; set; }
 
         public override Expression<Func<T, bool>>? BuildFilter<T>() where T : class
         {
@@ -18,7 +19,7 @@ namespace BusinessObject.DTOs.Request.Packages
             return BuildPackageFilter() as Expression<Func<T, bool>>;
         }
 
-        public List<Package> ApplySorting(List<Package> tests)
+        public List<PackageQueryResponse> ApplySorting(List<PackageQueryResponse> tests)
         {
             if (string.IsNullOrEmpty(SortBy))
                 return tests;
@@ -30,27 +31,6 @@ namespace BusinessObject.DTOs.Request.Packages
                 "packageid" => isAscending
                     ? tests.OrderBy(t => t.PackageId).ToList()
                     : tests.OrderByDescending(t => t.PackageId).ToList(),
-                "title" => isAscending
-                    ? tests.OrderBy(t => t.Title).ToList()
-                    : tests.OrderByDescending(t => t.Title).ToList(),
-                "description" => isAscending
-                    ? tests.OrderBy(t => t.Description).ToList()
-                    : tests.OrderByDescending(t => t.Description).ToList(),
-                "price" => isAscending
-                    ? tests.OrderBy(t => t.Price).ToList()
-                    : tests.OrderByDescending(t => t.Price).ToList(),
-                "slot" => isAscending
-                    ? tests.OrderBy(t => t.Slot).ToList()
-                    : tests.OrderByDescending(t => t.Slot).ToList(),
-                "ismocktest" => isAscending
-                    ? tests.OrderBy(t => t.IsMockTest).ToList()
-                    : tests.OrderByDescending(t => t.IsMockTest).ToList(),
-                "createdat" => isAscending
-                    ? tests.OrderBy(t => t.CreatedAt).ToList()
-                    : tests.OrderByDescending(t => t.CreatedAt).ToList(),
-                "updatedat" => isAscending
-                    ? tests.OrderBy(t => t.UpdatedAt).ToList()
-                    : tests.OrderByDescending(t => t.UpdatedAt).ToList(),
                 _ => tests
             };
         }
@@ -67,14 +47,16 @@ namespace BusinessObject.DTOs.Request.Packages
         {
             var predicates = new List<Expression<Func<Package, bool>>>();
 
-            if (!string.IsNullOrEmpty(PackageId?.ToString()))
+            if (!string.IsNullOrEmpty(Role))
             {
-                predicates.Add(x => x.PackageId == PackageId);
-            }
-
-            if(userID != null)
-            {
-                predicates.Add(x => x.Userpackages.Any(up => up.UserId == userID));
+                if (Role.Contains("Parent") || Role.Contains("Student"))
+                {
+                    predicates.Add(x => x.IsMockTest == true);
+                }
+                else if (Role.Contains("Teacher"))
+                {
+                    predicates.Add(x => x.IsMockTest == false);
+                }
             }
 
             // Combine all predicates with AND

@@ -126,7 +126,9 @@ namespace IGCSE.Controller
                 return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
             }
 
-            var result = await _courseService.GetTeacherCoursesAsync(teacherId, request);
+            request.userID = teacherId;
+
+            var result = await _courseService.GetTeacherCoursesAsync(request);
             return Ok(result);
         }
 

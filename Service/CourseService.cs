@@ -475,71 +475,48 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetTeacherCoursesAsync(string teacherAccountId, TeacherCourseQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetTeacherCoursesAsync(TeacherCourseQueryRequest request)
         {
-            var courses = (await _courseRepository.GetCoursesByCreatorAsync(teacherAccountId)).ToList();
+            var filter = request.BuildFilter<Course>();
 
-            // Apply filters on Course model before mapping
-            var filtered = courses.AsQueryable();
-            
-            if (!string.IsNullOrEmpty(request.SearchByCourseName))
-            {
-                filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
-            }
-            
-            //if (!string.IsNullOrEmpty(request.Status))
-            //{
-            //    filtered = filtered.Where(c => c.Status == request.Status);
-            //}
-            //else
-            //{
-            //    filtered = filtered.OrderByDescending(c => c.CreatedAt);
-            //}
+            var totalCount = await _courseRepository.CountAsync(filter);
 
-            // Get total count before pagination
-            var totalCount = filtered.Count();
+            var items = await _courseRepository.FindWithPagingAsync(
+            filter,
+            request.Page,
+            request.GetPageSize()
+            );
 
-            // Apply pagination
-            var pagedCourses = filtered
-                .Skip(request.Page * request.GetPageSize())
-                .Take(request.GetPageSize())
-                .ToList();
-
-            // Map to CourseResponse after filtering and pagination
-            var pagedItems = pagedCourses.Select(_mapper.Map<CourseResponse>).ToList();
-            foreach (var course in pagedItems)
-            {
-                if (!string.IsNullOrEmpty(course.ImageUrl))
+            var pagedItems = await Task.WhenAll(
+                items.Select(async x => new CourseResponse
                 {
-                    try
-                    {
-                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        course.ImageUrl = string.Empty;
-                    }
-                    catch (Exception)
-                    {
-                        course.ImageUrl = string.Empty;
-                    }
-                }
-            }
+                    CourseId = x.CourseId,
+                    Name = x.Name,
+                    Description = x.Description,
+                    Status = x.Status,
+                    Price = x.Price,
+                    ImageUrl = string.IsNullOrEmpty(x.ImageUrl) ? null : await _mediaService.GetMediaUrlAsync(x.ImageUrl),
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                }));
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items);
 
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
             return new BaseResponse<PaginatedResponse<CourseResponse>>(
-                "Teacher courses retrieved successfully",
-                StatusCodeEnum.OK_200,
-                new PaginatedResponse<CourseResponse>
-                {
-                    Items = pagedItems,
-                    TotalCount = totalCount,
-                    Page = request.Page,
-                    Size = request.GetPageSize(),
-                    TotalPages = totalPages
-                }
-            );
+                    $"Tìm thấy {totalCount} enrollments",
+                    StatusCodeEnum.OK_200,
+                    new PaginatedResponse<CourseResponse>
+                    {
+                        Items = pagedItems.ToList(),
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
+                );
         }
 
         public async Task<BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request)
@@ -821,8 +798,6 @@ namespace Service
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
-                        StudentId = studentId,
-                        StudentName = "",
                         EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
                         Status = "Active"
                     };
