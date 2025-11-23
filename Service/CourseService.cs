@@ -17,6 +17,7 @@ using Repository.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Service.Trello;
+using BusinessObject.DTOs.Response.FinalQuizzes;
 
 namespace Service
 {
@@ -565,6 +566,7 @@ namespace Service
 
                 // 2. Map course to DTO
                 var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
+                courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
 
                 // 3. Lấy tiến trình học của student nếu có studentId
                 List<Process>? studentProcesses = null;
