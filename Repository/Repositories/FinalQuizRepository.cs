@@ -5,8 +5,10 @@ using Common.Utils;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using Repository.BaseRepository;
 using Repository.IRepositories;
+using System.Text.RegularExpressions;
 
 namespace Repository.Repositories
 {
@@ -33,6 +35,7 @@ namespace Repository.Repositories
                     Title = x.Title,
                     Description = x.Description,
                     Questions = _context.Questions
+                    .Include(c => c.Quiz)
                     .Where(xc => xc.Quiz.CourseId == x.CourseId)
                     .Select(c => new FinalQuizQuestionResponse
                     {
@@ -40,34 +43,61 @@ namespace Repository.Repositories
                         QuestionContent = c.QuestionContent,
                         ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor)
                     })
+                    .OrderBy(q => EF.Functions.Random())
                     .Take(20)
                     .ToList(),
                 })
                 .FirstOrDefaultAsync();
+
+            var questions = finalQuiz.Questions;
+            for (int i = 0; i < questions.Count; i++)
+            {
+                string newIndex = (i + 1).ToString();
+
+                questions[i].QuestionContent = Regex.Replace(
+                    questions[i].QuestionContent,
+                    @"Câu\s*\d+\s*:",
+                    $"Câu {newIndex}:"
+                );
+            }
 
             return finalQuiz;
         }
 
         public async Task<bool> CheckAllowance(int finalQuizId, string userId)
         {
-            var finalLesson = await _context.Finalquizzes
-                .Include(x => x.Course)
-                .Include(x => x.Course.CourseSections).ThenInclude(xc => xc.Lessons)
-                .SelectMany(x => x.Course.CourseSections)
-                .SelectMany(x => x.Lessons)
-                .OrderByDescending(c => c.Order)
-                .FirstOrDefaultAsync();
+            var finalQuiz = await _context.Finalquizzes
+                .Include(x => x.Course).ThenInclude(xc => xc.CourseSections).ThenInclude(p => p.Lessons).ThenInclude(pc => pc.Lessonitems)
+                .FirstOrDefaultAsync(x => x.FinalQuizId == finalQuizId);
 
-            var lessonItemCount = await _context.Lessonitems.Where(x => x.LessonId == finalLesson.LessonId).CountAsync();
+            var finalLesson = finalQuiz.Course.CourseSections
+                .OrderByDescending(x => x.Order)
+                .FirstOrDefault()
+                .Lessons
+                .OrderByDescending(x => x.Order)
+                .FirstOrDefault();
 
-            var processItemCount = await _context.Processitems.Where(x => x.LessonItem.LessonId == finalLesson.LessonId && x.Process.StudentId == userId).CountAsync();
+            var finalLessonItem = finalLesson.Lessonitems
+                .OrderByDescending(x => x.Order)
+                .FirstOrDefault();
 
-            if (lessonItemCount == processItemCount)
+            var process = await _context.Processes
+                .Include(x => x.Processitems)
+                .FirstOrDefaultAsync(x => x.LessonId == finalLesson.LessonId && x.StudentId == userId);
+            if(process != null && process.IsUnlocked == false)
             {
-                return true;
+                return false;
             }
 
-            return false;
+            var processItem = process.Processitems
+                .Where(x => x.LessonItemId == finalLessonItem.LessonItemId)
+                .FirstOrDefault();
+            if (processItem == null)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
