@@ -77,6 +77,42 @@ namespace Service
                 quiz
             );
         }
+
+        public async Task<BaseResponse<object>> GetQuizByIdOrReviewAsync(int quizId, string userId)
+        {
+            // Kiểm tra nếu quiz đã được làm (có result) thì trả về review
+            var quizResultReview = await _quizResultRepository.GetQuizResultWithReviewAsync(quizId, userId);
+            if (quizResultReview != null)
+            {
+                return new BaseResponse<object>
+                {
+                    Message = "Lấy kết quả quiz thành công.",
+                    StatusCode = StatusCodeEnum.OK_200,
+                    Data = quizResultReview
+                };
+            }
+
+            // Nếu chưa làm, trả về quiz để làm
+            var checkAllowance = await _quizRepository.CheckAllowance(userId, quizId);
+            if (!checkAllowance)
+            {
+                throw new Exception("Bạn chưa mở khoá bài quiz này. Vui lòng hoàn thành bài học trước.");
+            }
+
+            var quiz = await _quizRepository.GetByQuizIdAsync(quizId);
+
+            if (quiz == null)
+            {
+                throw new Exception("Không tìm thấy bài quiz này.");
+            }
+
+            return new BaseResponse<object>
+            {
+                Message = "Lấy bài quiz thành công.",
+                StatusCode = StatusCodeEnum.OK_200,
+                Data = quiz
+            };
+        }
         
         public async Task<BaseResponse<List<QuizMarkResponse>>> MarkQuizAsync(QuizMarkRequest request, string userId)
         {
@@ -211,18 +247,29 @@ namespace Service
                 var q = questions[i];
                 var comment = parts[i];
                 bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
-                result.Add(new QuizMarkResponse
-                {
-                    Question = q.QuestionText,
-                    Answer = q.Answer,
-                    RightAnswer = q.RightAnswer,
-                    IsCorrect = isCorrect,
-                    Comment = comment
-                });
                 if (isCorrect == true)
                 {
                     finalScore += 1;
                 }
+            }
+
+            // Tính IsPassed trước khi tạo response
+            bool isPassed = finalScore > questions.Count / 2;
+
+            // Tạo response - chỉ trả về RightAnswer nếu pass
+            for (int i = 0; i < questions.Count; i++)
+            {
+                var q = questions[i];
+                var comment = parts[i];
+                bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
+                result.Add(new QuizMarkResponse
+                {
+                    Question = q.QuestionText,
+                    Answer = q.Answer,
+                    RightAnswer = isPassed ? q.RightAnswer : null, // Chỉ trả về đáp án đúng nếu pass
+                    IsCorrect = isCorrect,
+                    Comment = comment
+                });
             }
 
             var quizResult = new Quizresult
@@ -230,18 +277,9 @@ namespace Service
                 QuizId = (int)quizIdFromQuestions,
                 UserId = userId,
                 Score = finalScore,
-                IsPassed = true,
+                IsPassed = isPassed,
                 CreatedAt = DateTime.UtcNow
             };
-
-            if (finalScore <= questions.Count / 2)
-            {
-                quizResult.IsPassed = false;
-            }
-            else
-            {
-                quizResult.IsPassed = true;
-            }
 
             await _quizResultRepository.AddAsync(quizResult);
 

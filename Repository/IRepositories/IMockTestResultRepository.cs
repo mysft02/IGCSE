@@ -10,5 +10,6 @@ namespace Repository.IRepositories
     {
         Task<List<MockTestResultQueryResponse>> GetMockTestResultList(MockTestResultQueryRequest request, Expression<Func<Mocktestresult, bool>>? filter = null);
         Task<MockTestResultReviewResponse> GetMockTestResultWithReview(int id);
+        Task<int?> GetLatestMockTestResultIdAsync(int mockTestId, string userId);
     }
 }

@@ -434,21 +434,18 @@ namespace Common.Utils
 
         public static string GetMediaUrl(string relativePath, string webRootPath, IHttpContextAccessor httpContextAccessor)
         {
-            if (string.IsNullOrWhiteSpace(relativePath))
-                throw new Exception("Lỗi khi xử lí hình ảnh.");
-
             // loại bỏ / hoặc \
             var cleanRelativePath = relativePath.TrimStart('/', '\\');
-
-            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
-
-            if (!File.Exists(fullPath))
-                throw new Exception("Lỗi khi xử lí hình ảnh.");
 
             var request = httpContextAccessor.HttpContext?.Request;
 
             // ✅ Encode relativePath để Swagger hiển thị đúng images%2F...
             var encodedPath = Uri.EscapeDataString(cleanRelativePath);
+            
+            if (IsEmptyString(encodedPath))
+            {
+                return "";
+            }
 
             var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
 

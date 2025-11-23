@@ -66,11 +66,6 @@ namespace Service
             // loại bỏ / hoặc \
             var cleanRelativePath = relativePath.TrimStart('/', '\\');
 
-            var fullPath = Path.Combine(webRootPath, cleanRelativePath);
-
-            if (!File.Exists(fullPath))
-                throw new FileNotFoundException("Lỗi khi xử lí hình ảnh.");
-
             var request = _httpContextAccessor.HttpContext?.Request;
 
             // ✅ Encode relativePath để Swagger hiển thị đúng images%2F...
