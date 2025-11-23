@@ -113,7 +113,29 @@ namespace Service
                 Data = quiz
             };
         }
-        
+
+        private string prompt =
+            @"Bạn là hệ thống chấm bài tự động. 
+            Nhiệm vụ: Với mỗi câu hỏi trong danh sách, hãy xác định Đúng hoặc Sai bằng cách so sánh Answer với RightAnswer
+            RightAnswer là đáp án đúng của câu hỏi.
+            Answer là đáp án của người dùng.
+            Đáp án không nhất thiết trùng khớp:
+                - Answer có thể là một phần của RightAnswer.
+                - RightAnswer có thể là một phần của Answer.
+                - Answer và RightAnswer có thể có các từ ngữ khác nhau nhưng vẫn đúng.
+                - Answer và RightAnswer chỉ cần mang ý nghĩa tương đương nhau.
+
+            Sau đó tạo một nhận xét NGẮN (≤100 chữ) cho từng câu, viết theo ĐÚNG THỨ TỰ xuất hiện trong dữ liệu.
+
+            YÊU CẦU ĐẦU RA:
+            - Chỉ trả về danh sách các nhận xét.
+            - Mỗi nhận xét cách nhau bằng chuỗi phân tách: |||
+            - Ý đúng và sai sẽ được biểu hiện bằng kí tự T và F, cách văn bản nhận xét bằng kí tự $
+            - KHÔNG thêm đánh số, tiêu đề, nhãn, hay văn bản thừa.
+
+            Chỉ xuất kết quả theo đúng định dạng yêu cầu.";
+
+
         public async Task<BaseResponse<List<QuizMarkResponse>>> MarkQuizAsync(QuizMarkRequest request, string userId)
         {
             List<QuizMarkResponse> result = new List<QuizMarkResponse>();
@@ -168,7 +190,9 @@ namespace Service
             }
 
             var contentText = string.Join("\n", questions.Select(q =>
-            $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\n"));
+                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRightAnswer: {q.RightAnswer}\n"));
+
+            var fullPrompt = prompt + $"\n\nDỮ LIỆU:\n{contentText}";
 
             var input = new[]
             {
@@ -180,7 +204,7 @@ namespace Service
                             new
                             {
                                 type = "input_text",
-                                text = $"Với danh sách câu hỏi sau, hãy chấm đúng/sai bằng cách so sánh Answer với Right answer. Viết NHẬN XÉT ngắn (<100 chữ) cho mỗi câu THEO ĐÚNG THỨ TỰ. Chỉ trả về các đoạn comment, ngăn cách bằng chuỗi |||, KHÔNG thêm bất cứ văn bản nào khác.\n{contentText}\nChỉ in: comment1 ||| comment2 ||| ... ||| commentN"
+                                text = fullPrompt
                             }
                         }
                     }
@@ -218,7 +242,7 @@ namespace Service
                 throw new Exception("OpenAI trả về rỗng (outputText empty)");
             }
 
-            // 🧠 Cắt comment theo delimiter đơn giản '|||'
+            // 🧠 Parse output theo format mới: T$comment hoặc F$comment, phân cách bằng |||
             var cleaned = outputText.Replace("```", string.Empty).Trim();
             var parts = cleaned.Split("|||", StringSplitOptions.RemoveEmptyEntries)
                                .Select(p => p.Trim())
@@ -234,23 +258,46 @@ namespace Service
                 parts = parts.Take(questions.Count).ToList();
             }
 
-            // Hàm nội bộ để so sánh đáp án linh hoạt
-            static string Normalize(string? s)
-            {
-                return (s ?? string.Empty).Trim().ToLowerInvariant().Replace(" ", string.Empty);
-            }
-
             decimal finalScore = 0;
+            List<(bool isCorrect, string comment)> parsedResults = new List<(bool, string)>();
 
-            for (int i = 0; i < questions.Count; i++)
+            // Parse từng phần để extract T/F và comment
+            foreach (var part in parts)
             {
-                var q = questions[i];
-                var comment = parts[i];
-                bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
-                if (isCorrect == true)
+                bool isCorrect = false;
+                string comment = string.Empty;
+
+                // Format: T$comment hoặc F$comment
+                if (part.StartsWith("T$", StringComparison.OrdinalIgnoreCase))
                 {
+                    isCorrect = true;
+                    comment = part.Substring(2).Trim();
                     finalScore += 1;
                 }
+                else if (part.StartsWith("F$", StringComparison.OrdinalIgnoreCase))
+                {
+                    isCorrect = false;
+                    comment = part.Substring(2).Trim();
+                }
+                else
+                {
+                    // Fallback: nếu không có format T$ hoặc F$, thử parse theo cách cũ
+                    // Hoặc có thể là chỉ có comment, cần so sánh đáp án
+                    comment = part;
+                    // So sánh đáp án để xác định đúng/sai (fallback)
+                    if (parsedResults.Count < questions.Count)
+                    {
+                        var q = questions[parsedResults.Count];
+                        static string Normalize(string? s)
+                        {
+                            return (s ?? string.Empty).Trim().ToLowerInvariant().Replace(" ", string.Empty);
+                        }
+                        isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
+                        if (isCorrect) finalScore += 1;
+                    }
+                }
+
+                parsedResults.Add((isCorrect, comment));
             }
 
             // Tính IsPassed trước khi tạo response
@@ -260,8 +307,10 @@ namespace Service
             for (int i = 0; i < questions.Count; i++)
             {
                 var q = questions[i];
-                var comment = parts[i];
-                bool isCorrect = Normalize(q.Answer) == Normalize(q.RightAnswer);
+                var (isCorrect, comment) = i < parsedResults.Count 
+                    ? parsedResults[i] 
+                    : (false, string.Empty);
+
                 result.Add(new QuizMarkResponse
                 {
                     Question = q.QuestionText,

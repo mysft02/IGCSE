@@ -9,22 +9,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/projectSettingsUpdater.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wwwroot/wwwroot/lessons/docs/39f41098-1cac-4e79-b6d6-9d985dd3961f.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wwwroot/wwwroot/lessons/videos/23658ef5-373f-4aac-bbed-795cfb19bbe7.mp4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Quizzes/QuizMarkResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Quizzes/QuizMarkResponse.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Common/Utils/CommonUtils.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Common/Utils/CommonUtils.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/CourseController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/CourseController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/MockTestController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/MockTestController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/QuizController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/QuizController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Migration/changelog-master.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../Migration/changelog-master.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/IRepositories/IMockTestResultRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/IRepositories/IMockTestResultRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/IRepositories/IQuizResultRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/IRepositories/IQuizResultRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/MockTestResultRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/MockTestResultRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/QuizResultRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/QuizResultRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Service/MediaService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/MediaService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Service/MockTestService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/MockTestService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Service/QuizService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/QuizService.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -105,7 +90,7 @@
       <option name="presentableId" value="Default" />
       <updated>1762267205239</updated>
       <workItem from="1762267206300" duration="3795000" />
-      <workItem from="1763866936107" duration="5664000" />
+      <workItem from="1763866936107" duration="7885000" />
     </task>
     <servers />
   </component>
