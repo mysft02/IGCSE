@@ -291,7 +291,7 @@ namespace Service
             {
                 if (trelloCardResponse.Name.Contains("[Description]"))
                 {
-                    quizDescription = trelloCardResponse.Description;
+                    quizDescription = trelloCardResponse.Name.Replace("[Description]", "").Trim();
                 }
                 else
                 {
