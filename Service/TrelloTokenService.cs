@@ -192,7 +192,7 @@ public class TrelloTokenService
                 else if (ExtractTypeTrelloListContent(list.Name) == "Lesson")
                 {
                     //create lesson
-                    await _lessonService.CreateLessonForTrelloAsync(section.CourseSectionId, list.Name, countLesson,
+                    lesson = await _lessonService.CreateLessonForTrelloAsync(section.CourseSectionId, list.Name, countLesson,
                         trelloCardResponses, trelloToken);
                     countLesson++;
                 }
