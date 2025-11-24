@@ -197,9 +197,13 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-similar-courses")]
+        [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự", Description = "Api dùng để lấy danh sách các khóa học tương tự với khóa học hiện tại ")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)
         {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
@@ -212,7 +216,7 @@ namespace IGCSE.Controller
                 ));
             }
 
-            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, request.Score);
+            var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, userId);
             return Ok(result);
         }
 

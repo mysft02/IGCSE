@@ -39,6 +39,7 @@ namespace Service
         private readonly MediaService _mediaService;
         private readonly TrelloCardService _trelloCardService;
         private readonly ICreateSlotRepository _createSlotRepository;
+        private readonly IFinalQuizResultRepository _finalQuizResultRepository;
 
         public CourseService(
             IMapper mapper,
@@ -56,7 +57,8 @@ namespace Service
             IStudentEnrollmentRepository studentEnrollmentRepository,
             MediaService mediaService,
             TrelloCardService trelloCardService,
-            ICreateSlotRepository createSlotRepository)
+            ICreateSlotRepository createSlotRepository,
+            IFinalQuizResultRepository finalQuizResultRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -74,6 +76,7 @@ namespace Service
             _mediaService = mediaService;
             _trelloCardService = trelloCardService;
             _createSlotRepository = createSlotRepository;
+            _finalQuizResultRepository = finalQuizResultRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
@@ -443,8 +446,16 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(int courseId, string userId)
         {
+            decimal score = 1;
+
+            var userResult = await _finalQuizResultRepository.FindOneWithIncludeAsync(x => x.UserId == userId && x.FinalQuiz.CourseId == courseId && x.IsPassed == true, x => x.FinalQuiz);
+            if(userResult != null)
+            {
+                score = userResult.Score == 0 ? 1 : userResult.Score;
+            }
+
             var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
 
             var courseResponses = new List<CourseResponse>();
