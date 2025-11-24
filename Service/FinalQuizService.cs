@@ -54,6 +54,12 @@ namespace Service
                 throw new Exception("Id không được để trống");
             }
 
+            var checkPassed = await _finalQuizResultRepository.FindOneAsync(x => x.FinalQuizId == finalQuizId && x.UserId == userId && x.IsPassed == true);
+            if (checkPassed != null)
+            {
+                throw new Exception("Bạn đã hoàn thàn bài final quiz này rồi.");
+            }
+
             var checkAllowance = await _finalQuizRepository.CheckAllowance(finalQuizId, userId);
             if (!checkAllowance)
             {
