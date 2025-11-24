@@ -16,6 +16,7 @@ using BusinessObject.DTOs.Response.Trellos;
 using BusinessObject.Payload.Response.Trello;
 using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
 using BusinessObject.DTOs.Request.Packages;
+using BusinessObject.DTOs.Response.FinalQuizzes;
 
 namespace BusinessObject.Mapping
 {
@@ -205,6 +206,8 @@ namespace BusinessObject.Mapping
 
             CreateMap<Package, PackageCreateRequest>().ReverseMap();
             CreateMap<Package, PackageUpdateRequest>().ReverseMap();
+
+            CreateMap<Finalquiz, FinalQuizCourseDetailResponse>().ReverseMap();
         }
     }
 }

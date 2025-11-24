@@ -1,4 +1,5 @@
 using BusinessObject.DTOs.Response.CourseContent;
+using BusinessObject.DTOs.Response.FinalQuizzes;
 using BusinessObject.DTOs.Response.Quizzes;
 
 namespace BusinessObject.DTOs.Response.Courses
@@ -18,6 +19,7 @@ namespace BusinessObject.DTOs.Response.Courses
         // Thông tin tiến trình học (chỉ có khi student đã đăng nhập và enroll)
         public bool IsEnrolled { get; set; } = false;
         public double? OverallProgress { get; set; } = null; // Phần trăm hoàn thành (0-100)
+        public FinalQuizCourseDetailResponse FinalQuiz { get; set; }
     }
     public class ModuleDetailResponse
     {
