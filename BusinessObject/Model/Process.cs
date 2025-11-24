@@ -20,4 +20,6 @@ public class Process
     // public virtual Coursekey? CourseKey { get; set; } // removed coursekey usage
 
     public virtual Lesson Lesson { get; set; } = null!;
+
+    public virtual ICollection<Processitem> Processitems { get; set; } = new List<Processitem>();
 }

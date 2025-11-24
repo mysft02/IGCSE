@@ -21,4 +21,6 @@ public class Lesson
     public virtual Coursesection CourseSection { get; set; } = null!;
 
     public virtual Quiz Quiz { get; set; }
+
+    public virtual ICollection<Lessonitem> Lessonitems { get; set; } = new List<Lessonitem>();
 }

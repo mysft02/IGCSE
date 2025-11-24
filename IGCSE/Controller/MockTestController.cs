@@ -38,8 +38,81 @@ namespace IGCSE.Controller
 
         [HttpGet("get-mocktest-by-id")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy mock test để học sinh thực hiện bài thi", Description = "Api dùng để lấy danh sách câu hỏi của bài mock test cho việc thực hiện bài mock test không bao gồm đáp án")]
-        public async Task<ActionResult<BaseResponse<MockTestForStudentResponse>>> GetMockTestForStudent([FromQuery] int id)
+        [SwaggerOperation(
+            Summary = "Lấy mock test để học sinh thực hiện bài thi hoặc xem kết quả", 
+            Description = @"Api tự động trả về response khác nhau dựa trên trạng thái của mock test:
+
+            **1. Trường hợp: Mock test chưa unlock (Locked - Status = 3)**
+            - Trả về lỗi: ""Bạn chưa đăng kí gói thi thử.""
+            - StatusCode: BadRequest_400
+
+            **2. Trường hợp: Mock test đã unlock nhưng chưa làm (Open - Status = 2)**
+            - Response type: `MockTestForStudentResponse`
+            - Schema:
+            ```json
+            {
+            ""message"": ""Lấy mock test thành công"",
+            ""statusCode"": 200,
+            ""data"": {: ""2024-01-01T00:00:00Z"",
+                ""updatedAt"": ""2024-01-01T00:00:00Z"",
+                ""createdBy"": ""userId"",
+                ""mockTestQuestions"": [
+                {
+                    ""mockTestQuestionId"": 1,
+                    ""questionContent"": ""Câu hỏi..."",
+                    ""imageUrl"": ""/path/to/image.jpg"",
+                    ""createdAt"": ""2024-01-01T00:00:00Z"",
+                    ""updatedAt"": ""2024-01-01T00:00:00Z""
+                }
+                ]
+            }
+            }
+            ```
+            - **Lưu ý**: Response này KHÔNG bao gồm đáp án (`CorrectAnswer`), điểm (`Mark`), hoặc câu trả lời của user.
+
+            **3. Trường hợp: Mock test đã hoàn thành (Completed - Status = 1)**
+            - Response type: `MockTestResultReviewResponse`
+            - Schema:
+            ```json
+            {
+            ""message"": ""Lấy kết quả mock test thành công"",
+            ""statusCode"": 
+                ""mockTestId"": 1,
+                ""mockTestTitle"": ""Mock Test Title"",
+                ""mockTestDescription"": ""Description"",
+                ""createdAt""200,
+            ""data"": {
+                ""mockTestResultId"": 1,
+                ""score"": 8.5,:
+                ""dateTaken"": ""2024-01-01T00:00:00Z"",
+                ""mockTest"": {
+                ""mockTestId"": 1,
+                ""mockTestTitle"": ""Mock Test Title"",
+                ""mockTestDescription"": ""Description"",
+                ""createdAt"": ""2024-01-01T00:00:00Z"",
+                ""updatedAt"": ""2024-01-01T00:00:00Z"",
+                ""createdBy"": ""userId"",
+                ""questions"" [
+                    {
+                    ""questionId"": 1,
+                    ""questionContent"": ""Câu hỏi..."",
+                    ""correctAnswer"": ""Đáp án đúng"",
+                    ""imageUrl"": ""/path/to/image.jpg"",
+                    ""mark"": 1.0,
+                    ""partialMark"": ""Partial mark description"",
+                    ""userAnswer"": {
+                        ""mockTestUserAnswerId"": 1,
+                        ""userAnswer"": ""Câu trả lời của user"",
+                        ""userMark"": 0.5
+                    }
+                    }
+                ]
+                }
+            }
+            }
+            ```
+            - **Lưu ý**: Response này BAO GỒM đầy đủ: đáp án đúng (`correctAnswer`), điểm (`mark`, `partialMark`), câu trả lời của user (`userAnswer`), và điểm user đạt được (`userMark`).")]
+        public async Task<ActionResult<BaseResponse<object>>> GetMockTestForStudent([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
@@ -48,7 +121,7 @@ namespace IGCSE.Controller
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
 
-            var result = await _mockTestService.GetMockTestByIdAsync(id, userId);
+            var result = await _mockTestService.GetMockTestByIdOrReviewAsync(id, userId);
             return Ok(result);
         }
 
@@ -72,23 +145,6 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
-        [HttpGet("get-mocktest-review")]
-        [Authorize]
-        [SwaggerOperation(Summary = "Lấy kết quả bài mock test đã làm",
-            Description = "Api dùng để lấy kết quả bài mock test đã làm của người dùng có bao gồm đáp án, cách giải và câu trả lời của người dùng. " +
-            "`MockTestId` để lọc theo danh sách bài mock test.")]
-        public async Task<ActionResult<BaseResponse<MockTestResultReviewResponse>>> GetMockTestResultReview([FromQuery] int id)
-        {
-            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-
-            if (CommonUtils.IsEmptyString(userId))
-            {
-                throw new Exception("Không tìm thấy thông tin người dùng");
-            }
-
-            var result = await _mockTestService.GetMockTestResultReviewByIdAsync(id);
-            return Ok(result);
-        }
 
         [HttpPost("mark-mocktest")]
         [Authorize]

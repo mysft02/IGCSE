@@ -29,6 +29,7 @@ namespace Repository.Repositories
         {
             return await _context.Set<Course>()
                 .Include(c => c.Module)
+                .Include(c => c.FinalQuiz)
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 

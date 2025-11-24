@@ -60,7 +60,71 @@ namespace IGCSE.Controller
 
         [HttpPost("complete-lesson-item")]
         [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Đánh dấu hoàn thành lesson item (Student)", Description = "Api dùng để đánh dấu đã hoàn thành lessonitem khi học sinh đã học xong lessonitem")]
+        [SwaggerOperation(
+            Summary = "Đánh dấu hoàn thành lesson item (Student)", 
+            Description = @"Api dùng để đánh dấu đã hoàn thành lesson item khi học sinh đã học xong. API này có logic tự động mở khóa lesson tiếp theo khi hoàn thành tất cả lesson items trong lesson hiện tại.
+
+**Request:**
+- Query parameter: `lessonItemId` (int) - ID của lesson item cần đánh dấu hoàn thành
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lesson item completed successfully"",
+  ""statusCode"": 200,
+  ""data"": true
+}
+```
+
+**Response Schema - Trường hợp đã hoàn thành trước đó (Idempotent):**
+```json
+{
+  ""message"": ""Lesson item already completed"",
+  ""statusCode"": 200,
+  ""data"": true
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Lesson item không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: Lesson item not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Student chưa enroll vào course/lesson:**
+```json
+{
+  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: Student is not enrolled in this course or lesson not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Lesson chưa được mở khóa:**
+```json
+{
+  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: This lesson is locked. Please complete previous lessons first."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Logic tự động:**
+- Khi hoàn thành một lesson item, hệ thống sẽ kiểm tra xem tất cả lesson items trong lesson đó đã hoàn thành chưa
+- Nếu tất cả lesson items đã hoàn thành:
+  - Lesson hiện tại được đánh dấu hoàn thành
+  - Lesson tiếp theo trong cùng section sẽ được tự động mở khóa (`IsUnlocked = true`)
+  - Nếu đã hết lesson trong section hiện tại, lesson đầu tiên của section tiếp theo sẽ được mở khóa
+
+**Lưu ý:**
+- Chỉ Student role mới có quyền sử dụng API này
+- API có tính idempotent: gọi nhiều lần với cùng lessonItemId sẽ không tạo duplicate record
+- Cần hoàn thành lesson trước đó trước khi có thể hoàn thành lesson tiếp theo")]
         public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int lessonItemId)
         {
             try
@@ -153,7 +217,157 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("{courseId}")]
-        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của khóa học (bao gồm sections, lessons, lesson items và tiến trình học nếu đã đăng nhập và enroll)", Description = "Api dùng để xem nội dung của 1 khóa học bao gồm section, lesson,lessonitem và nếu đã đăng nhập và enroll khóa học thì sẽ xem được tiến độ học của khóa học")]
+        [SwaggerOperation(
+            Summary = "Lấy tất cả thông tin chi tiết của khóa học", 
+            Description = @"Api tự động trả về response khác nhau dựa trên trạng thái đăng nhập và enrollment của user:
+
+**1. Trường hợp: User chưa đăng nhập hoặc không phải Student role**
+- Response type: `CourseDetailResponse`
+- `IsEnrolled`: `false`
+- `OverallProgress`: `null` (không có thông tin tiến trình)
+- Các lesson: `IsUnlocked = false`, `IsCompleted = false`
+- Các lesson items: `IsCompleted = false`, `CompletedAt = null`
+- Schema:
+```json
+{
+  ""message"": ""Course detail retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 34,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Open"",
+    ""price"": 1000000,
+    ""imageUrl"": ""/path/to/image.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-01T00:00:00Z"",
+    ""isEnrolled"": false,
+    ""overallProgress"": null,
+    ""sections"": [
+      {
+        ""courseId"": 34,
+        ""courseSectionId"": 1,
+        ""name"": ""Section 1"",
+        ""description"": ""Mô tả section"",
+        ""order"": 1,
+        ""isActive"": true,
+        ""lessons"": [
+          {
+            ""lessonId"": 1,
+            ""courseSectionId"": 1,
+            ""name"": ""Lesson 1"",
+            ""description"": ""Mô tả lesson"",
+            ""order"": 1,
+            ""isActive"": true,
+            ""isUnlocked"": false,
+            ""isCompleted"": false,
+            ""lessonItems"": [
+              {
+                ""lessonItemId"": 1,
+                ""name"": ""Video 1"",
+                ""order"": 1,
+                ""isCompleted"": false,
+                ""completedAt"": null
+              }
+            ],
+            ""quiz"": {
+              ""quizId"": 1,
+              ""quizTitle"": ""Quiz Title"",
+              ""quizDescription"": ""Quiz Description""
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**2. Trường hợp: User đã đăng nhập (Student role) nhưng chưa enroll khóa học**
+- Response type: `CourseDetailResponse`
+- `IsEnrolled`: `false`
+- `OverallProgress`: `null` (không có thông tin tiến trình)
+- Các lesson: `IsUnlocked = false`, `IsCompleted = false`
+- Các lesson items: `IsCompleted = false`, `CompletedAt = null`
+- Schema: Giống trường hợp 1 (chưa đăng nhập)
+
+**3. Trường hợp: User đã đăng nhập (Student role) và đã enroll khóa học**
+- Response type: `CourseDetailResponse`
+- `IsEnrolled`: `true`
+- `OverallProgress`: `double` (0-100, phần trăm hoàn thành khóa học)
+- Các lesson: 
+  - `IsUnlocked`: `true/false` (dựa trên tiến trình học)
+  - `IsCompleted`: `true/false` (dựa trên việc hoàn thành tất cả lesson items)
+- Các lesson items:
+  - `IsCompleted`: `true/false` (đã hoàn thành item chưa)
+  - `CompletedAt`: `DateTime?` (thời gian hoàn thành, null nếu chưa hoàn thành)
+- Schema:
+```json
+{
+  ""message"": ""Course detail retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 34,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Open"",
+    ""price"": 1000000,
+    ""imageUrl"": ""/path/to/image.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-01T00:00:00Z"",
+    ""isEnrolled"": true,
+    ""overallProgress"": 65.5,
+    ""sections"": [
+      {
+        ""courseId"": 34,
+        ""courseSectionId"": 1,
+        ""name"": ""Section 1"",
+        ""description"": ""Mô tả section"",
+        ""order"": 1,
+        ""isActive"": true,
+        ""lessons"": [
+          {
+            ""lessonId"": 1,
+            ""courseSectionId"": 1,
+            ""name"": ""Lesson 1"",
+            ""description"": ""Mô tả lesson"",
+            ""order"": 1,
+            ""isActive"": true,
+            ""isUnlocked"": true,
+            ""isCompleted"": true,
+            ""lessonItems"": [
+              {
+                ""lessonItemId"": 1,
+                ""name"": ""Video 1"",
+                ""order"": 1,
+                ""isCompleted"": true,
+                ""completedAt"": ""2024-01-15T10:30:00Z""
+              },
+              {
+                ""lessonItemId"": 2,
+                ""name"": ""Document 1"",
+                ""order"": 2,
+                ""isCompleted"": false,
+                ""completedAt"": null
+              }
+            ],
+            ""quiz"": {
+              ""quizId"": 1,
+              ""quizTitle"": ""Quiz Title"",
+              ""quizDescription"": ""Quiz Description""
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+- **Lưu ý**: 
+  - `overallProgress` được tính dựa trên số lesson đã hoàn thành / tổng số lesson
+  - `isUnlocked` của lesson phụ thuộc vào tiến trình học (lesson trước đó đã hoàn thành)
+  - `isCompleted` của lesson = `true` khi tất cả lesson items trong lesson đó đã hoàn thành
+  - `completedAt` chỉ có giá trị khi `isCompleted = true`")]
         public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(int courseId)
         {
             try
@@ -192,8 +406,36 @@ namespace IGCSE.Controller
 
         [HttpGet("get-lesson-item-detail")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy tất cả thông tin chi tiết của bài học", Description = "Api dùng để lấy thông tin chi tiết của bài học")]
-        public async Task<ActionResult<BaseResponse<LessonDetailResponse>>> GetLessonItemDetail([FromQuery]int lessonItemId)
+        [SwaggerOperation(
+            Summary = "Lấy tất cả thông tin chi tiết của lesson item", 
+            Description = @"Api dùng để lấy thông tin chi tiết của một lesson item (video, pdf, image, quiz).
+
+**Response Schema:**
+```json
+{
+  ""message"": ""Lấy nội dung bài học thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""lessonItemId"": 1,
+    ""name"": ""Video bài học 1"",
+    ""description"": ""Mô tả về video này"",
+    ""content"": ""https://example.com/videos/lesson1.mp4"",
+    ""itemType"": ""video""
+  }
+}
+```
+
+**Các loại ItemType:**
+- `""video""`: Video bài học (content là URL video)
+- `""pdf""`: Tài liệu PDF (content là URL file PDF)
+- `""image""`: Hình ảnh (content là URL hình ảnh)
+- `""quiz""`: Bài quiz (content có thể là URL hoặc JSON data)
+
+**Lưu ý:**
+- Field `content` sẽ chứa URL đầy đủ đến media file (video, pdf, image) hoặc data của quiz
+- Nếu file không tồn tại, `content` sẽ là chuỗi rỗng `""""`
+- Cần đăng nhập (Authorize) để sử dụng API này")]
+        public async Task<ActionResult<BaseResponse<LessonItemDetail>>> GetLessonItemDetail([FromQuery]int lessonItemId)
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;

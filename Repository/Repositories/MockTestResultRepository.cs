@@ -98,5 +98,16 @@ namespace Repository.Repositories
 
             return result;
         }
+
+        public async Task<int?> GetLatestMockTestResultIdAsync(int mockTestId, string userId)
+        {
+            var latestResult = await _context.Mocktestresults
+                .Where(x => x.MockTestId == mockTestId && x.UserId == userId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => x.MockTestResultId)
+                .FirstOrDefaultAsync();
+
+            return latestResult == 0 ? null : latestResult;
+        }
     }
 }
