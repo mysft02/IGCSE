@@ -29,6 +29,7 @@ namespace Repository.Repositories
         {
             return await _context.Set<Course>()
                 .Include(c => c.Module)
+                .Include(c => c.FinalQuiz)
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
@@ -76,17 +77,18 @@ namespace Repository.Repositories
 
             var targetEmbeddingData = CommonUtils.StringToObject<List<float>>(targetCourse.EmbeddingData);
 
-            var courses = await _context.Set<Course>()
+            var courses = _context.Courses
                 .Where(c => c.CourseId != courseId)
+                .AsEnumerable()
                 .Select(c => new
                 {
-                    c,
+                    Course = c,
                     SimilarScore = score * (CommonUtils.CosineSimilarity(targetEmbeddingData, CommonUtils.StringToObject<List<float>>(c.EmbeddingData)))
                 })
                 .OrderByDescending(c => c.SimilarScore)
                 .Take(5)
-                .Select(c => c.c)
-                .ToListAsync();
+                .Select(c => c.Course)
+                .ToList();
             return courses;
         }
 
@@ -112,20 +114,12 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<CourseDashboardQueryResponse>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request, Expression<Func<Course, bool>>? filter = null)
+        public async Task<CourseAnalyticsResponse> GetCourseAnalyticsAsync(int courseId)
         {
-            var query = _context.Courses
+            var result = await _context.Courses
                 .Include(x => x.FinalQuiz).ThenInclude(xc => xc.FinalQuizResult)
-                .AsQueryable();
-
-            // Áp dụng filter nếu có
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
-
-            var resultList = await query
-                .Select(x => new CourseDashboardQueryResponse
+                .Where(x => x.CourseId == courseId)
+                .Select(x => new CourseAnalyticsResponse
                 {
                     CourseId = x.CourseId,
                     CourseName = x.Name,
@@ -135,14 +129,18 @@ namespace Repository.Repositories
                     ImageUrl = x.ImageUrl,
                     CreatedAt = (DateTime)x.CreatedAt,
                     UpdatedAt = (DateTime)x.UpdatedAt,
-                    CreatedBy = x.CreatedBy,
                     CustomerCount = _context.Processes.Where(xc => xc.CourseId == x.CourseId).Count(),
-                    AverageFinalScore = x.FinalQuiz.FinalQuizResult.Select(xc => xc.Score).ToList().Average(),
-                    TotalIncome = _context.Transactionhistories.Where(xc => xc.ItemId == x.CourseId).Select(n => n.Amount).ToList().Sum(),
+                    AverageFinalScore = x.FinalQuiz.FinalQuizResult.Average(xc => xc.Score),
+                    TotalIncome = _context.Transactionhistories.Where(xc => xc.ItemId == x.CourseId).Sum(n => n.Amount),
                 })
-                .ToListAsync();
+                .FirstOrDefaultAsync();
 
-            return resultList;
+            if(result == null)
+            {
+                return null;
+            }
+
+            return result;
         }
     }
 }

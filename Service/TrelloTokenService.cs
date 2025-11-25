@@ -185,9 +185,6 @@ public class TrelloTokenService
                     //create course
                     course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId, trelloToken);
                     
-                    // Trừ AvailableSlot ngay sau khi tạo course thành công
-                    createSlot.AvailableSlot -= 1;
-                    await _createSlotRepository.UpdateAsync(createSlot);
                 }
                 else if (ExtractTypeTrelloListContent(list.Name) == "Section")
                 {
@@ -200,7 +197,7 @@ public class TrelloTokenService
                 else if (ExtractTypeTrelloListContent(list.Name) == "Lesson")
                 {
                     //create lesson
-                    await _lessonService.CreateLessonForTrelloAsync(section.CourseSectionId, list.Name, countLesson,
+                    lesson = await _lessonService.CreateLessonForTrelloAsync(section.CourseSectionId, list.Name, countLesson,
                         trelloCardResponses, trelloToken);
                     countLesson++;
                 }
@@ -215,6 +212,9 @@ public class TrelloTokenService
                     continue;
                 }
             }
+
+            createSlot.AvailableSlot -= 1;
+            await _createSlotRepository.UpdateAsync(createSlot);
 
             var finalQuiz = new Finalquiz
             {

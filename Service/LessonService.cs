@@ -19,7 +19,7 @@ public class LessonService
         _trelloCardService = trelloCardService;
     }
 
-    public async Task CreateLessonForTrelloAsync(int sectionId, string lessonName, int lessonOrder, List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
+    public async Task<Lesson> CreateLessonForTrelloAsync(int sectionId, string lessonName, int lessonOrder, List<TrelloCardResponse> trelloCardResponses, TrelloToken trelloToken)
     {
         lessonName = lessonName.Replace("[lesson]", "").Trim();
         string description = "This is a lesson imported from Trello.";
@@ -103,5 +103,7 @@ public class LessonService
             lessonItem.UpdatedAt = DateTime.UtcNow;
             await _lessonitemRepository.AddAsync(lessonItem);
         }
+
+        return createdLesson;
     }
 }

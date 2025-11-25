@@ -1,0 +1,112 @@
+﻿
+databaseChangeLog:
+  - changeSet:
+      id: 52
+      author: dungnt
+      changes:
+
+        # --- Tạo bảng teacherprofile ---
+        - createTable:
+            tableName: teacherprofile
+            columns:
+              - column:
+                  name: TeacherProfileId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: TeacherId
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: TeacherName
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: AvatarUrl
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Experience
+                  type: INT
+                  constraints:
+                    nullable: true
+
+
+
+        # --- Tạo bảng certificate ---
+        - createTable:
+            tableName: certificate
+            columns:
+              - column:
+                  name: CertificateId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: TeacherProfileId
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: Name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: Description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: ImageUrl
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: IsActive
+                  type: TINYINT(1)
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+
+
+      rollback:
+        - dropTable:
+            tableName: certificate
+
+        - dropTable:
+            tableName: teacherprofile

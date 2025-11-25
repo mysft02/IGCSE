@@ -17,6 +17,7 @@ using Repository.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Service.Trello;
+using BusinessObject.DTOs.Response.FinalQuizzes;
 
 namespace Service
 {
@@ -38,6 +39,7 @@ namespace Service
         private readonly MediaService _mediaService;
         private readonly TrelloCardService _trelloCardService;
         private readonly ICreateSlotRepository _createSlotRepository;
+        private readonly IFinalQuizResultRepository _finalQuizResultRepository;
 
         public CourseService(
             IMapper mapper,
@@ -55,7 +57,8 @@ namespace Service
             IStudentEnrollmentRepository studentEnrollmentRepository,
             MediaService mediaService,
             TrelloCardService trelloCardService,
-            ICreateSlotRepository createSlotRepository)
+            ICreateSlotRepository createSlotRepository,
+            IFinalQuizResultRepository finalQuizResultRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -73,6 +76,7 @@ namespace Service
             _mediaService = mediaService;
             _trelloCardService = trelloCardService;
             _createSlotRepository = createSlotRepository;
+            _finalQuizResultRepository = finalQuizResultRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
@@ -442,8 +446,16 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetAllSimilarCoursesAsync(int courseId, string userId)
         {
+            decimal score = 1;
+
+            var userResult = await _finalQuizResultRepository.FindOneWithIncludeAsync(x => x.UserId == userId && x.FinalQuiz.CourseId == courseId && x.IsPassed == true, x => x.FinalQuiz);
+            if(userResult != null)
+            {
+                score = userResult.Score == 0 ? 1 : userResult.Score;
+            }
+
             var similarCourses = await _courseRepository.GetAllSimilarCoursesAsync(courseId, score);
 
             var courseResponses = new List<CourseResponse>();
@@ -475,104 +487,58 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetTeacherCoursesAsync(string teacherAccountId, TeacherCourseQueryRequest request)
-        {
-            var courses = (await _courseRepository.GetCoursesByCreatorAsync(teacherAccountId)).ToList();
-
-            // Apply filters on Course model before mapping
-            var filtered = courses.AsQueryable();
-            
-            if (!string.IsNullOrEmpty(request.SearchByCourseName))
-            {
-                filtered = filtered.Where(c => c.Name.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
-            }
-            
-            //if (!string.IsNullOrEmpty(request.Status))
-            //{
-            //    filtered = filtered.Where(c => c.Status == request.Status);
-            //}
-            //else
-            //{
-            //    filtered = filtered.OrderByDescending(c => c.CreatedAt);
-            //}
-
-            // Get total count before pagination
-            var totalCount = filtered.Count();
-
-            // Apply pagination
-            var pagedCourses = filtered
-                .Skip(request.Page * request.GetPageSize())
-                .Take(request.GetPageSize())
-                .ToList();
-
-            // Map to CourseResponse after filtering and pagination
-            var pagedItems = pagedCourses.Select(_mapper.Map<CourseResponse>).ToList();
-            foreach (var course in pagedItems)
-            {
-                if (!string.IsNullOrEmpty(course.ImageUrl))
-                {
-                    try
-                    {
-                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        course.ImageUrl = string.Empty;
-                    }
-                    catch (Exception)
-                    {
-                        course.ImageUrl = string.Empty;
-                    }
-                }
-            }
-
-            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
-
-            return new BaseResponse<PaginatedResponse<CourseResponse>>(
-                "Teacher courses retrieved successfully",
-                StatusCodeEnum.OK_200,
-                new PaginatedResponse<CourseResponse>
-                {
-                    Items = pagedItems,
-                    TotalCount = totalCount,
-                    Page = request.Page,
-                    Size = request.GetPageSize(),
-                    TotalPages = totalPages
-                }
-            );
-        }
-
-        public async Task<BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetTeacherCoursesAsync(TeacherCourseQueryRequest request)
         {
             var filter = request.BuildFilter<Course>();
 
-            // Get total count first (for pagination info)
             var totalCount = await _courseRepository.CountAsync(filter);
 
-            // Get filtered items
-            var items = await _courseRepository.GetCourseAnalyticsAsync(request, filter);
+            var items = await _courseRepository.FindWithPagingAsync(
+            filter,
+            request.Page,
+            request.GetPageSize()
+            );
+
+            var pagedItems = await Task.WhenAll(
+                items.Select(async x => new CourseResponse
+                {
+                    CourseId = x.CourseId,
+                    Name = x.Name,
+                    Description = x.Description,
+                    Status = x.Status,
+                    Price = x.Price,
+                    ImageUrl = string.IsNullOrEmpty(x.ImageUrl) ? null : await _mediaService.GetMediaUrlAsync(x.ImageUrl),
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                }));
 
             // Apply sorting to the paged results
             var sortedItems = request.ApplySorting(items);
 
-            var pagedItems = sortedItems
-                .Skip(request.Page * request.GetPageSize())
-                .Take(request.GetPageSize())
-                .ToList();
-
             var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
+            return new BaseResponse<PaginatedResponse<CourseResponse>>(
+                    $"Tìm thấy {totalCount} enrollments",
+                    StatusCodeEnum.OK_200,
+                    new PaginatedResponse<CourseResponse>
+                    {
+                        Items = pagedItems.ToList(),
+                        TotalCount = totalCount,
+                        Page = request.Page,
+                        Size = request.GetPageSize(),
+                        TotalPages = totalPages
+                    }
+                );
+        }
+
+        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync(int courseId)
+        {
+            var result = await _courseRepository.GetCourseAnalyticsAsync(courseId);
+
             // Map to response
-            return new BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>
+            return new BaseResponse<CourseAnalyticsResponse>
             {
-                Data = new PaginatedResponse<CourseDashboardQueryResponse>
-                {
-                    Items = pagedItems,
-                    TotalCount = totalCount,
-                    Page = request.Page,
-                    Size = request.GetPageSize(),
-                    TotalPages = totalPages
-                },
+                Data = result,
                 Message = "Lấy thống kê khoá học thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
@@ -588,6 +554,7 @@ namespace Service
 
                 // 2. Map course to DTO
                 var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
+                courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
 
                 // 3. Lấy tiến trình học của student nếu có studentId
                 List<Process>? studentProcesses = null;
@@ -761,7 +728,8 @@ namespace Service
             var course = new Course
             {
                 Name = courseName,
-                Status = "Pending", // Luôn tạo với trạng thái Pending để chờ duyệt
+                Status = "Pending",
+                ImageUrl = "/courses/images/7daee94e-f728-48a8-95aa-ee68566b617e.jpg",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = userId,
@@ -820,8 +788,6 @@ namespace Service
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
-                        StudentId = studentId,
-                        StudentName = "",
                         EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
                         Status = "Active"
                     };
@@ -1381,86 +1347,30 @@ namespace Service
 
         public async Task<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>> GetCourseBuyByParentAsync(string parentId, ParentEnrollmentQueryRequest request)
         {
-            try
+            var filter = request.BuildFilter<Studentenrollment>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _studentEnrollmentRepository.CountAsync(filter);
+
+            // Get filtered items
+            var items = await _studentEnrollmentRepository.GetListBoughtCourses(request, filter);
+            foreach(var item in items)
             {
-                // Kiểm tra parent tồn tại
-                var parent = await _accountRepository.GetByStringId(parentId);
-                if (parent == null)
+                if (!string.IsNullOrEmpty(item.ImageUrl))
                 {
-                    throw new Exception("Parent not found.");
+                    item.ImageUrl = await _mediaService.GetMediaUrlAsync(item.ImageUrl);
                 }
+            }
 
-                // Kiểm tra role là Parent
-                var parentRole = await _userManager.GetRolesAsync(parent);
-                if (!parentRole.Contains("Parent"))
-                {
-                    throw new Exception("You are not a parent.");
-                }
+            // Apply pagination after sorting
+            var pagedItems = items
+                .Skip(request.Page * request.GetPageSize())
+                .Take(request.GetPageSize())
+                .ToList();
 
-                // Lấy tất cả enrollments do parent mua
-                var enrollments = (await _studentEnrollmentRepository.GetByParentIdAsync(parentId)).ToList();
-                
-                var responses = enrollments.Select(e => new ParentEnrollmentResponse
-                {
-                    EnrollmentId = e.EnrollmentId,
-                    StudentId = e.StudentId,
-                    StudentName = e.Student?.Name ?? e.Student?.UserName ?? "Unknown",
-                    CourseId = e.CourseId,
-                    CourseName = e.Course?.Name ?? "Unknown",
-                    CoursePrice = e.Course?.Price ?? 0,
-                    EnrolledAt = e.EnrolledAt,
-                }).ToList();
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
 
-                // Apply filters
-                var filtered = responses.AsQueryable();
-                
-                if (!string.IsNullOrEmpty(request.SearchByStudentName))
-                {
-                    filtered = filtered.Where(e => e.StudentName.Contains(request.SearchByStudentName, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (!string.IsNullOrEmpty(request.SearchByCourseName))
-                {
-                    filtered = filtered.Where(e => e.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (!string.IsNullOrEmpty(request.StudentId))
-                {
-                    filtered = filtered.Where(e => e.StudentId == request.StudentId);
-                }
-                
-                if (request.CourseId.HasValue)
-                {
-                    filtered = filtered.Where(e => e.CourseId == request.CourseId.Value);
-                }
-                
-                if (request.EnrolledFrom.HasValue)
-                {
-                    filtered = filtered.Where(e => e.EnrolledAt >= request.EnrolledFrom.Value);
-                }
-                
-                if (request.EnrolledTo.HasValue)
-                {
-                    filtered = filtered.Where(e => e.EnrolledAt <= request.EnrolledTo.Value);
-                }
-
-                else
-                {
-                    filtered = filtered.OrderByDescending(e => e.EnrolledAt);
-                }
-
-                // Get total count before pagination
-                var totalCount = filtered.Count();
-
-                // Apply pagination
-                var pagedItems = filtered
-                    .Skip(request.Page * request.GetPageSize())
-                    .Take(request.GetPageSize())
-                    .ToList();
-
-                var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
-
-                return new BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>(
+            return new BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>(
                     $"Tìm thấy {totalCount} enrollments",
                     StatusCodeEnum.OK_200,
                     new PaginatedResponse<ParentEnrollmentResponse>
@@ -1472,11 +1382,6 @@ namespace Service
                         TotalPages = totalPages
                     }
                 );
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Lỗi khi lấy danh sách enrollments: {ex.Message}");
-            }
         }
     }
 }

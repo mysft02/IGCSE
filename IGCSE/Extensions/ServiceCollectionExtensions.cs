@@ -46,6 +46,8 @@ namespace IGCSE.Extensions
             services.AddScoped<IMockTestUserAnswerRepository, MockTestUserAnswerRepository>();
             services.AddScoped<IUserPackageRepository, UserPackageRepository>();
             services.AddScoped<ICreateSlotRepository, CreateSlotRepository>();
+            services.AddScoped<ITeacherProfileRepository, TeacherProfileRepository>();
+            services.AddScoped<ICertificateRepository, CertificateRepository>();
 
             return services;
         }
@@ -78,6 +80,7 @@ namespace IGCSE.Extensions
             services.AddScoped<FinalQuizService>();
             services.AddScoped<MockTestQuestionService>();
             services.AddScoped<PayOSApiService>();
+            services.AddScoped<TeacherProfileService>();
 
             return services;
         }

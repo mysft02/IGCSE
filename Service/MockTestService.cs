@@ -201,6 +201,49 @@ namespace Service
             );
         }
 
+        public async Task<BaseResponse<object>> GetMockTestByIdOrReviewAsync(int mockTestId, string userId)
+        {
+            // Kiểm tra nếu mocktest đã done thì trả về review
+            var status = _mockTestRepository.CheckMockTestDone(mockTestId, userId);
+            if (status == MockTestStatusEnum.Completed)
+            {
+                // Lấy MockTestResultId mới nhất
+                var latestResultId = await _mockTestResultRepository.GetLatestMockTestResultIdAsync(mockTestId, userId);
+                if (latestResultId.HasValue)
+                {
+                    // Trả về review
+                    var reviewResult = await GetMockTestResultReviewByIdAsync(latestResultId.Value);
+                    return new BaseResponse<object>
+                    {
+                        Message = reviewResult.Message,
+                        StatusCode = reviewResult.StatusCode,
+                        Data = reviewResult.Data
+                    };
+                }
+            }
+
+            // Nếu chưa done, trả về test để làm
+            var package = await _packageRepository.GetByUserId(userId);
+
+            if(package == null || package.IsMockTest == false)
+            {
+                throw new Exception("Bạn chưa đăng kí gói thi thử.");
+            }
+
+            var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
+            if (mockTest == null)
+            {
+                throw new Exception("Bài thi thử không tìm thấy");
+            }
+
+            return new BaseResponse<object>
+            {
+                Message = "Lấy mock test thành công",
+                StatusCode = StatusCodeEnum.OK_200,
+                Data = mockTest
+            };
+        }
+
         public async Task<BaseResponse<List<MockTestMarkResponse>>> MarkMockTestAsync(MockTestMarkRequest request, string userId)
         {
             List<MockTestMarkResponse> result = new List<MockTestMarkResponse>();
@@ -244,16 +287,11 @@ namespace Service
                     QuestionId = questionText.MockTestQuestionId
                 };
 
-                if(questionText.ImageUrl != null)
-                {
-                    questionRequest.ImageBase64 = CommonUtils.GetBase64FromWwwRoot(_env.WebRootPath, questionText.ImageUrl);
-                }
-
                 questions.Add(questionRequest);
             }
 
             var contentText = string.Join("\n", questions.Select(q =>
-                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nImage: {q.ImageBase64}\nMark: {q.Mark}\nPartial mark: {q.PartialMark}"));
+                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nMark: {q.Mark}\nPartial mark: {q.PartialMark}"));
 
             var input = new[]
             {

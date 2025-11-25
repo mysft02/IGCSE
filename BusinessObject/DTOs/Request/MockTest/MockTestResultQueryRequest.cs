@@ -68,7 +68,7 @@ namespace BusinessObject.DTOs.Request.MockTest
                 predicates.Add(x => x.MockTestResultId == MockTestResultId);
             }
 
-            if (userID != null)
+            if (!string.IsNullOrEmpty(userID))
             {
                 predicates.Add(x => x.UserId == userID);
             }

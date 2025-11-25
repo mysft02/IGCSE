@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 54
+      author: vudq
+      changes:
+        # add infinity for key of quizuseranswer
+        - addAutoIncrement:
+            tableName: quizuseranswer
+            columnName: QuizUserAnswerID
+            columnDataType: INT
+            rollback:
+              - dropAutoIncrement:
+                  tableName: quizuseranswer
+                  columnName: QuizUserAnswerID

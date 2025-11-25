@@ -146,6 +146,41 @@ namespace Repository.BaseRepository
             return existing ?? entity;
         }
 
+        public async Task<T> AddOrUpdateByColumnAsync(T entity, Expression<Func<T, bool>> predicate, Action<T, T>? assignAction = null)
+        {
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity));
+
+            // Tìm b?ng predicate, không dùng FindAsync (Find b?t bu?c PK)
+            var existing = await _dbContext.Set<T>().FirstOrDefaultAsync(predicate);
+
+            if (existing != null)
+            {
+                // N?u có hàm t? copy field ? dùng nó
+                if (assignAction != null)
+                {
+                    assignAction(existing, entity);
+                }
+                else
+                {
+                    // M?c ??nh: overwrite toàn b? field
+                    _dbContext.Entry(existing).CurrentValues.SetValues(entity);
+                }
+
+                _dbContext.Entry(existing).State = EntityState.Modified;
+                await _dbContext.SaveChangesAsync();
+                return existing;
+            }
+            else
+            {
+                // Ch?a có ? thêm m?i
+                await _dbContext.Set<T>().AddAsync(entity);
+                await _dbContext.SaveChangesAsync();
+                return entity;
+            }
+        }
+
+
         #region Query Methods
 
         /// <summary>

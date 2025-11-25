@@ -31,9 +31,13 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Processitem> Processitems { get; set; }
 
     public virtual DbSet<Transactionhistory> Transactionhistories { get; set; }
+
     public virtual DbSet<Finalquiz> Finalquizzes { get; set; }
+
     public virtual DbSet<Finalquizresult> Finalquizresults { get; set; }
+
     public virtual DbSet<Finalquizuseranswer> Finalquizuseranswers { get; set; }
+
     public virtual DbSet<Question> Questions { get; set; }
 
     public virtual DbSet<Quiz> Quizzes { get; set; }
@@ -42,21 +46,31 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Module> Modules { get; set; }
 
-    // public virtual DbSet<Chapter> Chapters { get; set; } // Chapter functionality removed
-
     public virtual DbSet<Parentstudentlink> Parentstudentlinks { get; set; }
 
     public virtual DbSet<Studentenrollment> Studentenrollments { get; set; }
 
     public virtual DbSet<TrelloToken> TrelloTokens { get; set; }
+
     public virtual DbSet<Mocktest> Mocktests { get; set; }
+
     public virtual DbSet<Mocktestquestion> Mocktestquestions { get; set; }
+
     public virtual DbSet<Mocktestresult> Mocktestresults { get; set; }
+
     public virtual DbSet<Mocktestuseranswer> Mocktestuseranswers { get; set; }
+
     public virtual DbSet<Package> Packages { get; set; }
+
     public virtual DbSet<Userpackage> Userpackages { get; set; }
+
     public virtual DbSet<Quizuseranswer> Quizuseranswers { get; set; }
+
     public virtual DbSet<Createslot> Createslots { get; set; }
+
+    public virtual DbSet<Certificate> Certificates { get; set; }
+
+    public virtual DbSet<Teacherprofile> Teacherprofiles { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -561,6 +575,31 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.ToTable("createslot");
 
             entity.Property(e => e.TeacherId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Certificate>(entity =>
+        {
+            entity.HasKey(e => e.CertificateId).HasName("PRIMARY");
+
+            entity.ToTable("certificate");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
+            entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Teacherprofile>(entity =>
+        {
+            entity.HasKey(e => e.TeacherProfileId).HasName("PRIMARY");
+
+            entity.ToTable("teacherprofile");
+
+            entity.Property(e => e.AvatarUrl).HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.TeacherId).HasMaxLength(255);
+            entity.Property(e => e.TeacherName).HasMaxLength(255);
         });
 
         OnModelCreatingPartial(modelBuilder);

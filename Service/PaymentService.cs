@@ -9,6 +9,10 @@ using BusinessObject.DTOs.Response;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Request.Payments;
+using BusinessObject.DTOs.Response.Payment;
+using Org.BouncyCastle.Asn1.Ocsp;
+using BusinessObject.DTOs.Response.MockTest;
+using Repository.Repositories;
 
 namespace Service
 {
@@ -78,6 +82,7 @@ namespace Service
             var paymentResponse = await _payOSApiService.GetAsync<PayOSPaymentReturnResponse>(apiRequest);
 
             var desc = paymentResponse.Data.Transactions.First().Description;
+            var orderCode = paymentResponse.Data.OrderCode.ToString();
 
             int? courseId = null;
             int? packageId = null;
@@ -111,44 +116,15 @@ namespace Service
             {
                 transaction.ItemId = courseId.Value;
 
-                // Tự động enroll tất cả students liên kết với Parent vào khóa học
-                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
-                
-                foreach (var student in linkedStudents)
-                {
-                    try
-                    {
-                        // 1. Tạo enrollment record
-                        var enrollment = new Studentenrollment
-                        {
-                            StudentId = student.Id,
-                            CourseId = courseId.Value,
-                            EnrolledAt = DateTime.UtcNow,
-                            ParentId = userId  // Parent đã mua
-                        };
-                        await _studentEnrollmentRepository.AddAsync(enrollment);
+                var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
+                studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
+                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
 
-                        // 2. Khởi tạo tiến trình học cho từng student
-                        await _courseService.InitializeCourseProgressForStudentAsync(student.Id, courseId.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error nhưng không throw để không ảnh hưởng đến các student khác
-                        Console.WriteLine($"Error enrolling student {student.Id} to course {courseId.Value}: {ex.Message}");
-                    }
-                }
+                await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
             }
             else if (packageId.HasValue)
             {
                 transaction.ItemId = packageId.Value;
-                var newUserPackage = new Userpackage
-                {
-                    PackageId = packageId.Value,
-                    Price = paymentResponse.Data.AmountPaid,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                };
 
                 var package = await _packageRepository.FindOneWithIncludeAsync(x => x.PackageId == packageId, xc => xc.Userpackages);
                 if(package == null)
@@ -156,14 +132,25 @@ namespace Service
                     throw new Exception("Gói bạn cần mua không tìm thấy.");
                 }
 
-                if(userRole == "Parent")
-                {
-                    var userPackage = package.Userpackages.FirstOrDefault(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == userId && x.PackageId == packageId);
+                var userPackage = package.Userpackages
+                        .FirstOrDefault(x => x.UserId.Contains("_") && x.UserId.Substring(x.UserId.IndexOf("_") + 1) == orderCode);
 
+                var newUserPackage = new Userpackage
+                {
+                    PackageId = packageId.Value,
+                    UserId = userId,
+                    Price = paymentResponse.Data.AmountPaid,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                };
+
+                if (userRole == "Parent")
+                {
                     newUserPackage.UserId = userPackage.UserId.Split("_")[0];
 
-                    await _userPackageRepository.DeleteAsync(userPackage);
                     await _userPackageRepository.AddAsync(newUserPackage);
+                    await _userPackageRepository.DeleteAsync(userPackage);
                 }
                 else
                 {
@@ -179,8 +166,8 @@ namespace Service
                     }
                     else
                     {
-                        newUserPackage.UserId = userId;
                         await _userPackageRepository.AddAsync(newUserPackage);
+                        await _userPackageRepository.DeleteAsync(userPackage);
                     }
 
                     var currSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
@@ -238,35 +225,41 @@ namespace Service
 
             if (!string.IsNullOrEmpty(request.CourseId?.ToString()))
             {
-                // Kiểm tra xem parent hoặc bất kỳ student nào của parent đã enroll khóa học này chưa
-                var linkedStudents = await _parentStudentLinkRepository.GetByParentId(userId);
-
-                foreach (var student in linkedStudents)
+                if (request.DestUserId == null)
                 {
-                    var isEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(student.Id, request.CourseId.Value);
-                    if (isEnrolled)
-                    {
-                        throw new Exception($"Học sinh {student.Name ?? student.UserName} đã được đăng ký vào khóa học này rồi.");
-                    }
-
-                    if (userRole == "Teacher")
-                    {
-                        throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
-                    }
-
-                    if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
-                    {
-                        throw new Exception("Không tìm thấy khoá học này.");
-                    }
-
-                    var existingCourse = await _processRepository.FindOneAsync(x => x.CourseId == request.CourseId && x.StudentId == request.DestUserId);
-                    if (existingCourse != null)
-                    {
-                        throw new Exception("Bạn đã mua khóa học cho học sinh này rồi.");
-                    }
-
-                    body.Description = $"Thanh toán khóa học {request.CourseId}.";
+                    throw new Exception("Tài khoản học sinh không thể bỏ trống.");
                 }
+
+                if (userRole == "Teacher")
+                {
+                    throw new Exception("Bạn là giáo viên không thể mua khoá học. Vui lòng thử lại sau.");
+                }
+
+                if (await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId) == null)
+                {
+                    throw new Exception("Không tìm thấy khoá học này.");
+                }
+
+                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId && x.ParentId == userId);
+                if(existed == null)
+                {
+                    var enroll = new Studentenrollment
+                    {
+                        StudentId = request.DestUserId,
+                        CourseId = (int)request.CourseId,
+                        EnrolledAt = DateTime.Now,
+                        ParentId = userId + "_" + body.OrderCode
+                    };
+
+                    await _studentEnrollmentRepository.AddAsync(enroll);
+                }
+                else
+                {
+                    existed.ParentId = userId + "_" + body.OrderCode;
+                    await _studentEnrollmentRepository.UpdateAsync(existed);
+                }
+
+                body.Description = $"Thanh toán khoá học {request.CourseId}.";
             }
             else
             {
@@ -279,6 +272,11 @@ namespace Service
 
                 if (userRole == "Parent")
                 {
+                    if (request.DestUserId == null)
+                    {
+                        throw new Exception("Tài khoản học sinh không thể bỏ trống.");
+                    }
+
                     if (package.IsMockTest == false)
                     {
                         throw new Exception("Gói này dành cho giáo viên. Bạn không thể mua.");
@@ -294,7 +292,7 @@ namespace Service
                     var userPackage = new Userpackage
                     {
                         PackageId = request.PackageId,
-                        UserId = request.DestUserId + "_" + userId,
+                        UserId = request.DestUserId + "_" + body.OrderCode,
                         IsActive = false,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
@@ -343,7 +341,7 @@ namespace Service
             {
                 ReferenceId = DateTime.Now.Ticks.ToString() + "_" + userId,
                 Amount = payoutRequest.Amount,
-                Description = $"Payout for {payoutRequest.TeacherID}",
+                Description = $"Course payment",
                 ToBin = payoutRequest.BankBin,
                 ToAccountNumber = payoutRequest.BankAccountNumber,
                 Category = new List<string> { "payout" }
@@ -389,7 +387,51 @@ namespace Service
                 "Thanh toán thành công",
                 StatusCodeEnum.OK_200,
                 response
-                );
+            );
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<TransactionHistoryResponse>>> GetTransactionHistory(TransactionHistoryQueryRequest request)
+        {
+            var filter = request.BuildFilter<Transactionhistory>();
+
+            // Get total count first (for pagination info)
+            var totalCount = await _paymentRepository.CountAsync(filter);
+
+            // Get filtered data with pagination
+            var items = await _paymentRepository.FindWithPagingAsync(
+            filter,
+                request.Page,
+                request.GetPageSize()
+            );
+
+            // Apply sorting to the paged results
+            var sortedItems = request.ApplySorting(items);
+
+            var itemList = sortedItems
+                .Select(token => new TransactionHistoryResponse
+                {
+                    TransactionId = token.TransactionId,
+                    Amount = token.Amount,
+                    TransactionDate = token.TransactionDate,
+                })
+                .ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<TransactionHistoryResponse>>
+            {
+                Data = new PaginatedResponse<TransactionHistoryResponse>
+                {
+                    Items = itemList,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy lịch sử thanh toán thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
         }
     }
 }

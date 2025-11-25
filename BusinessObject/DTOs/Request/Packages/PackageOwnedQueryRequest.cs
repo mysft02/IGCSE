@@ -59,6 +59,11 @@ namespace BusinessObject.DTOs.Request.Packages
         {
             var predicates = new List<Expression<Func<Userpackage, bool>>>();
 
+            if (!string.IsNullOrEmpty(userID))
+            {
+                predicates.Add(x => x.UserId == userID);
+            }
+
             // Combine all predicates with AND
             if (!predicates.Any())
                 return null;
