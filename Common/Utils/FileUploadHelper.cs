@@ -9,6 +9,7 @@ namespace Common.Utils
         private static readonly string[] AllowedDocumentExtensions = { ".pdf" };
         private static readonly string[] AllowedVideoExtensions = { ".mp4", ".webm", ".ogg" };
         private const string ImagesFolder = "courses/images";
+        private const string AvatarsFolder = "avatar";
         private const string LessonDocsFolder = "lessons/docs";
         private const string LessonVideosFolder = "lessons/videos";
 
@@ -57,6 +58,47 @@ namespace Common.Utils
 
             // Return relative URL path
             return $"/courses/images/{fileName}";
+        }
+
+        public static async Task<string> UploadAvatarAsync(IFormFile file, string webRootPath)
+        {
+            if (file == null || file.Length == 0)
+            {
+                throw new ArgumentException("No file provided");
+            }
+
+            // Validate file extension
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!AllowedImageExtensions.Contains(fileExtension))
+            {
+                throw new ArgumentException($"File type not allowed. Allowed types: {string.Join(", ", AllowedImageExtensions)}");
+            }
+
+            // Validate file size
+            if (file.Length > MaxFileSize)
+            {
+                throw new ArgumentException($"File size exceeds maximum allowed size of {MaxFileSize / (1024 * 1024)}MB");
+            }
+
+            // Create directory if it doesn't exist
+            var uploadPath = Path.Combine(webRootPath, AvatarsFolder);
+            if (!Directory.Exists(uploadPath))
+            {
+                Directory.CreateDirectory(uploadPath);
+            }
+
+            // Generate unique filename
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            // Save file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Return relative URL path
+            return $"/avatar/{fileName}";
         }
 
         /// <summary>
