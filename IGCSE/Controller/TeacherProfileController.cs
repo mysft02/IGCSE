@@ -49,9 +49,9 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
-        [HttpPost("create-teacher-profile")]
+        [HttpPost("create-or-update-teacher-profile")]
         [Authorize]
-        [SwaggerOperation(Summary = "Tạo profile cho teacher")]
+        [SwaggerOperation(Summary = "Tạo hoặc cập nhật profile cho teacher")]
         public async Task<ActionResult<BaseResponse<TeacherProfileResponse>>> CreateTeacherProfile([FromQuery] TeacherProfileCreateRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
