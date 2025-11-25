@@ -341,7 +341,7 @@ namespace Service
             {
                 ReferenceId = DateTime.Now.Ticks.ToString() + "_" + userId,
                 Amount = payoutRequest.Amount,
-                Description = $"Payout for {payoutRequest.TeacherID}",
+                Description = $"Course payment",
                 ToBin = payoutRequest.BankBin,
                 ToAccountNumber = payoutRequest.BankAccountNumber,
                 Category = new List<string> { "payout" }

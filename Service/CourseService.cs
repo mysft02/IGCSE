@@ -520,37 +520,14 @@ namespace Service
                 );
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>> GetCourseAnalyticsAsync(CourseDashboardQueryRequest request)
+        public async Task<BaseResponse<CourseAnalyticsResponse>> GetCourseAnalyticsAsync(int courseId)
         {
-            var filter = request.BuildFilter<Course>();
-
-            // Get total count first (for pagination info)
-            var totalCount = await _courseRepository.CountAsync(filter);
-
-            // Get filtered items
-            var items = await _courseRepository.GetCourseAnalyticsAsync(request, filter);
-
-            // Apply sorting to the paged results
-            var sortedItems = request.ApplySorting(items);
-
-            var pagedItems = sortedItems
-                .Skip(request.Page * request.GetPageSize())
-                .Take(request.GetPageSize())
-                .ToList();
-
-            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
+            var result = await _courseRepository.GetCourseAnalyticsAsync(courseId);
 
             // Map to response
-            return new BaseResponse<PaginatedResponse<CourseDashboardQueryResponse>>
+            return new BaseResponse<CourseAnalyticsResponse>
             {
-                Data = new PaginatedResponse<CourseDashboardQueryResponse>
-                {
-                    Items = pagedItems,
-                    TotalCount = totalCount,
-                    Page = request.Page,
-                    Size = request.GetPageSize(),
-                    TotalPages = totalPages
-                },
+                Data = result,
                 Message = "Lấy thống kê khoá học thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };

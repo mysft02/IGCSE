@@ -1,6 +1,6 @@
 ﻿namespace BusinessObject.DTOs.Response.Courses
 {
-    public class CourseDashboardQueryResponse
+    public class CourseAnalyticsResponse
     {
         public int CourseId { get; set; }
 
@@ -17,8 +17,6 @@
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
-
-        public string CreatedBy { get; set; }
 
         public int CustomerCount { get; set; }
 
