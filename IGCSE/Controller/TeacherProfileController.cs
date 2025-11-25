@@ -1,4 +1,5 @@
-﻿using BusinessObject.DTOs.Request.FinalQuizzes;
+﻿using BusinessObject.DTOs.Request.Certificates;
+using BusinessObject.DTOs.Request.FinalQuizzes;
 using BusinessObject.DTOs.Request.TeacherProfiles;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.FinalQuizzes;
@@ -50,7 +51,7 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("create-or-update-teacher-profile")]
-        [Authorize]
+        [Authorize(Roles = "Teacher")]
         [SwaggerOperation(Summary = "Tạo hoặc cập nhật profile cho teacher")]
         public async Task<ActionResult<BaseResponse<TeacherProfileResponse>>> CreateTeacherProfile([FromQuery] TeacherProfileCreateRequest request)
         {
@@ -62,6 +63,22 @@ namespace IGCSE.Controller
             }
 
             var result = await _teacherProfileService.CreateTeacherProfile(request, userId);
+            return Ok(result);
+        }
+
+        [HttpPost("create-certificate")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(Summary = "Thêm bằng cấp vào profile của giáo viên")]
+        public async Task<ActionResult<BaseResponse<CertificateResponse>>> UploadCertificate([FromQuery] CertificateCreateRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _teacherProfileService.UploadCertificate(request, userId);
             return Ok(result);
         }
     }

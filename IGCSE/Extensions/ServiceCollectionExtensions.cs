@@ -47,6 +47,7 @@ namespace IGCSE.Extensions
             services.AddScoped<IUserPackageRepository, UserPackageRepository>();
             services.AddScoped<ICreateSlotRepository, CreateSlotRepository>();
             services.AddScoped<ITeacherProfileRepository, TeacherProfileRepository>();
+            services.AddScoped<ICertificateRepository, CertificateRepository>();
 
             return services;
         }
