@@ -77,17 +77,18 @@ namespace Repository.Repositories
 
             var targetEmbeddingData = CommonUtils.StringToObject<List<float>>(targetCourse.EmbeddingData);
 
-            var courses = await _context.Set<Course>()
+            var courses = _context.Courses
                 .Where(c => c.CourseId != courseId)
+                .AsEnumerable()
                 .Select(c => new
                 {
-                    c,
+                    Course = c,
                     SimilarScore = score * (CommonUtils.CosineSimilarity(targetEmbeddingData, CommonUtils.StringToObject<List<float>>(c.EmbeddingData)))
                 })
                 .OrderByDescending(c => c.SimilarScore)
                 .Take(5)
-                .Select(c => c.c)
-                .ToListAsync();
+                .Select(c => c.Course)
+                .ToList();
             return courses;
         }
 

@@ -15,5 +15,5 @@ public class Finalquizresult
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual Finalquiz FinalQuiz { get; set; }
+    public virtual Finalquiz FinalQuiz { get; set; } = null!;
 }
