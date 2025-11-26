@@ -11,6 +11,7 @@ using BusinessObject.DTOs.Response;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
+using Repository.Repositories;
 
 namespace Service
 {
@@ -45,11 +46,21 @@ namespace Service
             _finalQuizUserAnswerRepository = finalQuizUserAnswerRepository;
         }
 
-        public async Task<BaseResponse<FinalQuizResponse>> GetFinalQuizByIdAsync(int finalQuizId, string userId)
+        public async Task<BaseResponse<object>> GetFinalQuizByIdAsync(int finalQuizId, string userId)
         {
             if(string.IsNullOrEmpty(finalQuizId.ToString()))
             {
                 throw new Exception("Id không được để trống");
+            }
+
+            var checkPassed = await _finalQuizResultRepository.GetFinalQuizResultWithReview(finalQuizId, userId);
+            if(checkPassed != null)
+            {
+                return new BaseResponse<object>(
+                    "Lấy bài kiểm tra thành công",
+                    StatusCodeEnum.OK_200,
+                    checkPassed
+            );
             }
 
             var checkAllowance = await _finalQuizRepository.CheckAllowance(finalQuizId, userId);
@@ -64,7 +75,7 @@ namespace Service
                 throw new Exception("Bài final quiz không tìm thấy.");
             }
 
-            return new BaseResponse<FinalQuizResponse>(
+            return new BaseResponse<object>(
                 "Lấy bài kiểm tra thành công",
                 StatusCodeEnum.OK_200,
                 finalQuiz

@@ -14,4 +14,6 @@ public class Finalquizresult
     public string UserId { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
+
+    public virtual Finalquiz FinalQuiz { get; set; }
 }
