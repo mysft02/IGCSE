@@ -120,7 +120,7 @@ namespace Service
                     new List<FinalQuizMarkResponse>());
             }
 
-            var finalQuizResult = new Finalquizresult
+            var fqResult = new Finalquizresult
             {
                 FinalQuizId = request.FinalQuizID,
                 Score = 0,
@@ -128,8 +128,9 @@ namespace Service
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow
             };
+            var finalQuizResult = await _finalQuizResultRepository.AddAsync(fqResult);
 
-            var fquizResult = await _finalQuizResultRepository.AddAsync(finalQuizResult);
+            int count = 1;
 
             foreach (var userAnswer in request.UserAnswers)
             {
@@ -143,28 +144,29 @@ namespace Service
                     // Bỏ qua nếu không tìm thấy câu hỏi tương ứng
                     continue;
                 }
-
                 var questionRequest = new QuestionMarkRequest
                 {
-                    QuestionText = questionText.QuestionContent,
+                    QuestionText = Regex.Replace(questionText.QuestionContent, @"Câu\s*\d+\s*:", $"Câu {count}:"),
                     Answer = userAnswer.Answer ?? string.Empty,
                     RightAnswer = questionText.CorrectAnswer,
                 };
 
-                var finalQuizUserAnswer = new Finalquizuseranswer
+                var quizUserAnswer = new Finalquizuseranswer
                 {
+                    FinalQuizResultId = finalQuizResult.FinalQuizResultId,
                     QuestionId = userAnswer.QuestionId,
-                    FinalQuizResultId = fquizResult.FinalQuizResultId,
-                    Answer = userAnswer.Answer,
+                    Answer = userAnswer.Answer
                 };
 
-                await _finalQuizUserAnswerRepository.AddAsync(finalQuizUserAnswer);
+                await _finalQuizUserAnswerRepository.AddAsync(quizUserAnswer);
 
                 questions.Add(questionRequest);
+                count++;
             }
 
             var contentText = string.Join("\n", questions.Select(q =>
-                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}"));
+                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRightAnswer: {q.RightAnswer}\n"));
+
             var fullPrompt = prompt + $"\n\nDỮ LIỆU:\n{contentText}";
 
             var input = new[]
@@ -188,7 +190,7 @@ namespace Service
                 Model = "gpt-4o-mini",
                 Input = input,
                 Temperature = 0.5,
-                MaxTokens = 200
+                MaxTokens = 5000
             };
             var apiRequest = OpenApiRequest.Builder()
                 .CallUrl("/responses")
@@ -199,7 +201,7 @@ namespace Service
 
             if (response?.Output == null || response.Output.Count == 0)
                 return new BaseResponse<List<FinalQuizMarkResponse>>(
-                    "Quiz mark successfully",
+                    "Final Quiz mark successfully",
                     StatusCodeEnum.OK_200,
                     new List<FinalQuizMarkResponse>());
 
@@ -215,7 +217,7 @@ namespace Service
                 throw new Exception("OpenAI trả về rỗng (outputText empty)");
             }
 
-            // 🧠 Cắt comment theo delimiter đơn giản '|||'
+            // 🧠 Parse output theo format mới: T$comment hoặc F$comment, phân cách bằng |||
             var cleaned = outputText.Replace("```", string.Empty).Trim();
             var parts = cleaned.Split("|||", StringSplitOptions.RemoveEmptyEntries)
                                .Select(p => p.Trim())
@@ -273,6 +275,10 @@ namespace Service
                 parsedResults.Add((isCorrect, comment));
             }
 
+            // Tính IsPassed trước khi tạo response
+            bool isPassed = finalScore > questions.Count / 2;
+
+            // Tạo response - chỉ trả về RightAnswer nếu pass
             for (int i = 0; i < questions.Count; i++)
             {
                 var q = questions[i];
@@ -284,34 +290,19 @@ namespace Service
                 {
                     Question = q.QuestionText,
                     Answer = q.Answer,
-                    RightAnswer = isCorrect ? q.RightAnswer : null, // Chỉ trả về đáp án đúng nếu pass
+                    RightAnswer = isPassed ? q.RightAnswer : null, // Chỉ trả về đáp án đúng nếu pass
                     IsCorrect = isCorrect,
                     Comment = comment
                 });
             }
 
-            for (int i = 0; i < result.Count; i++)
-            {
-                string newIndex = (i + 1).ToString();
+            finalQuizResult.IsPassed = isPassed;
+            finalQuizResult.Score = finalScore;
 
-                result[i].Question = Regex.Replace(
-                    result[i].Question,
-                    @"Câu\s*\d+\s*:",
-                    $"Câu {newIndex}:"
-                );
-            }
-
-            fquizResult.Score = finalScore;
-
-            if(finalScore <= questions.Count / 2)
-            {
-                fquizResult.IsPassed = false;
-            }
-
-            await _finalQuizResultRepository.UpdateAsync(fquizResult);
+            await _finalQuizResultRepository.UpdateAsync(finalQuizResult);
 
             return new BaseResponse<List<FinalQuizMarkResponse>>(
-                    "Chấm bài final quiz thành công",
+                    "Chấm bài quiz thành công",
                     StatusCodeEnum.OK_200,
                     result);
         }

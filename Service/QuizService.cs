@@ -80,7 +80,7 @@ namespace Service
 
         public async Task<BaseResponse<object>> GetQuizByIdOrReviewAsync(int quizId, string userId, string userRole)
         {
-            if(userRole != "Parent" || userRole != "Student")
+            if(userRole != "Parent" && userRole != "Student")
             {
                 var quizReview = await _quizRepository.GetQuizWithAnswerAsync(quizId);
                 return new BaseResponse<object>

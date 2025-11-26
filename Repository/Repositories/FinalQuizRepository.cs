@@ -44,7 +44,7 @@ namespace Repository.Repositories
                         ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor)
                     })
                     .OrderBy(q => EF.Functions.Random())
-                    .Take(20)
+                    .Take(10)
                     .ToList(),
                 })
                 .FirstOrDefaultAsync();
@@ -69,6 +69,10 @@ namespace Repository.Repositories
             var finalQuiz = await _context.Finalquizzes
                 .Include(x => x.Course).ThenInclude(xc => xc.CourseSections).ThenInclude(p => p.Lessons).ThenInclude(pc => pc.Lessonitems)
                 .FirstOrDefaultAsync(x => x.FinalQuizId == finalQuizId);
+            if(finalQuiz == null)
+            {
+                return false;
+            }
 
             var finalLesson = finalQuiz.Course.CourseSections
                 .OrderByDescending(x => x.Order)
