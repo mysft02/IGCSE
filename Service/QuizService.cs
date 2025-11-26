@@ -78,8 +78,19 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<object>> GetQuizByIdOrReviewAsync(int quizId, string userId)
+        public async Task<BaseResponse<object>> GetQuizByIdOrReviewAsync(int quizId, string userId, string userRole)
         {
+            if(userRole != "Parent" || userRole != "Student")
+            {
+                var quizReview = await _quizRepository.GetQuizWithAnswerAsync(quizId);
+                return new BaseResponse<object>
+                {
+                    Message = "Lấy kết quả quiz thành công.",
+                    StatusCode = StatusCodeEnum.OK_200,
+                    Data = quizReview
+                };
+            }
+
             // Kiểm tra nếu quiz đã được làm (có result) thì trả về review
             var quizResultReview = await _quizResultRepository.GetQuizResultWithReviewAsync(quizId, userId);
             if (quizResultReview != null)

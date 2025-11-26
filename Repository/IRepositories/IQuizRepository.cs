@@ -8,5 +8,6 @@ namespace Repository.IRepositories
     {
         Task<QuizResponse?> GetByQuizIdAsync(int quizId);
         Task<bool> CheckAllowance(string userId, int quizId);
+        Task<QuizWithAnswerResponse> GetQuizWithAnswerAsync(int quizId);
     }
 }

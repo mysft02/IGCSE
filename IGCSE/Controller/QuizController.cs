@@ -7,6 +7,7 @@ using BusinessObject.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Common.Utils;
 using BusinessObject.Model;
+using System.Security.Claims;
 
 namespace IGCSE.Controller
 {
@@ -166,14 +167,17 @@ namespace IGCSE.Controller
 - `userAnswer` có thể là `null` nếu user không trả lời câu hỏi đó")]
         public async Task<ActionResult<BaseResponse<object>>> GetQuizById([FromQuery] int id)
         {
-            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
 
             if (CommonUtils.IsEmptyString(userId))
             {
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
 
-            var result = await _quizService.GetQuizByIdOrReviewAsync(id, userId);
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            var result = await _quizService.GetQuizByIdOrReviewAsync(id, userId, userRole);
             return Ok(result);
         }
 

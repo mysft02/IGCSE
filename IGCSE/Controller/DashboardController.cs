@@ -1,8 +1,5 @@
-﻿using BusinessObject.DTOs.Request.Courses;
-using BusinessObject.DTOs.Response;
+﻿using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Courses;
-using BusinessObject.DTOs.Response.FinalQuizzes;
-using BusinessObject.DTOs.Response.Payment;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
