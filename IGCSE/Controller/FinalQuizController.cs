@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Common.Utils;
 using BusinessObject.DTOs.Request.FinalQuizzes;
 using BusinessObject.DTOs.Response.FinalQuizzes;
+using System.Security.Claims;
 
 namespace IGCSE.Controller
 {
@@ -23,9 +24,10 @@ namespace IGCSE.Controller
         [HttpGet("get-final-quiz-by-id")]
         [Authorize]
         [SwaggerOperation(Summary = "Lấy danh sách Final Quiz theo id")]
-        public async Task<ActionResult<BaseResponse<FinalQuizResponse>>> GetFinalQuizById([FromQuery] int id)
+        public async Task<ActionResult<BaseResponse<object>>> GetFinalQuizById([FromQuery] int id)
         {
-            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
 
             if (CommonUtils.IsEmptyString(userId))
             {

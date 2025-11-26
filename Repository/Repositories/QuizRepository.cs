@@ -63,5 +63,30 @@ namespace Repository.Repositories
 
             return false;
         }
+
+        public async Task<QuizWithAnswerResponse> GetQuizWithAnswerAsync(int quizId)
+        {
+            var quiz = await _context.Quizzes
+                .Include(x => x.Questions)
+                .Where(x => x.QuizId == quizId)
+                .Select(x => new QuizWithAnswerResponse
+                {
+                    Id = x.QuizId,
+                    Title = x.QuizTitle,
+                    Description = x.QuizDescription,
+                    Questions = x.Questions
+                    .Select(c => new QuizQuestionAnswerResponse
+                    {
+                        QuestionId = c.QuestionId,
+                        QuestionContent = c.QuestionContent,
+                        ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        CorrectAnswer = c.CorrectAnswer
+                    })
+                    .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            return quiz;
+        }
     }
 }
