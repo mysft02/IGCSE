@@ -12,8 +12,8 @@ namespace BusinessObject.DTOs.Response.Courses
         public string Status { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public List<CourseSectionDetailResponse> Sections { get; set; } = new();
         
         // Thông tin tiến trình học (chỉ có khi student đã đăng nhập và enroll)
