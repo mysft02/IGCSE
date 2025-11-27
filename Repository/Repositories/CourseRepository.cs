@@ -215,5 +215,14 @@ namespace Repository.Repositories
 
             return detail;
         }
+
+        public async Task<bool> CheckOwnedByLessonItemId(int lessonItemId, string userId)
+        {
+            var check = await _context.Courses
+                .Include(x => x.CourseSections).ThenInclude(xc => xc.Lessons).ThenInclude(c => c.Lessonitems)
+                .AnyAsync(c => c.CreatedBy == userId && c.CourseSections.Any(cs => cs.Lessons.Any(ls => ls.Lessonitems.Any(li => li.LessonItemId == lessonItemId))));
+
+            return check;
+        }
     }
 }
