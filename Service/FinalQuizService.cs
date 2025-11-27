@@ -286,6 +286,14 @@ namespace Service
                     ? parsedResults[i]
                     : (false, string.Empty);
 
+                string newIndex = (i + 1).ToString();
+
+                questions[i].QuestionText = Regex.Replace(
+                    questions[i].QuestionText,
+                    @"Câu\s*\d+\s*:",
+                    $"Câu {newIndex}:"
+                );
+
                 result.Add(new FinalQuizMarkResponse
                 {
                     Question = q.QuestionText,
