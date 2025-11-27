@@ -372,40 +372,23 @@ namespace IGCSE.Controller
   - `isUnlocked` của lesson phụ thuộc vào tiến trình học (lesson trước đó đã hoàn thành)
   - `isCompleted` của lesson = `true` khi tất cả lesson items trong lesson đó đã hoàn thành
   - `completedAt` chỉ có giá trị khi `isCompleted = true`")]
-        public async Task<ActionResult<BaseResponse<CourseDetailResponse>>> GetCourseDetail(int courseId)
+        [AllowAnonymous]
+        public async Task<ActionResult<BaseResponse<object>>> GetCourseDetail(int courseId)
         {
-            try
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+            var result = new object();
+            if(userRole != null && userRole == "Student")
             {
-                // Tự động lấy studentId từ token nếu đã đăng nhập
-                string? studentId = null;
-                
-                if (User.Identity?.IsAuthenticated == true)
-                {
-                    studentId = User.FindFirst("AccountID")?.Value;
-                    
-                    // Chỉ hiển thị progress nếu là Student role
-                    var roles = User.FindAll(ClaimTypes.Role)
-                                   .Select(c => c.Value)
-                                   .ToList();
-                    
-                    // Nếu không phải Student role, không truyền studentId (không cần progress)
-                    if (!roles.Contains("Student"))
-                    {
-                        studentId = null;
-                    }
-                }
+                result = await _courseService.GetCourseDetailForStudentAsync(courseId, userId);
+            }
+            else
+            {
+                result = await _courseService.GetCourseDetailAsync(courseId);
+            }
 
-                var result = await _courseService.GetCourseDetailAsync(courseId, studentId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    $"Lỗi khi lấy thông tin khóa học: {ex.Message}",
-                    StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            return Ok(result);
         }
 
         [HttpGet("get-lesson-item-detail")]

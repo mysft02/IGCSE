@@ -7,16 +7,22 @@ using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Request.Courses;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 
 namespace Repository.Repositories
 {
     public class CourseRepository : BaseRepository<Course>, ICourseRepository
     {
         private readonly IGCSEContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CourseRepository(IGCSEContext context) : base(context)
+        public CourseRepository(IGCSEContext context, IWebHostEnvironment webHostEnvironment, IHttpContextAccessor httpContextAccessor) : base(context)
         {
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<Course?> GetByCourseIdAsync(long courseId)
@@ -141,6 +147,71 @@ namespace Repository.Repositories
             }
 
             return result;
+        }
+
+        public async Task<CourseDetailWithoutProgressResponse> GetCourseDetailAsync(int courseId)
+        {
+            var detail = await _context.Courses
+                .Include(x => x.CourseSections)
+                .ThenInclude(cs => cs.Lessons)
+                .ThenInclude(l => l.Lessonitems)
+                .Include(x => x.CourseSections)
+                .ThenInclude(cs => cs.Lessons)
+                .ThenInclude(l => l.Quiz)
+                .Where(x => x.CourseId == courseId)
+                .Select(c => new CourseDetailWithoutProgressResponse
+                {
+                    CourseId = c.CourseId,
+                    Name = c.Name,
+                    Description = c.Description,
+                    Status = c.Status,
+                    Price = c.Price,
+                    ImageUrl = CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt,
+                    Sections = c.CourseSections
+                    .Select(n => new CourseSectionDetailWithoutProgressResponse
+                    {
+                        CourseSectionId = n.CourseSectionId,
+                        Name = n.Name,
+                        Description = n.Description,
+                        Order = n.Order,
+                        IsActive = n.IsActive == 1,
+                        Lessons = n.Lessons
+                        .Select(s => new LessonDetailWithoutProgressResponse
+                        {
+                            LessonId = s.LessonId,
+                            Name = s.Name,
+                            Description = s.Description,
+                            Order = s.Order,
+                            IsActive = s.IsActive == 1,
+                            LessonItems = s.Lessonitems
+                            .Select(p => new LessonItemDetailWithoutProgressResponse
+                            {
+                                LessonItemId = p.LessonItemId,
+                                Name = p.Name,
+                                Order = p.Order,
+                            })
+                            .ToList(),
+                            Quiz = new LessonQuizResponse
+                            {
+                                QuizId = s.Quiz.QuizId,
+                                QuizTitle = s.Quiz.QuizTitle,
+                                QuizDescription = s.Quiz.QuizDescription,
+                            }
+                        })
+                        .ToList()
+                    })
+                    .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if(detail == null)
+            {
+                return null;
+            }
+
+            return detail;
         }
     }
 }

@@ -16,5 +16,6 @@ namespace Repository.IRepositories
         Task<Dictionary<string, int>> GetCoursesSortedByStatus();
         Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId);
         Task<CourseAnalyticsResponse> GetCourseAnalyticsAsync(int courseId);
+        Task<CourseDetailWithoutProgressResponse> GetCourseDetailAsync(int courseId);
     }
 }

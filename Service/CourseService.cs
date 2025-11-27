@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Service.Trello;
 using BusinessObject.DTOs.Response.FinalQuizzes;
+using MimeKit.Tnef;
 
 namespace Service
 {
@@ -543,96 +544,93 @@ namespace Service
                 StatusCode = StatusCodeEnum.OK_200
             };
         }
-        public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailAsync(int courseId, string? studentId = null)
+        public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailForStudentAsync(int courseId, string? studentId = null)
         {
-            try
+            // 1. Get course with related data
+            var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
+            if (course == null)
+                throw new Exception("Course not found");
+
+            // 2. Map course to DTO
+            var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
+            courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
+
+            // 3. Lấy tiến trình học của student nếu có studentId
+            List<Process>? studentProcesses = null;
+            Dictionary<int, List<Processitem>>? processItemsDict = null;
+
+            if (!string.IsNullOrEmpty(studentId))
             {
-                // 1. Get course with related data
-                var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
-                if (course == null)
-                    throw new Exception("Course not found");
+                studentProcesses = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
 
-                // 2. Map course to DTO
-                var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
-                courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
-
-                // 3. Lấy tiến trình học của student nếu có studentId
-                List<Process>? studentProcesses = null;
-                Dictionary<int, List<Processitem>>? processItemsDict = null;
-
-                if (!string.IsNullOrEmpty(studentId))
+                // Lấy tất cả process items cho student
+                processItemsDict = new Dictionary<int, List<Processitem>>();
+                foreach (var process in studentProcesses)
                 {
-                    studentProcesses = (await _processRepository.GetByStudentAndCourseAsync(studentId, courseId)).ToList();
-
-                    // Lấy tất cả process items cho student
-                    processItemsDict = new Dictionary<int, List<Processitem>>();
-                    foreach (var process in studentProcesses)
-                    {
-                        var items = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
-                        processItemsDict[process.ProcessId] = items;
-                    }
+                    var items = (await _processitemRepository.GetByProcessIdAsync(process.ProcessId)).ToList();
+                    processItemsDict[process.ProcessId] = items;
                 }
+            }
 
-                var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
+            var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
 
-                // Biến để tính overall progress
-                int totalLessons = 0;
-                int completedLessons = 0;
+            // Biến để tính overall progress
+            int totalLessons = 0;
+            int completedLessons = 0;
 
-                if (sections != null && sections.Any())
+            if (sections != null && sections.Any())
+            {
+                courseDetailResponse.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
+
+                // For each section, load lessons and lesson items
+                foreach (var section in courseDetailResponse.Sections)
                 {
-                    courseDetailResponse.Sections = _mapper.Map<List<CourseSectionDetailResponse>>(sections);
-
-                    // For each section, load lessons and lesson items
-                    foreach (var section in courseDetailResponse.Sections)
+                    var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
+                    if (lessons != null && lessons.Any())
                     {
-                        var lessons = await _lessonRepository.GetActiveLessonsBySectionAsync((int)section.CourseSectionId);
-                        if (lessons != null && lessons.Any())
+                        section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
+                        foreach (var c in section.Lessons)
                         {
-                            section.Lessons = _mapper.Map<List<LessonDetailResponse>>(lessons);
-                            foreach (var c in section.Lessons)
+                            var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
+                            c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
+                        }
+
+                        foreach (var lesson in section.Lessons)
+                        {
+                            // Lấy lesson items
+                            var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
+                            lesson.LessonItems = _mapper.Map<List<LessonItemDetailResponse>>(lessonItems ?? new List<Lessonitem>());
+
+                            // Đếm tổng số lessons
+                            totalLessons++;
+
+                            // Nếu có studentId, cập nhật thông tin tiến trình
+                            if (studentProcesses != null && processItemsDict != null)
                             {
-                                var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
-                                c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
-                            }
-
-                            foreach (var lesson in section.Lessons)
-                            {
-                                // Lấy lesson items
-                                var lessonItems = await _lessonitemRepository.GetByLessonIdAsync((int)lesson.LessonId);
-                                lesson.LessonItems = _mapper.Map<List<LessonItemDetailResponse>>(lessonItems ?? new List<Lessonitem>());
-
-                                // Đếm tổng số lessons
-                                totalLessons++;
-
-                                // Nếu có studentId, cập nhật thông tin tiến trình
-                                if (studentProcesses != null && processItemsDict != null)
+                                var process = studentProcesses.FirstOrDefault(p => p.LessonId == lesson.LessonId);
+                                if (process != null)
                                 {
-                                    var process = studentProcesses.FirstOrDefault(p => p.LessonId == lesson.LessonId);
-                                    if (process != null)
+                                    // Cập nhật trạng thái mở khóa của lesson
+                                    lesson.IsUnlocked = process.IsUnlocked;
+
+                                    // Kiểm tra lesson đã hoàn thành chưa
+                                    var completedItems = processItemsDict.GetValueOrDefault(process.ProcessId, new List<Processitem>());
+                                    lesson.IsCompleted = lessonItems.Count() > 0 && completedItems.Count == lessonItems.Count();
+
+                                    // Đếm số lessons đã hoàn thành
+                                    if (lesson.IsCompleted)
                                     {
-                                        // Cập nhật trạng thái mở khóa của lesson
-                                        lesson.IsUnlocked = process.IsUnlocked;
+                                        completedLessons++;
+                                    }
 
-                                        // Kiểm tra lesson đã hoàn thành chưa
-                                        var completedItems = processItemsDict.GetValueOrDefault(process.ProcessId, new List<Processitem>());
-                                        lesson.IsCompleted = lessonItems.Count() > 0 && completedItems.Count == lessonItems.Count();
-
-                                        // Đếm số lessons đã hoàn thành
-                                        if (lesson.IsCompleted)
+                                    // Cập nhật trạng thái hoàn thành của từng lesson item
+                                    foreach (var lessonItemResponse in lesson.LessonItems)
+                                    {
+                                        var completedItem = completedItems.FirstOrDefault(pi => pi.LessonItemId == lessonItemResponse.LessonItemId);
+                                        if (completedItem != null)
                                         {
-                                            completedLessons++;
-                                        }
-
-                                        // Cập nhật trạng thái hoàn thành của từng lesson item
-                                        foreach (var lessonItemResponse in lesson.LessonItems)
-                                        {
-                                            var completedItem = completedItems.FirstOrDefault(pi => pi.LessonItemId == lessonItemResponse.LessonItemId);
-                                            if (completedItem != null)
-                                            {
-                                                lessonItemResponse.IsCompleted = true;
-                                                lessonItemResponse.CompletedAt = completedItem.CreatedAt;
-                                            }
+                                            lessonItemResponse.IsCompleted = true;
+                                            lessonItemResponse.CompletedAt = completedItem.CreatedAt;
                                         }
                                     }
                                 }
@@ -640,55 +638,61 @@ namespace Service
                         }
                     }
                 }
+            }
 
-                // Cập nhật thông tin enrollment và progress dựa trên process records
-                if (studentProcesses != null && studentProcesses.Any())
+            // Cập nhật thông tin enrollment và progress dựa trên process records
+            if (studentProcesses != null && studentProcesses.Any())
+            {
+                courseDetailResponse.IsEnrolled = true;
+
+                // Tính overall progress (phần trăm hoàn thành)
+                if (totalLessons > 0)
                 {
-                    courseDetailResponse.IsEnrolled = true;
-
-                    // Tính overall progress (phần trăm hoàn thành)
-                    if (totalLessons > 0)
-                    {
-                        courseDetailResponse.OverallProgress = Math.Round((double)completedLessons / totalLessons * 100, 2);
-                    }
-                    else
-                    {
-                        courseDetailResponse.OverallProgress = 0;
-                    }
+                    courseDetailResponse.OverallProgress = Math.Round((double)completedLessons / totalLessons * 100, 2);
                 }
                 else
                 {
-                    courseDetailResponse.IsEnrolled = false;
-                    courseDetailResponse.OverallProgress = null; // Không có progress nếu chưa enroll
+                    courseDetailResponse.OverallProgress = 0;
                 }
-
-                if (!string.IsNullOrEmpty(course.ImageUrl))
-                {
-                    try
-                    {
-                        courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        courseDetailResponse.ImageUrl = string.Empty;
-                    }
-                    catch (Exception)
-                    {
-                        courseDetailResponse.ImageUrl = string.Empty;
-                    }
-                }
-
-                return new BaseResponse<CourseDetailResponse>(
-                    "Course detail retrieved successfully",
-                    StatusCodeEnum.OK_200,
-                    courseDetailResponse
-                );
             }
-            catch (Exception ex)
+            else
             {
-                // Log the exception here if you have a logging mechanism
-                throw new Exception($"Failed to get course detail: {ex.Message}");
+                courseDetailResponse.IsEnrolled = false;
+                courseDetailResponse.OverallProgress = null; // Không có progress nếu chưa enroll
             }
+
+            if (!string.IsNullOrEmpty(course.ImageUrl))
+            {
+                try
+                {
+                    courseDetailResponse.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetailResponse.ImageUrl);
+                }
+                catch (FileNotFoundException)
+                {
+                    courseDetailResponse.ImageUrl = string.Empty;
+                }
+                catch (Exception)
+                {
+                    courseDetailResponse.ImageUrl = string.Empty;
+                }
+            }
+
+            return new BaseResponse<CourseDetailResponse>(
+                "Course detail retrieved successfully",
+                StatusCodeEnum.OK_200,
+                courseDetailResponse
+            );
+        }
+
+        public async Task<BaseResponse<CourseDetailWithoutProgressResponse>> GetCourseDetailAsync(int courseId)
+        {
+            var courseDetail = await _courseRepository.GetCourseDetailAsync(courseId);
+
+            return new BaseResponse<CourseDetailWithoutProgressResponse>(
+                "Lấy khoá học thành công",
+                StatusCodeEnum.OK_200,
+                courseDetail
+                );
         }
 
         public async Task<BaseResponse<LessonItemDetail>> GetLessonItemDetailAsync(string userId, int lessonItemId)
