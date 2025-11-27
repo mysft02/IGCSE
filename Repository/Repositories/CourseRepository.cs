@@ -185,6 +185,7 @@ namespace Repository.Repositories
                             Description = s.Description,
                             Order = s.Order,
                             IsActive = s.IsActive == 1,
+                            IsUnlocked = true,
                             LessonItems = s.Lessonitems
                             .Select(p => new LessonItemDetailWithoutProgressResponse
                             {
