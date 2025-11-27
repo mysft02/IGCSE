@@ -167,6 +167,7 @@ namespace Repository.Repositories
                     Status = c.Status,
                     Price = c.Price,
                     ImageUrl = CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                    IsEnrolled = true,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
                     Sections = c.CourseSections

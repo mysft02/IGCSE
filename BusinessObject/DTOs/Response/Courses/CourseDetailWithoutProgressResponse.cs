@@ -11,6 +11,7 @@ namespace BusinessObject.DTOs.Response.Courses
         public string Status { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
+        public bool IsEnrolled { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<CourseSectionDetailWithoutProgressResponse> Sections { get; set; } = new();
