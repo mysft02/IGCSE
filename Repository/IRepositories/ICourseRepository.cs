@@ -3,6 +3,7 @@ using BusinessObject.Model;
 using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Response.Courses;
 using System.Linq.Expressions;
+using Common.Constants;
 
 namespace Repository.IRepositories
 {
@@ -12,7 +13,7 @@ namespace Repository.IRepositories
         Task<Course?> GetByCourseIdAsync(long courseId);
         Task<Course?> GetByCourseIdWithCategoryAsync(long courseId);
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId);
-        Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status);
+        Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, CourseStatusEnum? status);
         Task<Dictionary<string, int>> GetCoursesSortedByStatus();
         Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId);
         Task<CourseAnalyticsResponse> GetCourseAnalyticsAsync(int courseId);

@@ -80,48 +80,6 @@ namespace Service
             _finalQuizResultRepository = finalQuizResultRepository;
         }
 
-        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string createdBy = null)
-        {
-            // Create new course
-            var course = new Course
-            {
-                Name = request.Name,
-                Description = request.Description,
-                Price = request.Price,
-                ImageUrl = request.ImageUrl,
-                ModuleId = request.ModuleId,
-                Status = "Pending", // Luôn tạo với trạng thái Pending
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                CreatedBy = createdBy,
-                UpdatedBy = createdBy
-            };
-
-            var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
-            course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
-
-            var createdCourse = await _courseRepository.AddAsync(course);
-
-            // Giảm AvailableSlot khi teacher tạo khóa học
-            if (!string.IsNullOrEmpty(createdBy))
-            {
-                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == createdBy);
-                if (createSlot != null && createSlot.AvailableSlot > 0)
-                {
-                    createSlot.AvailableSlot -= 1;
-                    await _createSlotRepository.UpdateAsync(createSlot);
-                }
-            }
-
-            var courseResponse = _mapper.Map<CourseResponse>(createdCourse);
-
-            return new BaseResponse<CourseResponse>(
-                "Course created successfully",
-                StatusCodeEnum.Created_201,
-                courseResponse
-            );
-        }
-
         public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(long courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
@@ -182,66 +140,6 @@ namespace Service
                 string.IsNullOrWhiteSpace(reason) ? "Course rejected" : $"Course rejected: {reason}",
                 StatusCodeEnum.OK_200,
                 response
-            );
-        }
-
-        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetPendingCoursesPagedAsync(int page, int pageSize, string? searchByName)
-        {
-            var (items, total) = await _courseRepository.SearchAsync(page <= 0 ? 1 : page, pageSize <= 0 ? 10 : pageSize, searchByName, null, "Pending");
-            var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
-            var totalPages = (int)Math.Ceiling(total / (double)(pageSize <= 0 ? 10 : pageSize));
-
-            var paginated = new PaginatedResponse<CourseResponse>
-            {
-                Items = courseResponses,
-                TotalCount = total,
-                Page = page - 1,
-                Size = pageSize <= 0 ? 10 : pageSize,
-                TotalPages = totalPages
-            };
-
-            return new BaseResponse<PaginatedResponse<CourseResponse>>(
-                "Pending courses retrieved successfully",
-                StatusCodeEnum.OK_200,
-                paginated
-            );
-        }
-
-        public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(long courseId, CourseRequest request)
-        {
-            // Get existing course
-            var existingCourse = await _courseRepository.GetByCourseIdAsync(courseId);
-            if (existingCourse == null)
-            {
-                throw new Exception("Course not found");
-            }
-
-            if (request.ModuleId != existingCourse.ModuleId)
-            {
-                var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
-                if (module == null)
-                {
-                    throw new Exception("Module not found or inactive");
-                }
-            }
-
-            // Update course properties
-            existingCourse.Name = request.Name;
-            existingCourse.Description = request.Description;
-            existingCourse.Status = request.Status;
-            existingCourse.Price = request.Price;
-            existingCourse.ImageUrl = request.ImageUrl;
-            existingCourse.ModuleId = request.ModuleId;
-            existingCourse.UpdatedAt = DateTime.UtcNow;
-
-            var updatedCourse = await _courseRepository.UpdateAsync(existingCourse);
-
-            var courseResponse = _mapper.Map<CourseResponse>(updatedCourse);
-
-            return new BaseResponse<CourseResponse>(
-                "Course updated successfully",
-                StatusCodeEnum.OK_200,
-                courseResponse
             );
         }
 

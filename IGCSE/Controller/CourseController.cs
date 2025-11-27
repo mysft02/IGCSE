@@ -39,8 +39,9 @@ namespace IGCSE.Controller
 
         [HttpGet("all")]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học", Description = "Lấy danh sách khóa học với các trạng thái: " +
-            "`1` là `open`(đã duyệt); " +
-            "`2` là `pending`(chưa được duyệt để public) ")]
+            "`0` là `Pending`(chờ duyệt); " +
+            "`1` là `Open`(đã được duyệt); " +
+            "`2` là `Rejected`(đã bị từ chối) ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
