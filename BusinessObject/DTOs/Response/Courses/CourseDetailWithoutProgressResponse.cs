@@ -1,4 +1,5 @@
 ﻿using BusinessObject.DTOs.Response.FinalQuizzes;
+using System.Diagnostics.Eventing.Reader;
 
 namespace BusinessObject.DTOs.Response.Courses
 {
@@ -32,6 +33,7 @@ namespace BusinessObject.DTOs.Response.Courses
         public string? Description { get; set; }
         public int Order { get; set; }
         public bool IsActive { get; set; }
+        public bool IsUnlocked {  get; set; } 
         public List<LessonItemDetailWithoutProgressResponse> LessonItems { get; set; } = new();
         public LessonQuizResponse Quiz { get; set; }
     }
