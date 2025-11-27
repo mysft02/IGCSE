@@ -695,8 +695,17 @@ namespace Service
                 );
         }
 
-        public async Task<BaseResponse<LessonItemDetail>> GetLessonItemDetailAsync(string userId, int lessonItemId)
+        public async Task<BaseResponse<LessonItemDetail>> GetLessonItemDetailAsync(string userId, int lessonItemId, string userRole)
         {
+            if(userRole == "Teacher")
+            {
+                var checkOwned = await _courseRepository.CheckOwnedByLessonItemId(lessonItemId, userId);
+                if (!checkOwned)
+                {
+                    throw new Exception("Bạn không thể xem bài học của giáo viên khác.");
+                }
+            }
+
             var lessonItemDetail = await _lessonitemRepository.FindOneAsync(x => x.LessonItemId == lessonItemId);
             if (lessonItemDetail == null)
             {
