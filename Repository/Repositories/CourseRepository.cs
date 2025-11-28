@@ -9,6 +9,7 @@ using BusinessObject.DTOs.Request.Courses;
 using System.Linq.Expressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Common.Constants;
 
 namespace Repository.Repositories
 {
@@ -46,7 +47,7 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status)
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, CourseStatusEnum? status)
         {
             var query = _context.Set<Course>().AsQueryable();
 
@@ -61,9 +62,9 @@ namespace Repository.Repositories
                 query = query.Where(c => c.CourseId == couseId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status.ToString()))
             {
-                query = query.Where(c => c.Status == status);
+                query = query.Where(c => c.Status == status.ToString());
             }
 
             var total = await query.CountAsync();

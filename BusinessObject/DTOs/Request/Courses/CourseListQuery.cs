@@ -1,4 +1,5 @@
-﻿using Swashbuckle.AspNetCore.Annotations;
+﻿using Common.Constants;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace BusinessObject.DTOs.Request.Courses
 {
@@ -15,6 +16,6 @@ namespace BusinessObject.DTOs.Request.Courses
         public long? CouseId { get; set; } = null;
 
         [SwaggerSchema("Trạng thái khóa học để tìm kiếm (trạng thái: 1 là Pending(chưa duyệt); 2 là Open(Đã duyệt))")]
-        public string? Status { get; set; } = null;
+        public CourseStatusEnum? Status { get; set; } = null;
     }
 }
