@@ -18,8 +18,6 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Course> Courses { get; set; }
 
-    // public virtual DbSet<Coursekey> Coursekeys { get; set; } // removed coursekey usage
-
     public virtual DbSet<Coursesection> Coursesections { get; set; }
 
     public virtual DbSet<Lesson> Lessons { get; set; }
@@ -71,6 +69,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<Certificate> Certificates { get; set; }
 
     public virtual DbSet<Teacherprofile> Teacherprofiles { get; set; }
+
+    public virtual DbSet<Coursefeedback> Coursefeedbacks { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -277,6 +277,33 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Answer).HasMaxLength(500);
             entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
             entity.Property(e => e.QuizId).HasColumnName("QuizID");
+        });
+
+        modelBuilder.Entity<Coursefeedback>(entity =>
+        {
+            entity.HasKey(e => e.CourseFeedbackId).HasName("PRIMARY");
+            entity.ToTable("coursefeedback");
+            entity.Property(e => e.CourseFeedbackId).HasColumnName("CourseFeedbackID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.StudentId)
+                .HasMaxLength(255)
+                .HasColumnName("StudentID");
+            entity.Property(e => e.Rating).HasColumnType("int");
+            entity.Property(e => e.Comment).HasColumnType("text");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Course)
+                .WithMany(p => p.CourseFeedbacks)
+                .HasForeignKey(d => d.CourseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CourseFeedback_Course");
+
+            entity.HasOne(d => d.Student)
+                .WithMany()
+                .HasForeignKey(d => d.StudentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CourseFeedback_Student");
         });
 
         modelBuilder.Entity<Quiz>(entity =>

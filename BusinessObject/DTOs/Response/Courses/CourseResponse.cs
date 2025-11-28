@@ -2,7 +2,7 @@ namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseResponse
     {
-        public long CourseId { get; set; }
+        public int CourseId { get; set; }
 
         public string Name { get; set; } = string.Empty;
 
