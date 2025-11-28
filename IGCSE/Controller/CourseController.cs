@@ -22,30 +22,43 @@ namespace IGCSE.Controller
         private readonly MediaService _mediaService;
         private readonly IWebHostEnvironment _environment;
         private readonly PaymentService _paymentService;
+        private readonly CourseFeedbackService _courseFeedbackService;
 
         public CourseController(
             CourseService courseService,
             ModuleService moduleService,
             MediaService mediaService,
             IWebHostEnvironment environment,
-            PaymentService paymentService)
+            PaymentService paymentService,
+            CourseFeedbackService courseFeedbackService)
         {
             _mediaService = mediaService;
             _environment = environment;
             _moduleService = moduleService;
             _courseService = courseService;
             _paymentService = paymentService;
+            _courseFeedbackService = courseFeedbackService;
         }
 
         [HttpGet("all")]
         [SwaggerOperation(Summary = "Lấy danh sách các khóa học", Description = "Lấy danh sách khóa học với các trạng thái: " +
-            "`0` là `Pending`(chờ duyệt); " +
-            "`1` là `Open`(đã được duyệt); " +
-            "`2` là `Rejected`(đã bị từ chối) ")]
+            "`1` là `open`(đã duyệt); " +
+            "`2` là `pending`(chưa được duyệt để public) " +
+            "`3` là `rejecte`(bị từ chối) " +
+            "nếu account đã đăng nhập với role là Student hoặc Parent thì chỉ lấy danh sấch các khóa học có status là open ")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
             {
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+                    if (roles.Contains("Parent") || roles.Contains("Student"))
+                    {
+                        query.Status = "Open";
+                    }
+                }
+
                 var result = await _courseService.GetCoursesPagedAsync(query);
                 return Ok(result);
             }
@@ -53,6 +66,72 @@ namespace IGCSE.Controller
             {
                 return BadRequest(new BaseResponse<string>(
                     ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("{courseId}/feedbacks")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(Summary = "Tạo feedback cho khóa học (Student)", Description = "Chỉ học sinh đã học xong khóa học mới có thể gửi feedback (rating 1-5 và nhận xét). Mỗi học sinh chỉ gửi một lần.")]
+        public async Task<ActionResult<BaseResponse<CourseFeedbackResponse>>> CreateFeedback(int courseId, [FromBody] CourseFeedbackRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseFeedbackService.CreateFeedbackAsync(userId, courseId, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi gửi feedback: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("{courseId}/feedbacks")]
+        [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lấy danh sách feedback của khóa học", Description = "Trả về toàn bộ feedback (rating + comment) của khóa học")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseFeedbackResponse>>>> GetCourseFeedbacks(int courseId)
+        {
+            try
+            {
+                var result = await _courseFeedbackService.GetCourseFeedbacksAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy danh sách feedback: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("{courseId}/feedbacks/summary")]
+        [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lấy thống kê feedback của khóa học", Description = "Trả về điểm trung bình và tổng số feedback")]
+        public async Task<ActionResult<BaseResponse<object>>> GetCourseFeedbackSummary(int courseId)
+        {
+            try
+            {
+                var result = await _courseFeedbackService.GetCourseFeedbackSummaryAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy thống kê feedback: {ex.Message}",
                     StatusCodeEnum.BadRequest_400,
                     null
                 ));

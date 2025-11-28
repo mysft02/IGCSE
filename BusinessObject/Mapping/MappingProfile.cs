@@ -37,6 +37,10 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ReverseMap();
 
+            CreateMap<Coursefeedback, CourseFeedbackResponse>()
+                .ForMember(dest => dest.CourseFeedbackId, opt => opt.MapFrom(src => src.CourseFeedbackId))
+                .ForMember(dest => dest.StudentName, opt => opt.MapFrom(src => src.Student != null ? src.Student.Name : string.Empty));
+
             // Course detail mappings
             CreateMap<Course, CourseDetailResponse>()
                 .ForMember(dest => dest.CourseId, opt => opt.MapFrom(src => src.CourseId))

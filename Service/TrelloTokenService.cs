@@ -177,6 +177,11 @@ public class TrelloTokenService
 
                 if (ExtractTypeTrelloListContent(list.Name) == "Course")
                 {
+                    if (createSlot.AvailableSlot <= 0)
+                    {
+                        throw new Exception("Bạn không còn suất tạo mới khoá học. Vui lòng mua thêm gói.");
+                    }
+
                     //create course
                     course = await _courseService.CreateCourseForTrelloAsync(list.Name, trelloCardResponses, trelloToken.UserId, trelloToken);
                     

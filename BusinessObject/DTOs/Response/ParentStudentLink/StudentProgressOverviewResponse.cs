@@ -10,7 +10,7 @@ namespace BusinessObject.DTOs.Response.ParentStudentLink
 
     public class CourseProgressSummary
     {
-        public long CourseId { get; set; }
+        public int CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
         public string CourseImageUrl { get; set; } = string.Empty;
         public DateTime EnrolledAt { get; set; }

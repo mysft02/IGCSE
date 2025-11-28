@@ -4,8 +4,8 @@ namespace BusinessObject.DTOs.Response.CourseContent
 {
     public class CourseSectionResponse
     {
-        public long CourseId { get; set; }
-        public long CourseSectionId { get; set; }
+        public int CourseId { get; set; }
+        public int CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -15,8 +15,8 @@ namespace BusinessObject.DTOs.Response.CourseContent
 
     public class LessonResponse
     {
-        public long LessonId { get; set; }
-        public long CourseSectionId { get; set; }
+        public int LessonId { get; set; }
+        public int CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -26,7 +26,7 @@ namespace BusinessObject.DTOs.Response.CourseContent
 
     public class LessonItemResponse
     {
-        public long LessonItemId { get; set; }
+        public int LessonItemId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string Content { get; set; } = string.Empty;
@@ -36,7 +36,7 @@ namespace BusinessObject.DTOs.Response.CourseContent
 
     public class StudentProgressResponse
     {
-        public long CourseId { get; set; }
+        public int CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
@@ -46,7 +46,7 @@ namespace BusinessObject.DTOs.Response.CourseContent
 
     public class LessonProgressResponse
     {
-        public long LessonId { get; set; }
+        public int LessonId { get; set; }
         public string LessonName { get; set; } = string.Empty;
         public bool IsCompleted { get; set; }
         public DateTime? CompletedAt { get; set; }
@@ -56,7 +56,7 @@ namespace BusinessObject.DTOs.Response.CourseContent
 
     public class LessonItemProgressResponse
     {
-        public long LessonItemId { get; set; }
+        public int LessonItemId { get; set; }
         public string LessonItemName { get; set; } = string.Empty;
         public bool IsCompleted { get; set; }
         public DateTime? CompletedAt { get; set; }

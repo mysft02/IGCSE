@@ -37,3 +37,5 @@
       file: ./ChangeLog/ticket-52.yaml
   - include:
       file: ./ChangeLog/ticket-54.yaml
+  - include:
+      file: ./ChangeLog/ticket-59.yaml

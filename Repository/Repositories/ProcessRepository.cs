@@ -92,5 +92,35 @@ namespace Repository.Repositories
             
             return newProcess;
         }
+
+        public async Task<bool> HasStudentCompletedCourseAsync(string studentId, long courseId)
+        {
+            var totalLessons = await _context.Set<Lesson>()
+                .Where(l => l.CourseSection.CourseId == courseId && l.IsActive == 1)
+                .CountAsync();
+
+            if (totalLessons == 0)
+            {
+                return false;
+            }
+
+            var lessonCompletion = await _context.Set<Process>()
+                .Where(p => p.StudentId == studentId && p.CourseId == courseId)
+                .Select(p => new
+                {
+                    p.LessonId,
+                    LessonItemCount = p.Lesson.Lessonitems.Count,
+                    CompletedItemCount = p.Processitems.Count
+                })
+                .ToListAsync();
+
+            var completedLessons = lessonCompletion
+                .Where(lc => lc.LessonItemCount == 0 || lc.CompletedItemCount >= lc.LessonItemCount)
+                .Select(lc => lc.LessonId)
+                .Distinct()
+                .Count();
+
+            return completedLessons == totalLessons;
+        }
     }
 }

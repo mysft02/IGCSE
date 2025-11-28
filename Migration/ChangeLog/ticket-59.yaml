@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: 59
+      author: quanghuy
+      changes:
+        - createTable:
+            tableName: coursefeedback
+            columns:
+              - column:
+                  name: CourseFeedbackID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: StudentID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Rating
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Comment
+                  type: LONGTEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropTable:
+            tableName: coursefeedback
+      tags:
+        - coursefeedback
