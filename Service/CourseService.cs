@@ -80,7 +80,7 @@ namespace Service
             _finalQuizResultRepository = finalQuizResultRepository;
         }
 
-        public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(long courseId)
+        public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(int courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -106,7 +106,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseResponse>> RejectCourseAsync(long courseId, string? reason)
+        public async Task<BaseResponse<CourseResponse>> RejectCourseAsync(int courseId, string? reason)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -143,7 +143,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(long courseId)
+        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(int courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -198,7 +198,17 @@ namespace Service
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
+            // Convert string status to enum
+            CourseStatusEnum? statusEnum = null;
+            if (!string.IsNullOrWhiteSpace(query.Status))
+            {
+                if (Enum.TryParse<CourseStatusEnum>(query.Status, true, out var parsedStatus))
+                {
+                    statusEnum = parsedStatus;
+                }
+            }
+
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, statusEnum);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
@@ -302,7 +312,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<CourseSectionResponse>>> GetCourseSectionsAsync(long courseId)
+        public async Task<BaseResponse<IEnumerable<CourseSectionResponse>>> GetCourseSectionsAsync(int courseId)
         {
             var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
             var responses = new List<CourseSectionResponse>();
@@ -328,7 +338,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<LessonItemResponse>>> GetLessonItemsAsync(long lessonId)
+        public async Task<BaseResponse<IEnumerable<LessonItemResponse>>> GetLessonItemsAsync(int lessonId)
         {
             var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonId);
             var responses = new List<LessonItemResponse>();
@@ -768,7 +778,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(long courseSectionId)
+        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(int courseSectionId)
         {
             try
             {

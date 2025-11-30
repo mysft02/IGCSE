@@ -26,13 +26,13 @@ namespace Repository.Repositories
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Course?> GetByCourseIdAsync(long courseId)
+        public async Task<Course?> GetByCourseIdAsync(int courseId)
         {
             return await _context.Set<Course>()
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<Course?> GetByCourseIdWithCategoryAsync(long courseId)
+        public async Task<Course?> GetByCourseIdWithCategoryAsync(int courseId)
         {
             return await _context.Set<Course>()
                 .Include(c => c.Module)
@@ -40,14 +40,14 @@ namespace Repository.Repositories
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId)
+        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId)
         {
             return await _context.Set<Course>()
                 .Where(c => c.ModuleId == categoryId)
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, CourseStatusEnum? status)
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, int? couseId, CourseStatusEnum? status)
         {
             var query = _context.Set<Course>().AsQueryable();
 
@@ -78,7 +78,7 @@ namespace Repository.Repositories
 
             return (items, total);
         }
-        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(int courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);
 
