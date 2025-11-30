@@ -6,7 +6,7 @@ namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseDetailResponse
     {
-        public long CourseId { get; set; }
+        public int CourseId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -43,8 +43,8 @@ namespace BusinessObject.DTOs.Response.Courses
     }
     public class CourseSectionDetailResponse
     {
-        public long CourseId { get; set; }
-        public long CourseSectionId { get; set; }
+        public int CourseId { get; set; }
+        public int CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -53,8 +53,8 @@ namespace BusinessObject.DTOs.Response.Courses
     }
     public class LessonDetailResponse
     {
-        public long LessonId { get; set; }
-        public long CourseSectionId { get; set; }
+        public int LessonId { get; set; }
+        public int CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -74,7 +74,7 @@ namespace BusinessObject.DTOs.Response.Courses
     
     public class LessonItemDetailResponse
     {
-        public long LessonItemId { get; set; }
+        public int LessonItemId { get; set; }
         public string Name { get; set; } = string.Empty;
         public int Order { get; set; }
         public bool IsCompleted { get; set; } = false; // Trạng thái hoàn thành item
@@ -83,7 +83,7 @@ namespace BusinessObject.DTOs.Response.Courses
 
     public class LessonItemDetail
     {
-        public long LessonItemId { get; set; }
+        public int LessonItemId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string Content { get; set; } = string.Empty;

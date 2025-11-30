@@ -17,7 +17,7 @@ namespace BusinessObject.DTOs.Request.Courses
         public string? StudentId { get; set; }
 
         [SwaggerSchema("Filter theo Course ID")]
-        public long? CourseId { get; set; }
+        public int? CourseId { get; set; }
 
         [SwaggerSchema("Filter theo progress range (min)")]
         public double? MinProgress { get; set; }

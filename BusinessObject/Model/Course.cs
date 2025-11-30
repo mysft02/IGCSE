@@ -37,4 +37,6 @@ public class Course
     public virtual Finalquiz FinalQuiz { get; set; }
 
     public virtual ICollection<Coursesection> CourseSections { get; set; }
+
+    public virtual ICollection<Coursefeedback> CourseFeedbacks { get; set; } = new List<Coursefeedback>();
 }

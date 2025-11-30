@@ -4,7 +4,7 @@ namespace BusinessObject.DTOs.Response.CourseContent
 {
     public class SectionProgressResponse
     {
-        public long CourseSectionId { get; set; }
+        public int CourseSectionId { get; set; }
         public string SectionName { get; set; } = string.Empty;
         public int Order { get; set; }
         public bool IsActive { get; set; }

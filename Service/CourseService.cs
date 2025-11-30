@@ -819,7 +819,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<StudentProgressResponse>> GetStudentProgressAsync(string studentId, long courseId)
+        public async Task<BaseResponse<StudentProgressResponse>> GetStudentProgressAsync(string studentId, int courseId)
         {
             try
             {
