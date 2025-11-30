@@ -70,38 +70,6 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
-        [HttpPost("payout")]
-        [Authorize]
-        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> PayOSPayout([FromForm] PayoutRequest request)
-        {
-            var user = HttpContext.User;
-            var userId = user.FindFirst("AccountID")?.Value;
-
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
-            }
-
-            var result = await _paymentService.PayOSPayoutAsync(request, userId);
-            return Ok(result);
-        }
-
-        [HttpPost("create-or-update-webhook-url")]
-        //[Authorize]
-        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> CreateOrUpdateWebhookurl([FromForm] string url)
-        {
-            //var user = HttpContext.User;
-            //var userId = user.FindFirst("AccountID")?.Value;
-
-            //if (string.IsNullOrEmpty(userId))
-            //{
-            //    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
-            //}
-
-            var result = await _paymentService.CreateOrUpdateWebhookUrl(url);
-            return Ok(result);
-        }
-
         [HttpGet("get-transaction-history")]
         [Authorize]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<TransactionHistoryResponse>>>> GetTransactionHistory([FromQuery] TransactionHistoryQueryRequest request)

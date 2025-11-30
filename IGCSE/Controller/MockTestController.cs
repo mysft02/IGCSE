@@ -22,10 +22,47 @@ namespace IGCSE.Controller
 
         [HttpGet("get-all-mocktest")]
         [AllowAnonymous]
-        [SwaggerOperation(Summary = "Lấy danh sách mock test", Description = "Lấy danh sách mock test với các trạng thái: " +
-            "`1` là `Completed`(đã hoàn thành bài thi trước đó); " +
-            "`2` là `Open`(đã mua gói nhưng chưa hoàn thành bài thi trước đó); " + 
-            "`3` là `Locked`(chưa mua gói bài thi)")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách mock test",
+            Description = @"
+Lấy danh sách mock test với các trạng thái:
+
+- `1` là `Completed` (đã hoàn thành bài thi trước đó);
+
+- `2` là `Open` (đã mua gói nhưng chưa hoàn thành bài thi trước đó);
+
+- `3` là `Locked` (chưa mua gói bài thi)
+
+**Response type**: `PaginatedResponse<MockTestResponse>`
+
+**Schema:**
+
+```json
+{
+    ""message"": ""Lấy mock test thành công"",
+    ""statusCode"": 200,
+    ""data"": {
+        ""items"": [
+            {
+                ""mockTestId"": 1,
+                ""mockTestTitle"": ""Bài thi 1"",
+                ""mockTestDescription"": ""Đại số cơ bản"",
+                ""createdAt"": ""2025-10-28T12:41:41"",
+                ""updatedAt"": ""2025-10-28T12:41:41"",
+                ""createdBy"": ""e12b76d9-f8d2-478c-b83b-063c7f5df0f6"",
+                ""status"": 3
+            }
+        ],
+        ""totalCount"": 7,
+        ""page"": 0,
+        ""size"": 10,
+        ""totalPages"": 1,
+        ""hasNextPage"": false,
+        ""hasPreviousPage"": false,
+        ""currentPage"": 1
+    }
+}"
+)]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResponse>>>> GetAllMockTests([FromQuery] MockTestQueryRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
@@ -148,7 +185,94 @@ namespace IGCSE.Controller
 
         [HttpPost("mark-mocktest")]
         [Authorize]
-        [SwaggerOperation(Summary = "Chấm bài mock test")]
+        [SwaggerOperation(
+            Summary = "Chấm bài mock test",
+            Description = @"Api dùng để chấm bài mocktest của học sinh. Hệ thống sử dụng AI để đánh giá câu trả lời.
+
+**Request Body Schema:**
+```json
+{
+  ""mockTestId"": ""1"",
+  ""userAnswers"": [
+    {
+      ""questionId"": 1,
+      ""answer"": ""Câu trả lời của học sinh""
+    },
+    {
+      ""questionId"": 2,
+      ""answer"": ""Câu trả lời khác""
+    }
+  ]
+}
+```
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""MockTest marked successfully"",
+  ""statusCode"": 200,
+  ""data"": [
+    {
+      ""question"": ""Câu hỏi 1?"",
+      ""answer"": ""Câu trả lời của học sinh"",
+      ""rightAnswer"": ""Đáp án đúng"",
+      ""isCorrect"": true,
+      ""comment"": ""Câu trả lời chính xác và đầy đủ.""
+    },
+    {
+      ""question"": ""Câu hỏi 2?"",
+      ""answer"": ""Câu trả lời sai"",
+      ""rightAnswer"": ""Đáp án đúng"",
+      ""isCorrect"": false,
+      ""comment"": ""Câu trả lời chưa chính xác, cần xem lại kiến thức.""
+    }
+  ]
+}
+```
+
+**Response Schema - Trường hợp không có câu trả lời:**
+```json
+{
+  ""message"": ""No answers to mark"",
+  ""statusCode"": 200,
+  ""data"": []
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **OpenAI trả về rỗng:**
+```json
+{
+  ""message"": ""OpenAI trả về rỗng (outputText empty)"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+2. **User chưa đăng nhập:**
+```json
+{
+  ""message"": ""Không tìm thấy thông tin người dùng"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+**Logic xử lý:**
+1. **Chấm điểm:**
+   - Mỗi câu trả lời đúng = 1 điểm
+   - So sánh đáp án của học sinh với đáp án đúng (case-insensitive, bỏ qua khoảng trắng)
+   - Sử dụng AI (GPT-4o-mini) để tạo nhận xét cho từng câu
+
+2. **Lưu câu trả lời:**
+   - Tất cả câu trả lời của học sinh được lưu vào `MockTestUserAnswer` table
+
+**Lưu ý:**
+- API yêu cầu đăng nhập (Authorize)
+- Câu hỏi không tồn tại sẽ bị bỏ qua (không ảnh hưởng đến kết quả)
+- Nhận xét từ AI có độ dài < 100 ký tự
+- So sánh đáp án không phân biệt hoa thường và bỏ qua khoảng trắng")]
         public async Task<ActionResult<BaseResponse<List<MockTestMarkResponse>>>> MarkMockTest([FromBody] MockTestMarkRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
