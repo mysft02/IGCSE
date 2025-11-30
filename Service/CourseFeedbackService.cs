@@ -102,6 +102,36 @@ namespace Service
                 responses);
         }
 
+        public async Task<BaseResponse<PaginatedResponse<CourseFeedbackResponse>>> GetCourseFeedbacksPagedAsync(int courseId, CourseFeedbackQueryRequest request)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            var (feedbacks, total) = await _courseFeedbackRepository.GetFeedbacksPagedAsync(courseId, request);
+            var responses = _mapper.Map<IEnumerable<CourseFeedbackResponse>>(feedbacks).ToList();
+
+            var page = request.Page <= 0 ? 1 : request.Page;
+            var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+            var totalPages = (int)Math.Ceiling((double)total / pageSize);
+
+            var paginatedResponse = new PaginatedResponse<CourseFeedbackResponse>
+            {
+                Items = responses,
+                TotalCount = total,
+                Page = page - 1,
+                Size = pageSize,
+                TotalPages = totalPages
+            };
+
+            return new BaseResponse<PaginatedResponse<CourseFeedbackResponse>>(
+                "Lấy danh sách feedback thành công",
+                StatusCodeEnum.OK_200,
+                paginatedResponse);
+        }
+
         public async Task<BaseResponse<object>> GetCourseFeedbackSummaryAsync(int courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
