@@ -30,6 +30,8 @@ namespace Service
         private readonly IProcessRepository _processRepository;
         private readonly IUserPackageRepository _userPackageRepository;
         private readonly ICreateSlotRepository _createSlotRepository;
+        private readonly IPaymentInformationRepository _paymentInformationRepository;
+        private readonly IPayoutHistoryRepository _payoutHistoryRepository;
 
         public PaymentService(
             IAccountRepository accountRepository,
@@ -43,7 +45,9 @@ namespace Service
             IStudentEnrollmentRepository studentEnrollmentRepository,
             IProcessRepository processRepository,
             IUserPackageRepository userPackageRepository,
-            ICreateSlotRepository createSlotRepository)
+            ICreateSlotRepository createSlotRepository,
+            IPaymentInformationRepository paymentInformationRepository,
+            IPayoutHistoryRepository payoutHistoryRepository)
         {
             _accountRepository = accountRepository;
             _userManager = userManager;
@@ -57,6 +61,8 @@ namespace Service
             _processRepository = processRepository;
             _userPackageRepository = userPackageRepository;
             _createSlotRepository = createSlotRepository;
+            _paymentInformationRepository = paymentInformationRepository;
+            _payoutHistoryRepository = payoutHistoryRepository;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId, string userRole)
@@ -115,12 +121,36 @@ namespace Service
             if (courseId.HasValue)
             {
                 transaction.ItemId = courseId.Value;
+                var course = await _courseRepository.FindOneAsync(x => x.CourseId == courseId);
+                if(course == null)
+                {
+                    throw new Exception("Không tìm thấy khoá học này");
+                }
+                var teacherPaymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == userId);
 
                 var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
                 studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
-                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
 
+                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
                 await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
+                var teacherIncome = (paymentResponse.Data.AmountPaid * 70) / 100;
+                var payoutData = new PayoutRequest
+                {
+                    Amount = teacherIncome,
+                    TeacherID = course.CreatedBy,
+                    BankBin = teacherPaymentInfo.BankBin,
+                    BankAccountNumber = teacherPaymentInfo.BankAccountNumber,
+                };
+
+                var payout = await PayOSPayoutAsync(payoutData);
+                var payoutHistory = new Payouthistory
+                {
+                    TeacherId = course.CreatedBy,
+                    CourseId = course.CourseId,
+                    Amount = teacherIncome,
+                    CreatedAt = DateTime.Now,
+                };
+                await _payoutHistoryRepository.AddAsync(payoutHistory);
             }
             else if (packageId.HasValue)
             {
@@ -335,11 +365,11 @@ namespace Service
                 );
         }
 
-        public async Task<BaseResponse<PayOSPayoutApiResponse>> PayOSPayoutAsync(PayoutRequest payoutRequest, string userId)
+        public async Task<PayOSPayoutApiResponse> PayOSPayoutAsync(PayoutRequest payoutRequest)
         {
             var body = new PayOSPayoutApiBody
             {
-                ReferenceId = DateTime.Now.Ticks.ToString() + "_" + userId,
+                ReferenceId = DateTime.Now.Ticks.ToString(),
                 Amount = payoutRequest.Amount,
                 Description = $"Course payment",
                 ToBin = payoutRequest.BankBin,
@@ -359,35 +389,7 @@ namespace Service
                 .Build();
 
             var response = await _payOSApiService.PostAsync<PayOSPayoutApiBody, PayOSPayoutApiResponse>(request, body);
-
-            return new BaseResponse<PayOSPayoutApiResponse>(
-                "Thanh toán thành công",
-                StatusCodeEnum.OK_200,
-                response
-                );
-        }
-
-        public async Task<BaseResponse<PayOSWebhookApiResponse>> CreateOrUpdateWebhookUrl(string url)
-        {
-            var body = new PayOSWebhookApiBody
-            {
-                WebhookUrl = url
-            };
-
-            var request = PayOSApiRequest.Builder()
-                .CallUrl("/confirm-webhook")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
-                .Body(body)
-                .Build();
-
-            var response = await _payOSApiService.PostAsync<PayOSWebhookApiBody, PayOSWebhookApiResponse>(request, body);
-
-            return new BaseResponse<PayOSWebhookApiResponse>(
-                "Thanh toán thành công",
-                StatusCodeEnum.OK_200,
-                response
-            );
+            return response;
         }
 
         public async Task<BaseResponse<PaginatedResponse<TransactionHistoryResponse>>> GetTransactionHistory(TransactionHistoryQueryRequest request)

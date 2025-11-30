@@ -70,6 +70,10 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Teacherprofile> Teacherprofiles { get; set; }
 
+    public virtual DbSet<Paymentinformation> Paymentinformations { get; set; }
+
+    public virtual DbSet<Payouthistory> Payouthistories { get; set; }
+
     public virtual DbSet<Coursefeedback> Coursefeedbacks { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -627,6 +631,28 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.TeacherId).HasMaxLength(255);
             entity.Property(e => e.TeacherName).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Paymentinformation>(entity =>
+        {
+            entity.HasKey(e => e.PaymentInfoId).HasName("PRIMARY");
+
+            entity.ToTable("paymentinformation");
+
+            entity.Property(e => e.BankAccountNumber).HasMaxLength(255);
+            entity.Property(e => e.BankBin).HasMaxLength(255);
+            entity.Property(e => e.UserId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Payouthistory>(entity =>
+        {
+            entity.HasKey(e => e.PayoutId).HasName("PRIMARY");
+
+            entity.ToTable("payouthistory");
+
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.TeacherId).HasMaxLength(255);
         });
 
         OnModelCreatingPartial(modelBuilder);

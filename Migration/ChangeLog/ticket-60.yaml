@@ -1,0 +1,65 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 60
+      author: dungnt
+      changes:
+        - createTable:
+            tableName: payouthistory
+            columns:
+              - column:
+                  name: PayoutId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: TeacherId
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CourseId
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Amount
+                  type: DECIMAL(18,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: paymentinformation
+            columns:
+              - column:
+                  name: PaymentInfoId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: UserId
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: BankBin
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: BankAccountNumber
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: payouthistory
+        - dropTable:
+            tableName: paymentinformation
