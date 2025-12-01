@@ -355,37 +355,15 @@ namespace Service
 
         public async Task<BaseResponse<PaginatedResponse<NewUserDto>>> GetAccountsPagedAsync(AccountListQuery query)
         {
-            var page = query.Page <= 0 ? 1 : query.Page;
-            var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
-
-            var usersQuery = _userManager.Users.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(query.SearchByName))
-            {
-                var keyword = query.SearchByName.Trim();
-                usersQuery = usersQuery.Where(u => u.UserName.Contains(keyword) || u.Name.Contains(keyword));
-            }
-
-            if (query.IsActive.HasValue)
-            {
-                usersQuery = usersQuery.Where(u => u.Status == query.IsActive.Value);
-            }
-
-            var total = await usersQuery.CountAsync();
-            var skip = (page <= 1 ? 0 : (page - 1) * pageSize);
-            var users = await usersQuery
-                .OrderBy(u => u.UserName)
-                .Skip(skip)
-                .Take(pageSize)
-                .ToListAsync();
+            var result = await _accountRepository.GetPagedUserList(query);
 
             var items = new List<NewUserDto>();
-            foreach (var user in users)
+            foreach (var user in result.items)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                if (!string.IsNullOrWhiteSpace(query.Role))
+                if (!string.IsNullOrWhiteSpace(query.Role?.ToString()))
                 {
-                    if (!roles.Contains(query.Role))
+                    if (!roles.Contains(query.Role.ToString()))
                     {
                         continue;
                     }
@@ -408,14 +386,14 @@ namespace Service
             var paginated = new PaginatedResponse<NewUserDto>
             {
                 Items = items,
-                TotalCount = total,
-                Page = page - 1,
-                Size = pageSize,
-                TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+                TotalCount = result.totalCount,
+                Page = result.page - 1,
+                Size = result.size,
+                TotalPages = (int)Math.Ceiling(result.totalCount / (double)query.PageSize)
             };
 
             return new BaseResponse<PaginatedResponse<NewUserDto>>(
-                "Accounts retrieved successfully",
+                "Lấy danh sách tài khoản thành công",
                 StatusCodeEnum.OK_200,
                 paginated
             );

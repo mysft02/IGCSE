@@ -47,7 +47,7 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, CourseStatusEnum? status)
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status)
         {
             var query = _context.Set<Course>().AsQueryable();
 
@@ -62,7 +62,7 @@ namespace Repository.Repositories
                 query = query.Where(c => c.CourseId == couseId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(status.ToString()))
+            if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(c => c.Status == status.ToString());
             }

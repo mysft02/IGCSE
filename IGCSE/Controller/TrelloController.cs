@@ -27,7 +27,7 @@ public class TrelloController : ControllerBase
     /// Search Trello tokens with filtering and pagination
     /// </summary>
     [HttpGet("search")]
-    [Authorize(Roles = "Teacher")]
+    [Authorize(Roles = "Teacher, Manager")]
     public async Task<IActionResult> SearchTrelloTokens([FromQuery] TrelloTokenQueryRequest request)
     {
         var userId = HttpContext.User.FindFirst("AccountID")?.Value;
@@ -45,7 +45,7 @@ public class TrelloController : ControllerBase
     }
     
     [HttpGet("{id}/boards")]
-    [Authorize(Roles = "Teacher, Admin")]
+    [Authorize(Roles = "Teacher, Manager")]
     public async Task<IActionResult> GetTrelloBoardsByUserId([FromRoute] string id)
     {
         var userId = HttpContext.User.FindFirst("AccountID")?.Value;
@@ -59,7 +59,7 @@ public class TrelloController : ControllerBase
 
     
     [HttpPost("{id}/boards/{boardId}")]
-    [Authorize(Roles = "Teacher, Admin")]
+    [Authorize(Roles = "Teacher, Manager")]
     [SwaggerOperation(
         Summary = "Tiến hành tự động upload khoá học từ Trello",
         Description = "API này cho phép tự động upload dữ liệu khoá học từ một board Trello cụ thể sang hệ thống. " +
@@ -79,7 +79,7 @@ public class TrelloController : ControllerBase
     }
 
     [HttpPost("mock-test/{id}/boards/{boardId}")]
-    [Authorize(Roles = "Teacher, Admin")]
+    [Authorize(Roles = "Teacher, Manager")]
     [SwaggerOperation(
         Summary = "Tiến hành tự động upload bài thi thử từ Trello",
         Description = "API này cho phép tự động upload dữ liệu bài thi thử từ một board Trello cụ thể sang hệ thống. " +
