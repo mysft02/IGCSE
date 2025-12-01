@@ -17,6 +17,14 @@ namespace BusinessObject.DTOs.Response.Courses
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
+
+        public int LikeCount { get; set; } = 0;
+
+        public int UnlikeCount { get; set; } = 0;
+
+        public bool IsLikedByCurrentUser { get; set; } = false;
+
+        public bool IsUnlikedByCurrentUser { get; set; } = false;
     }
 }
 

@@ -41,3 +41,5 @@
       file: ./ChangeLog/ticket-59.yaml
   - include:
       file: ./ChangeLog/ticket-60.yaml
+  - include:
+      file: ./ChangeLog/ticket-62.yaml

@@ -15,7 +15,7 @@ namespace Repository.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Lessonitem>> GetByLessonIdAsync(long lessonId)
+        public async Task<IEnumerable<Lessonitem>> GetByLessonIdAsync(int lessonId)
         {
             return await _context.Set<Lessonitem>()
                 .Where(li => li.LessonId == lessonId)
@@ -23,7 +23,7 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Lessonitem?> GetByLessonItemIdAsync(long lessonItemId)
+        public async Task<Lessonitem?> GetByLessonItemIdAsync(int lessonItemId)
         {
             return await _context.Set<Lessonitem>()
                 .FirstOrDefaultAsync(li => li.LessonItemId == lessonItemId);
