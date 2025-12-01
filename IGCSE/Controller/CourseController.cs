@@ -41,11 +41,60 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học", Description = "Lấy danh sách khóa học với các trạng thái: " +
-            "`1` là `open`(đã duyệt); " +
-            "`2` là `pending`(chưa được duyệt để public) " +
-            "`3` là `rejecte`(bị từ chối) " +
-            "nếu account đã đăng nhập với role là Student hoặc Parent thì chỉ lấy danh sấch các khóa học có status là open ")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách các khóa học (có paging và filter)", 
+            Description = @"Api dùng để lấy danh sách khóa học với phân trang và bộ lọc. Hệ thống tự động áp dụng filter theo role của user.
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 1) - Số trang
+  - `PageSize` (int, mặc định: 10) - Số lượng item mỗi trang
+  - `SearchByName` (string, optional) - Tìm kiếm theo tên khóa học
+  - `CouseId` (int, optional) - Lọc theo ID khóa học
+  - `Status` (string, optional) - Lọc theo trạng thái: `Open` (đã duyệt), `Pending` (chưa duyệt), `Rejected` (bị từ chối)
+
+**Logic tự động:**
+- Nếu user đã đăng nhập với role `Student` hoặc `Parent`: tự động filter chỉ lấy khóa học có status = `Open`
+- Nếu user chưa đăng nhập hoặc role khác: có thể lọc theo bất kỳ status nào
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Courses retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseId"": 1,
+        ""name"": ""Tên khóa học"",
+        ""description"": ""Mô tả khóa học"",
+        ""status"": ""Open"",
+        ""price"": 1000000,
+        ""imageUrl"": ""/path/to/image.jpg"",
+        ""createdAt"": ""2024-01-01T00:00:00Z"",
+        ""updatedAt"": ""2024-01-01T00:00:00Z""
+      }
+    ],
+    ""totalCount"": 50,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 5
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+```json
+{
+  ""message"": ""Error message"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Kết quả được sắp xếp mặc định theo thời gian tạo mới nhất")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             try
@@ -74,7 +123,91 @@ namespace IGCSE.Controller
 
         [HttpPost("{courseId}/feedbacks")]
         [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Tạo feedback cho khóa học (Student)", Description = "Chỉ học sinh đã học xong khóa học mới có thể gửi feedback (rating 1-5 và nhận xét). Mỗi học sinh chỉ gửi một lần.")]
+        [SwaggerOperation(
+            Summary = "Tạo feedback cho khóa học (Student)", 
+            Description = @"Api dùng để học sinh tạo feedback (đánh giá và nhận xét) cho khóa học. Chỉ học sinh đã hoàn thành khóa học mới có thể gửi feedback.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học
+- Body:
+```json
+{
+  ""rating"": 5,
+  ""comment"": ""Khóa học rất hay và bổ ích""
+}
+```
+  - `rating` (int, required) - Điểm đánh giá từ 1 đến 5
+  - `comment` (string, optional, max 2000 ký tự) - Nhận xét về khóa học
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Tạo feedback thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseFeedbackId"": 1,
+    ""courseId"": 34,
+    ""studentId"": ""user-id-123"",
+    ""studentName"": ""Nguyễn Văn A"",
+    ""rating"": 5,
+    ""comment"": ""Khóa học rất hay và bổ ích"",
+    ""createdAt"": ""2024-01-15T10:30:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi gửi feedback: Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Học sinh chưa đăng ký khóa học:**
+```json
+{
+  ""message"": ""Lỗi khi gửi feedback: Bạn cần đăng ký khóa học này trước khi gửi feedback"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Học sinh chưa hoàn thành khóa học:**
+```json
+{
+  ""message"": ""Lỗi khi gửi feedback: Chỉ học viên đã hoàn thành khóa học mới có thể gửi feedback"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Đã gửi feedback trước đó:**
+```json
+{
+  ""message"": ""Lỗi khi gửi feedback: Bạn đã gửi feedback cho khóa học này"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+5. **Rating không hợp lệ:**
+```json
+{
+  ""message"": ""Lỗi khi gửi feedback: Rating must be between 1 and 5"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Student role mới có quyền sử dụng API này
+- Mỗi học sinh chỉ có thể gửi một feedback cho mỗi khóa học
+- Học sinh phải hoàn thành 100% khóa học (tất cả lessons) mới có thể gửi feedback")]
         public async Task<ActionResult<BaseResponse<CourseFeedbackResponse>>> CreateFeedback(int courseId, [FromBody] CourseFeedbackRequest request)
         {
             try
@@ -100,12 +233,66 @@ namespace IGCSE.Controller
 
         [HttpGet("{courseId}/feedbacks")]
         [AllowAnonymous]
-        [SwaggerOperation(Summary = "Lấy danh sách feedback của khóa học", Description = "Trả về toàn bộ feedback (rating + comment) của khóa học")]
-        public async Task<ActionResult<BaseResponse<IEnumerable<CourseFeedbackResponse>>>> GetCourseFeedbacks(int courseId)
+        [SwaggerOperation(
+            Summary = "Lấy danh sách feedback của khóa học", 
+            Description = @"Api dùng để lấy danh sách feedback của một khóa học.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học
+- Query parameters:
+  - `Page` (int, mặc định: 1) - Số trang
+  - `PageSize` (int, mặc định: 10) - Số lượng item mỗi trang
+  - `Rating` (int, optional) - Lọc theo rating (1-5)
+  - `SearchByStudentName` (string, optional) - Tìm kiếm theo tên học viên
+  - `SortBy` (string, mặc định: ""date"") - Sắp xếp theo: ""date"" (ngày tạo) hoặc ""rating"" (điểm đánh giá)
+  - `SortOrder` (string, mặc định: ""desc"") - Thứ tự: ""asc"" (tăng dần) hoặc ""desc"" (giảm dần)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy danh sách feedback thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseFeedbackId"": 1,
+        ""courseId"": 34,
+        ""studentId"": ""user-id-123"",
+        ""studentName"": ""Nguyễn Văn A"",
+        ""rating"": 5,
+        ""comment"": ""Khóa học rất hay"",
+        ""createdAt"": ""2024-01-15T10:30:00Z"",
+        ""updatedAt"": ""2024-01-15T10:30:00Z""
+      }
+    ],
+    ""totalCount"": 25,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 3
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi lấy danh sách feedback: Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Mặc định sắp xếp theo ngày tạo mới nhất (desc)
+- Có thể kết hợp nhiều filter cùng lúc")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseFeedbackResponse>>>> GetCourseFeedbacks(int courseId, [FromQuery] CourseFeedbackQueryRequest request)
         {
             try
             {
-                var result = await _courseFeedbackService.GetCourseFeedbacksAsync(courseId);
+                var result = await _courseFeedbackService.GetCourseFeedbacksPagedAsync(courseId, request);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -120,7 +307,40 @@ namespace IGCSE.Controller
 
         [HttpGet("{courseId}/feedbacks/summary")]
         [AllowAnonymous]
-        [SwaggerOperation(Summary = "Lấy thống kê feedback của khóa học", Description = "Trả về điểm trung bình và tổng số feedback")]
+        [SwaggerOperation(
+            Summary = "Lấy thống kê feedback của khóa học", 
+            Description = @"Api dùng để lấy thống kê tổng quan về feedback của một khóa học (điểm trung bình và tổng số feedback).
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy thống kê feedback thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""averageRating"": 4.5,
+    ""totalFeedback"": 25
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi lấy thống kê feedback: Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- `averageRating` được làm tròn đến 2 chữ số thập phân
+- Nếu chưa có feedback nào, `averageRating` = 0 và `totalFeedback` = 0")]
         public async Task<ActionResult<BaseResponse<object>>> GetCourseFeedbackSummary(int courseId)
         {
             try
@@ -232,7 +452,53 @@ namespace IGCSE.Controller
 
         [HttpGet("my-registrations")]
         [Authorize(Roles = "Student")]
-        [SwaggerOperation(Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)", Description = "Api dùng để lấy danh sách các khóa học đã enroll của học sinh ")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách khóa học đã đăng ký của chính mình (Student)", 
+            Description = @"Api dùng để học sinh xem danh sách các khóa học đã đăng ký (enroll) của mình với phân trang.
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 0) - Số trang (0-based)
+  - `Size` (int, mặc định: 10) - Số lượng item mỗi trang
+  - Các query parameters khác tùy theo `CourseRegistrationQueryRequest`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy danh sách khóa học đã đăng ký thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseId"": 34,
+        ""courseName"": ""Tên khóa học"",
+        ""enrolledAt"": ""2024-01-01T00:00:00Z"",
+        ""overallProgress"": 65.5
+      }
+    ],
+    ""totalCount"": 10,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 1
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không xác định được tài khoản."",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Student role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Kết quả chỉ trả về các khóa học mà học sinh đã enroll")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>>> GetMyRegistrations([FromQuery] CourseRegistrationQueryRequest request)
         {
             try
@@ -260,7 +526,57 @@ namespace IGCSE.Controller
 
         [HttpGet("my-create-course")]
         [Authorize(Roles = "Teacher")]
-        [SwaggerOperation(Summary = "Lấy tất cả khóa học do teacher đã tạo (Teacher)", Description = "Api dùng để lấy danh sách các khóa học giáo viên đã tạo")]
+        [SwaggerOperation(
+            Summary = "Lấy tất cả khóa học do teacher đã tạo (Teacher)", 
+            Description = @"Api dùng để giáo viên xem danh sách các khóa học do chính mình tạo với phân trang và filter.
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 0) - Số trang (0-based)
+  - `Size` (int, mặc định: 10) - Số lượng item mỗi trang
+  - Các query parameters khác tùy theo `TeacherCourseQueryRequest`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy danh sách khóa học thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseId"": 34,
+        ""name"": ""Tên khóa học"",
+        ""description"": ""Mô tả khóa học"",
+        ""status"": ""Open"",
+        ""price"": 1000000,
+        ""imageUrl"": ""/path/to/image.jpg"",
+        ""createdAt"": ""2024-01-01T00:00:00Z"",
+        ""updatedAt"": ""2024-01-01T00:00:00Z""
+      }
+    ],
+    ""totalCount"": 15,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 2
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không xác định được tài khoản."",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- Teacher ID được lấy tự động từ JWT token
+- Kết quả chỉ trả về các khóa học do chính teacher đó tạo")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetMyCreatedCourses([FromQuery] TeacherCourseQueryRequest request)
         {
             var user = HttpContext.User;
@@ -278,7 +594,52 @@ namespace IGCSE.Controller
 
         [HttpGet("get-all-similar-courses")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy danh sách các khóa học tương tự", Description = "Api dùng để lấy danh sách các khóa học tương tự với khóa học hiện tại ")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách các khóa học tương tự", 
+            Description = @"Api dùng để lấy danh sách các khóa học tương tự với khóa học hiện tại dựa trên điểm số final quiz của user.
+
+**Request:**
+- Query parameter: `CourseId` (int, required) - ID của khóa học hiện tại
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Courses retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": [
+    {
+      ""courseId"": 35,
+      ""name"": ""Khóa học tương tự"",
+      ""description"": ""Mô tả khóa học"",
+      ""status"": ""Open"",
+      ""price"": 1000000,
+      ""imageUrl"": ""/path/to/image.jpg"",
+      ""createdAt"": ""2024-01-01T00:00:00Z"",
+      ""updatedAt"": ""2024-01-01T00:00:00Z""
+    }
+  ]
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""data"": ""Error details""
+}
+```
+
+**Logic:**
+- Hệ thống sử dụng điểm số final quiz của user để tính toán độ tương đồng
+- Nếu user chưa làm final quiz, score mặc định = 1
+- Các khóa học được sắp xếp theo độ tương đồng giảm dần
+
+**Lưu ý:**
+- Cần đăng nhập (Authorize) để sử dụng API này
+- User ID được lấy tự động từ JWT token")]
         public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCourses([FromQuery] SimilarCourseRequest request)
         {
             var user = HttpContext.User;
@@ -520,7 +881,66 @@ namespace IGCSE.Controller
 
         [HttpGet("get-linked-students-progress")]
         [Authorize(Roles = "Parent")]
-        [SwaggerOperation(Summary = "Xem tiến trình học của các học sinh đã liên kết với Parent (Parent)", Description = "Api dùng để lấy xem được tiến độ học các khóa học đã enroll của học sinh ")]
+        [SwaggerOperation(
+            Summary = "Xem tiến trình học của các học sinh đã liên kết với Parent (Parent)", 
+            Description = @"Api dùng để phụ huynh xem tiến trình học tập của tất cả các học sinh đã được liên kết với tài khoản của mình.
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 0) - Số trang (0-based)
+  - `Size` (int, mặc định: 10) - Số lượng item mỗi trang
+  - `SearchByStudentName` (string, optional) - Tìm kiếm theo tên học sinh
+  - `StudentId` (string, optional) - Lọc theo ID học sinh
+  - `CourseId` (int, optional) - Lọc theo ID khóa học
+  - `MinProgress` (double, optional) - Lọc theo tiến trình tối thiểu (%)
+  - `MaxProgress` (double, optional) - Lọc theo tiến trình tối đa (%)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy tiến trình học thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""studentId"": ""student-id-123"",
+        ""studentName"": ""Nguyễn Văn A"",
+        ""studentEmail"": ""student@example.com"",
+        ""courses"": [
+          {
+            ""courseId"": 34,
+            ""courseName"": ""Tên khóa học"",
+            ""enrolledAt"": ""2024-01-01T00:00:00Z"",
+            ""overallProgress"": 65.5,
+            ""sections"": []
+          }
+        ]
+      }
+    ],
+    ""totalCount"": 5,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 1
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không xác định được tài khoản."",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Parent role mới có quyền sử dụng API này
+- Parent ID được lấy tự động từ JWT token
+- Chỉ hiển thị các học sinh đã được liên kết với parent này
+- `overallProgress` được tính dựa trên số lesson đã hoàn thành / tổng số lesson")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<StudentProgressOverviewResponse>>>> GetLinkedStudentsProgress([FromQuery] StudentProgressQueryRequest request)
         {
             try
@@ -548,7 +968,55 @@ namespace IGCSE.Controller
 
         [HttpGet("course-buy-by-parent")]
         [Authorize(Roles = "Parent")]
-        [SwaggerOperation(Summary = "Xem danh sách khóa học Parent đã mua (Parent)", Description = "Api dùng để lấy danh sách các khóa học mà phụ huynh đã thanh toán ")]
+        [SwaggerOperation(
+            Summary = "Xem danh sách khóa học Parent đã mua (Parent)", 
+            Description = @"Api dùng để phụ huynh xem danh sách các khóa học mà mình đã thanh toán (mua) cho học sinh với phân trang.
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 0) - Số trang (0-based)
+  - `Size` (int, mặc định: 10) - Số lượng item mỗi trang
+  - Các query parameters khác tùy theo `ParentEnrollmentQueryRequest`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy danh sách khóa học đã mua thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseId"": 34,
+        ""courseName"": ""Tên khóa học"",
+        ""courseDescription"": ""Mô tả khóa học"",
+        ""imageUrl"": ""/path/to/image.jpg"",
+        ""enrolledAt"": ""2024-01-01T00:00:00Z""
+      }
+    ],
+    ""totalCount"": 20,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 2
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không xác định được tài khoản."",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Parent role mới có quyền sử dụng API này
+- Parent ID được lấy tự động từ JWT token
+- Kết quả chỉ trả về các khóa học mà parent đã thanh toán
+- Mỗi khóa học chỉ xuất hiện một lần trong danh sách (distinct)")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<ParentEnrollmentResponse>>>> GetCourseBuyByParent([FromQuery] ParentEnrollmentQueryRequest request)
         {
             var user = HttpContext.User;
@@ -567,7 +1035,56 @@ namespace IGCSE.Controller
 
         [HttpPut("{courseId}/approve")]
         [Authorize(Roles = "Manager")]
-        [SwaggerOperation(Summary = "Duyệt khóa học (Manager)", Description = "Api dùng để duyệt khóa học từ trạng thái Pending sang Open. Không thay đổi AvailableSlot")]
+        [SwaggerOperation(
+            Summary = "Duyệt khóa học (Manager)", 
+            Description = @"Api dùng để manager duyệt khóa học từ trạng thái `Pending` sang `Open` (cho phép công khai).
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần duyệt
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course approved successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 34,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Open"",
+    ""price"": 1000000,
+    ""imageUrl"": ""/path/to/image.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Khóa học không ở trạng thái Pending:**
+```json
+{
+  ""message"": ""Course is not in Pending status"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Manager role mới có quyền sử dụng API này
+- Chỉ có thể duyệt khóa học ở trạng thái `Pending`
+- Sau khi duyệt, khóa học sẽ chuyển sang trạng thái `Open` và có thể được công khai
+- `AvailableSlot` của teacher không thay đổi sau khi duyệt")]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> ApproveCourse(int courseId)
         {
             try
@@ -587,7 +1104,61 @@ namespace IGCSE.Controller
 
         [HttpPut("{courseId}/reject")]
         [Authorize(Roles = "Manager")]
-        [SwaggerOperation(Summary = "Từ chối khóa học (Manager)", Description = "Api dùng để từ chối khóa học từ trạng thái Pending sang Rejected. AvailableSlot sẽ +1 để trả lại slot cho teacher.")]
+        [SwaggerOperation(
+            Summary = "Từ chối khóa học (Manager)", 
+            Description = @"Api dùng để manager từ chối khóa học từ trạng thái `Pending` sang `Rejected`. Hệ thống sẽ tự động trả lại slot cho teacher.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần từ chối
+- Query parameter: `reason` (string, optional) - Lý do từ chối
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course rejected: Lý do từ chối"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 34,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Rejected"",
+    ""price"": 1000000,
+    ""imageUrl"": ""/path/to/image.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Khóa học không ở trạng thái Pending:**
+```json
+{
+  ""message"": ""Course is not in Pending status"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Logic tự động:**
+- Sau khi từ chối, khóa học chuyển sang trạng thái `Rejected`
+- `AvailableSlot` của teacher sẽ được tăng lên 1 (trả lại slot)
+- Nếu có `reason`, message sẽ bao gồm lý do từ chối
+
+**Lưu ý:**
+- Chỉ Manager role mới có quyền sử dụng API này
+- Chỉ có thể từ chối khóa học ở trạng thái `Pending`
+- Slot được trả lại tự động cho teacher tạo khóa học")]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> RejectCourse(int courseId, [FromQuery] string? reason = null)
         {
             try

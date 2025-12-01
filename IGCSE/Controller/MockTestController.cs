@@ -164,9 +164,57 @@ Lấy danh sách mock test với các trạng thái:
 
         [HttpGet("get-mocktest-results")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy danh sách kết quả các bài thi mock test đã làm", 
-            Description ="Api dùng để lấy danh sách toàn bộ kết quả bài mock test đã làm của người dùng. " +
-            "`MockTestId` để lọc theo danh sách bài mock test.")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách kết quả các bài thi mock test đã làm", 
+            Description = @"Api dùng để lấy danh sách toàn bộ kết quả bài mock test đã làm của người dùng với phân trang và bộ lọc.
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 0) - Số trang (0-based)
+  - `Size` (int, mặc định: 10) - Số lượng item mỗi trang
+  - `MockTestId` (int, optional) - Lọc theo ID bài mock test
+  - Các query parameters khác tùy theo `MockTestResultQueryRequest`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy kết quả mock test thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""mockTestResultId"": 1,
+        ""mockTestId"": 1,
+        ""mockTestTitle"": ""Mock Test Title"",
+        ""score"": 8.5,
+        ""dateTaken"": ""2024-01-15T10:30:00Z"",
+        ""isPassed"": true
+      }
+    ],
+    ""totalCount"": 20,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 2
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không tìm thấy thông tin người dùng:**
+```json
+{
+  ""message"": ""Không tìm thấy thông tin người dùng"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API yêu cầu đăng nhập (Authorize)
+- User ID được lấy tự động từ JWT token
+- Chỉ trả về kết quả của chính user đó
+- Có thể lọc theo `MockTestId` để xem kết quả của một bài mock test cụ thể")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>>> GetAllMockTestResult([FromQuery] MockTestResultQueryRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
