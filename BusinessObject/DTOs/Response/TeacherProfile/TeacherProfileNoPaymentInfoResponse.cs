@@ -1,8 +1,6 @@
-﻿using BusinessObject.Model;
-
-namespace BusinessObject.DTOs.Response.TeacherProfile
+﻿namespace BusinessObject.DTOs.Response.TeacherProfile
 {
-    public class TeacherProfileResponse
+    public class TeacherProfileNoPaymentInfoResponse
     {
         public int TeacherProfileId { get; set; }
 
@@ -17,13 +15,5 @@ namespace BusinessObject.DTOs.Response.TeacherProfile
         public string Experience { get; set; }
 
         public List<CertificateResponse> Certificates { get; set; } = new List<CertificateResponse>();
-
-        public PaymentInformationResponse PaymentInformation { get; set; }
-    }
-
-    public class PaymentInformationResponse
-    {
-        public string BankBin { get; set; }
-        public string BankAccountNumber { get; set; }
     }
 }

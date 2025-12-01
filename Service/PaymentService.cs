@@ -497,17 +497,31 @@ namespace Service
             var paymentResponse = await _payOSApiService.GetAsync<PayOSPaymentReturnResponse>(apiRequest);
 
             var info = paymentResponse.Data.Transactions.FirstOrDefault();
+            var result = new PaymentInformationResponse();
 
-            var paymentInfo = new Paymentinformation
+            var paymentInfo = new Paymentinformation();
+
+            var existed = await _paymentInformationRepository.FindOneAsync(x => x.UserId == userId);
+            if(existed == null)
             {
-                BankBin = info.CounterAccountBankId,
-                BankName = info.CounterAccountBankName,
-                BankAccountNumber = info.CounterAccountNumber,
-                UserId = userId,
-            };
+                paymentInfo = new Paymentinformation
+                {
+                    BankBin = info.CounterAccountBankId,
+                    BankAccountNumber = info.CounterAccountNumber,
+                    UserId = userId,
+                };
 
-            var paymentInfoQuery = await _paymentInformationRepository.AddAsync(paymentInfo);
-            var result = _mapper.Map<PaymentInformationResponse>(paymentInfoQuery);
+                var paymentInfoQuery = await _paymentInformationRepository.AddAsync(paymentInfo);
+                result = _mapper.Map<PaymentInformationResponse>(paymentInfoQuery);
+            }
+            else
+            {
+                existed.BankBin = info.CounterAccountBankId;
+                existed.BankAccountNumber = info.CounterAccountNumber;
+
+                var paymentInfoQuery = await _paymentInformationRepository.UpdateAsync(existed);
+                result = _mapper.Map<PaymentInformationResponse>(existed);
+            }
 
             return new BaseResponse<PaymentInformationResponse>(
                 "Tạo thông tin thanh toán thành công.",
