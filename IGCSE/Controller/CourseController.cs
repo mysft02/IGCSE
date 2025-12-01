@@ -41,6 +41,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
+        [AllowAnonymous]
         [SwaggerOperation(
             Summary = "Lấy danh sách các khóa học (có paging và filter)", 
             Description = @"Api dùng để lấy danh sách khóa học với phân trang và bộ lọc. Hệ thống tự động áp dụng filter theo role của user.
@@ -97,28 +98,10 @@ namespace IGCSE.Controller
 - Kết quả được sắp xếp mặc định theo thời gian tạo mới nhất")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
-            try
-            {
-                if (User.Identity?.IsAuthenticated == true)
-                {
-                    var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-                    if (roles.Contains("Parent") || roles.Contains("Student"))
-                    {
-                        query.Status = "Open";
-                    }
-                }
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-                var result = await _courseService.GetCoursesPagedAsync(query);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseService.GetCoursesPagedAsync(query);
+            return Ok(result);
         }
 
         [HttpPost("{courseId}/feedbacks")]

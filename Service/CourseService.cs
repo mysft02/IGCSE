@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Http;
 using Service.Trello;
 using BusinessObject.DTOs.Response.FinalQuizzes;
 using MimeKit.Tnef;
+using Org.BouncyCastle.Tls;
 
 namespace Service
 {
@@ -198,37 +199,11 @@ namespace Service
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            // Convert string status to enum
-            CourseStatusEnum? statusEnum = null;
-            if (!string.IsNullOrWhiteSpace(query.Status))
-            {
-                if (Enum.TryParse<CourseStatusEnum>(query.Status, true, out var parsedStatus))
-                {
-                    statusEnum = parsedStatus;
-                }
-            }
-
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, statusEnum);
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
-                if(!string.IsNullOrEmpty(course.ImageUrl))
-                {
-                    try
-                    {
-                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        // Nếu file không tồn tại, giữ nguyên ImageUrl hoặc set về null/empty
-                        course.ImageUrl = string.Empty;
-                    }
-                    catch (Exception)
-                    {
-                        // Xử lý các lỗi khác, giữ nguyên ImageUrl hoặc set về null/empty
-                        course.ImageUrl = string.Empty;
-                    }
-                }
+                course.ImageUrl = string.IsNullOrEmpty(course.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(course.ImageUrl);
             }
 
             var paginated = new PaginatedResponse<CourseResponse>
