@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Http;
 using Service.Trello;
 using BusinessObject.DTOs.Response.FinalQuizzes;
 using MimeKit.Tnef;
+using Org.BouncyCastle.Tls;
 
 namespace Service
 {
@@ -80,7 +81,7 @@ namespace Service
             _finalQuizResultRepository = finalQuizResultRepository;
         }
 
-        public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(long courseId)
+        public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(int courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -106,7 +107,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseResponse>> RejectCourseAsync(long courseId, string? reason)
+        public async Task<BaseResponse<CourseResponse>> RejectCourseAsync(int courseId, string? reason)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -143,7 +144,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(long courseId)
+        public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(int courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -198,27 +199,11 @@ namespace Service
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
-                if(!string.IsNullOrEmpty(course.ImageUrl))
-                {
-                    try
-                    {
-                        course.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        // Nếu file không tồn tại, giữ nguyên ImageUrl hoặc set về null/empty
-                        course.ImageUrl = string.Empty;
-                    }
-                    catch (Exception)
-                    {
-                        // Xử lý các lỗi khác, giữ nguyên ImageUrl hoặc set về null/empty
-                        course.ImageUrl = string.Empty;
-                    }
-                }
+                course.ImageUrl = string.IsNullOrEmpty(course.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(course.ImageUrl);
             }
 
             var paginated = new PaginatedResponse<CourseResponse>
@@ -302,7 +287,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<CourseSectionResponse>>> GetCourseSectionsAsync(long courseId)
+        public async Task<BaseResponse<IEnumerable<CourseSectionResponse>>> GetCourseSectionsAsync(int courseId)
         {
             var sections = await _coursesectionRepository.GetByCourseIdAsync(courseId);
             var responses = new List<CourseSectionResponse>();
@@ -328,7 +313,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<IEnumerable<LessonItemResponse>>> GetLessonItemsAsync(long lessonId)
+        public async Task<BaseResponse<IEnumerable<LessonItemResponse>>> GetLessonItemsAsync(int lessonId)
         {
             var lessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonId);
             var responses = new List<LessonItemResponse>();
@@ -768,7 +753,7 @@ namespace Service
             }
         }
 
-        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(long courseSectionId)
+        public async Task<BaseResponse<CourseSectionResponse>> GetCourseContentAsync(int courseSectionId)
         {
             try
             {

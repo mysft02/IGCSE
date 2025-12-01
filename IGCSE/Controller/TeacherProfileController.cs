@@ -1,7 +1,9 @@
 ﻿using BusinessObject.DTOs.Request.Certificates;
+using BusinessObject.DTOs.Request.Payments;
 using BusinessObject.DTOs.Request.TeacherProfiles;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.TeacherProfile;
+using BusinessObject.Payload.Response.PayOS;
 using Common.Constants;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
@@ -17,19 +19,91 @@ namespace IGCSE.Controller
     public class TeacherProfileController : ControllerBase
     {
         private readonly TeacherProfileService _teacherProfileService;
+        private readonly PaymentService _paymentService;
 
-        public TeacherProfileController(TeacherProfileService teacherProfileService)
+        public TeacherProfileController(TeacherProfileService teacherProfileService, PaymentService paymentService)
         {
             _teacherProfileService = teacherProfileService;
+            _paymentService = paymentService;
         }
 
         [HttpGet("get-teacher-profile-by-id")]
         [Authorize]
-        [SwaggerOperation(Summary = "Lấy hồ sơ theo id của giáo viên")]
-        public async Task<ActionResult<BaseResponse<TeacherProfileResponse>>> GetProfileById([FromQuery] string? id)
+        [SwaggerOperation(
+            Summary = "Lấy hồ sơ theo id của giáo viên",
+            Description = @"Api lấy về thông tin hồ sơ cá nhân của `Teacher`.
+**Request:**
+
+**Trường hợp 1: User có role `Teacher`**
+- Không cần truyền gì vô `id`. Hệ thống sẽ tự động lấy id từ token
+
+**Trường hợp 2: User có role khác hoặc là 1 `Teacher` khác**
+- Truyền `TeacherId` cần lấy thông tin vô `id`
+
+**Response:**
+
+**Trường hợp 1: User có role `Parent`, `Student` hoặc `Teacher` khác chỉ có thể coi thông tin cá nhân k có thông tin thanh toán**
+- Response Type: ""TeacherProfileNoPaymentInfoResponse""
+- Schema: 
+```json
+{
+  ""message"": ""string"",
+  ""statusCode"": 100,
+  ""data"": {
+    ""teacherProfileId"": 0,
+    ""teacherId"": ""string"",
+    ""teacherName"": ""string"",
+    ""description"": ""string"",
+    ""avatarUrl"": ""string"",
+    ""experience"": ""string"",
+    ""certificates"": [
+      {
+        ""certificateId"": 0,
+        ""name"": ""string"",
+        ""description"": ""string"",
+        ""imageUrl"": ""string""
+      }
+    ],
+  }
+}
+```
+
+**Trường hợp 2: User có role `Manager`, `Admin` hoặc `Teacher` muốn lấy thông tin của mình sẽ bao gồm cả thông tin thanh toán**
+- Response Type: ""TeacherProfileResponse""
+- Schema: 
+```json
+{
+  ""message"": ""string"",
+  ""statusCode"": 100,
+  ""data"": {
+    ""teacherProfileId"": 0,
+    ""teacherId"": ""string"",
+    ""teacherName"": ""string"",
+    ""description"": ""string"",
+    ""avatarUrl"": ""string"",
+    ""experience"": ""string"",
+    ""certificates"": [
+      {
+        ""certificateId"": 0,
+        ""name"": ""string"",
+        ""description"": ""string"",
+        ""imageUrl"": ""string""
+      }
+    ],
+    ""paymentInformation"": {
+      ""bankBin"": ""string"",
+      ""bankAccountNumber"": ""string""
+    }
+  }
+}
+```
+")]
+
+        public async Task<ActionResult<BaseResponse<object>>> GetProfileById([FromQuery] string? id)
         {
             var user = HttpContext.User;
             var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
 
             if (string.IsNullOrEmpty(userId))
             {
@@ -37,13 +111,12 @@ namespace IGCSE.Controller
             }
 
             var teacherId = userId;
-            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
-            if (userRole == "Manager")
+            if (!string.IsNullOrEmpty(id))
             {
                 teacherId = id;
             }
 
-            var result = await _teacherProfileService.GetProfileByIdAsync(teacherId);
+            var result = await _teacherProfileService.GetProfileByIdAsync(userId, teacherId, userRole);
             return Ok(result);
         }
 
@@ -92,6 +165,43 @@ namespace IGCSE.Controller
             }
 
             var result = await _teacherProfileService.UploadCertificate(request, userId);
+            return Ok(result);
+        }
+
+        [HttpGet("add-payment-information")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(Summary = "Lấy link thanh toán payos")]
+        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> AddPaymentInfo()
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _paymentService.AddPaymentInfo(userId);
+            return Ok(result);
+        }
+
+        [HttpPost("add-payment-info-callback")]
+        [SwaggerOperation(Summary = "Xử lí giao dịch sau khi thanh toán PayOS", Description = "Api dùng để xử lí sau khi PayOS return dữ liệu thanh toán về. " +
+            "Cột `Code` là trạng thái thanh toán: `00` là thành công, còn lại là thất bại. " +
+            "Cột `Id` là mã của giao dịch thanh toán payos. " +
+            "Cột `Cancel` là trạng thái huỷ. Nếu không huỷ là `false`, còn lại là `true`.")]
+        [Authorize]
+        public async Task<ActionResult<BaseResponse<PaymentInformationResponse>>> PaymentCallback([FromBody] PaymentCallBackRequest request)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _paymentService.AddPaymentInfoCallback(request, userId);
             return Ok(result);
         }
     }

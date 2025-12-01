@@ -15,6 +15,7 @@ namespace Service
         private readonly IStudentEnrollmentRepository _studentEnrollmentRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IProcessRepository _processRepository;
+        private readonly ICourseFeedbackReactionRepository _reactionRepository;
         private readonly IMapper _mapper;
 
         public CourseFeedbackService(
@@ -23,6 +24,7 @@ namespace Service
             IStudentEnrollmentRepository studentEnrollmentRepository,
             IAccountRepository accountRepository,
             IProcessRepository processRepository,
+            ICourseFeedbackReactionRepository reactionRepository,
             IMapper mapper)
         {
             _courseFeedbackRepository = courseFeedbackRepository;
@@ -30,6 +32,7 @@ namespace Service
             _studentEnrollmentRepository = studentEnrollmentRepository;
             _accountRepository = accountRepository;
             _processRepository = processRepository;
+            _reactionRepository = reactionRepository;
             _mapper = mapper;
         }
 
@@ -102,7 +105,7 @@ namespace Service
                 responses);
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseFeedbackResponse>>> GetCourseFeedbacksPagedAsync(int courseId, CourseFeedbackQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<CourseFeedbackResponse>>> GetCourseFeedbacksPagedAsync(int courseId, CourseFeedbackQueryRequest request, string? currentUserId = null)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
@@ -111,7 +114,25 @@ namespace Service
             }
 
             var (feedbacks, total) = await _courseFeedbackRepository.GetFeedbacksPagedAsync(courseId, request);
-            var responses = _mapper.Map<IEnumerable<CourseFeedbackResponse>>(feedbacks).ToList();
+            var feedbackList = feedbacks.ToList();
+            
+            var responses = new List<CourseFeedbackResponse>();
+            foreach (var feedback in feedbackList)
+            {
+                var response = _mapper.Map<CourseFeedbackResponse>(feedback);
+                // Sử dụng cache từ database
+                response.LikeCount = feedback.LikeCount;
+                response.UnlikeCount = feedback.UnlikeCount;
+                
+                // Kiểm tra trạng thái của current user nếu đã đăng nhập
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    response.IsLikedByCurrentUser = await _reactionRepository.HasUserLikedAsync(feedback.CourseFeedbackId, currentUserId);
+                    response.IsUnlikedByCurrentUser = await _reactionRepository.HasUserUnlikedAsync(feedback.CourseFeedbackId, currentUserId);
+                }
+                
+                responses.Add(response);
+            }
 
             var page = request.Page <= 0 ? 1 : request.Page;
             var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
@@ -130,6 +151,100 @@ namespace Service
                 "Lấy danh sách feedback thành công",
                 StatusCodeEnum.OK_200,
                 paginatedResponse);
+        }
+
+        public async Task<BaseResponse<CourseFeedbackResponse>> ReactToFeedbackAsync(int courseFeedbackId, string userId, string reactionType)
+        {
+            var feedback = await _courseFeedbackRepository.GetByIdAsync(courseFeedbackId);
+            if (feedback == null)
+            {
+                throw new Exception("Feedback not found");
+            }
+
+            if (reactionType != "Like" && reactionType != "Unlike")
+            {
+                throw new Exception("Reaction type must be 'Like' or 'Unlike'");
+            }
+
+            var existingReaction = await _reactionRepository.GetByFeedbackAndUserAsync(courseFeedbackId, userId);
+            var timestamp = DateTime.UtcNow;
+
+            if (existingReaction == null)
+            {
+                // Tạo reaction mới
+                var newReaction = new CourseFeedbackReaction
+                {
+                    CourseFeedbackId = courseFeedbackId,
+                    UserId = userId,
+                    ReactionType = reactionType,
+                    CreatedAt = timestamp,
+                    UpdatedAt = timestamp
+                };
+                await _reactionRepository.AddAsync(newReaction);
+
+                // Cập nhật cache
+                if (reactionType == "Like")
+                {
+                    feedback.LikeCount += 1;
+                }
+                else
+                {
+                    feedback.UnlikeCount += 1;
+                }
+            }
+            else
+            {
+                // Đã có reaction trước đó
+                if (existingReaction.ReactionType == reactionType)
+                {
+                    // Nếu click lại cùng loại reaction thì xóa (toggle off)
+                    await _reactionRepository.DeleteAsync(existingReaction);
+                    
+                    // Cập nhật cache
+                    if (reactionType == "Like")
+                    {
+                        feedback.LikeCount = Math.Max(0, feedback.LikeCount - 1);
+                    }
+                    else
+                    {
+                        feedback.UnlikeCount = Math.Max(0, feedback.UnlikeCount - 1);
+                    }
+                }
+                else
+                {
+                    // Đổi từ Like sang Unlike hoặc ngược lại
+                    var oldType = existingReaction.ReactionType;
+                    existingReaction.ReactionType = reactionType;
+                    existingReaction.UpdatedAt = timestamp;
+                    await _reactionRepository.UpdateAsync(existingReaction);
+
+                    // Cập nhật cache
+                    if (oldType == "Like")
+                    {
+                        feedback.LikeCount = Math.Max(0, feedback.LikeCount - 1);
+                        feedback.UnlikeCount += 1;
+                    }
+                    else
+                    {
+                        feedback.UnlikeCount = Math.Max(0, feedback.UnlikeCount - 1);
+                        feedback.LikeCount += 1;
+                    }
+                }
+            }
+
+            feedback.UpdatedAt = timestamp;
+            await _courseFeedbackRepository.UpdateAsync(feedback);
+
+            var response = _mapper.Map<CourseFeedbackResponse>(feedback);
+            response.LikeCount = feedback.LikeCount;
+            response.UnlikeCount = feedback.UnlikeCount;
+            response.IsLikedByCurrentUser = await _reactionRepository.HasUserLikedAsync(courseFeedbackId, userId);
+            response.IsUnlikedByCurrentUser = await _reactionRepository.HasUserUnlikedAsync(courseFeedbackId, userId);
+
+            return new BaseResponse<CourseFeedbackResponse>(
+                $"{(existingReaction == null ? "Thêm" : existingReaction.ReactionType == reactionType ? "Bỏ" : "Đổi")} {reactionType} thành công",
+                StatusCodeEnum.OK_200,
+                response);
         }
 
         public async Task<BaseResponse<object>> GetCourseFeedbackSummaryAsync(int courseId)

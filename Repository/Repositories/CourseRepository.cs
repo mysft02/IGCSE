@@ -5,11 +5,10 @@ using Repository.BaseRepository;
 using Repository.IRepositories;
 using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
-using BusinessObject.DTOs.Request.Courses;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Common.Constants;
+using BusinessObject.DTOs.Request.Courses;
 
 namespace Repository.Repositories
 {
@@ -26,13 +25,13 @@ namespace Repository.Repositories
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Course?> GetByCourseIdAsync(long courseId)
+        public async Task<Course?> GetByCourseIdAsync(int courseId)
         {
             return await _context.Set<Course>()
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<Course?> GetByCourseIdWithCategoryAsync(long courseId)
+        public async Task<Course?> GetByCourseIdWithCategoryAsync(int courseId)
         {
             return await _context.Set<Course>()
                 .Include(c => c.Module)
@@ -40,37 +39,37 @@ namespace Repository.Repositories
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId)
+        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId)
         {
             return await _context.Set<Course>()
                 .Where(c => c.ModuleId == categoryId)
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, string? status)
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query)
         {
-            var query = _context.Set<Course>().AsQueryable();
+            var courseQuery = _context.Set<Course>().AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(searchByName))
+            if (!string.IsNullOrWhiteSpace(query.SearchByName))
             {
-                var keyword = searchByName.Trim();
-                query = query.Where(c => c.Name.Contains(keyword));
+                var keyword = query.SearchByName.Trim();
+                courseQuery = courseQuery.Where(c => c.Name.Contains(keyword));
             }
 
-            if (couseId.HasValue)
+            if (query.CouseId.HasValue)
             {
-                query = query.Where(c => c.CourseId == couseId.Value);
+                courseQuery = courseQuery.Where(c => c.CourseId == query.CouseId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(query.Status.ToString()))
             {
-                query = query.Where(c => c.Status == status.ToString());
+                courseQuery = courseQuery.Where(c => c.Status == query.Status.ToString());
             }
 
-            var total = await query.CountAsync();
+            var total = await courseQuery.CountAsync();
 
             var skip = (page <= 1 ? 0 : (page - 1) * pageSize);
-            var items = await query
+            var items = await courseQuery
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip(skip)
                 .Take(pageSize)
@@ -78,7 +77,7 @@ namespace Repository.Repositories
 
             return (items, total);
         }
-        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(int courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);
 

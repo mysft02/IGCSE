@@ -5,7 +5,7 @@ namespace Repository.IRepositories
 {
     public interface ILessonitemRepository : IBaseRepository<Lessonitem>
     {
-        Task<IEnumerable<Lessonitem>> GetByLessonIdAsync(long lessonId);
-        Task<Lessonitem?> GetByLessonItemIdAsync(long lessonItemId);
+        Task<IEnumerable<Lessonitem>> GetByLessonIdAsync(int lessonId);
+        Task<Lessonitem?> GetByLessonItemIdAsync(int lessonItemId);
     }
 }

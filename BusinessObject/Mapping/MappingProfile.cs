@@ -213,9 +213,12 @@ namespace BusinessObject.Mapping
             CreateMap<Package, PackageUpdateRequest>().ReverseMap();
 
             CreateMap<Teacherprofile, TeacherProfileResponse>().ReverseMap();
+            CreateMap<Teacherprofile, TeacherProfileNoPaymentInfoResponse>().ReverseMap();
             CreateMap<Certificate, CertificateResponse>().ReverseMap();
 
             CreateMap<Finalquiz, FinalQuizCourseDetailResponse>().ReverseMap();
+
+            CreateMap<Paymentinformation, PaymentInformationResponse>().ReverseMap();
         }
     }
 }

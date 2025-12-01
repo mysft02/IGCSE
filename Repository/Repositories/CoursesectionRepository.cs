@@ -15,7 +15,7 @@ namespace Repository.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Coursesection>> GetByCourseIdAsync(long courseId)
+        public async Task<IEnumerable<Coursesection>> GetByCourseIdAsync(int courseId)
         {
             return await _context.Set<Coursesection>()
                 .Include(cs => cs.Course)
@@ -24,14 +24,14 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Coursesection?> GetByCourseSectionIdAsync(long courseSectionId)
+        public async Task<Coursesection?> GetByCourseSectionIdAsync(int courseSectionId)
         {
             return await _context.Set<Coursesection>()
                 .Include(cs => cs.Course)
                 .FirstOrDefaultAsync(cs => cs.CourseSectionId == courseSectionId);
         }
 
-        public async Task<IEnumerable<Coursesection>> GetActiveSectionsByCourseAsync(long courseId)
+        public async Task<IEnumerable<Coursesection>> GetActiveSectionsByCourseAsync(int courseId)
         {
             return await _context.Set<Coursesection>()
                 .Include(cs => cs.Course)

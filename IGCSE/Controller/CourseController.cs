@@ -41,6 +41,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("all")]
+        [AllowAnonymous]
         [SwaggerOperation(
             Summary = "Lấy danh sách các khóa học (có paging và filter)", 
             Description = @"Api dùng để lấy danh sách khóa học với phân trang và bộ lọc. Hệ thống tự động áp dụng filter theo role của user.
@@ -97,28 +98,10 @@ namespace IGCSE.Controller
 - Kết quả được sắp xếp mặc định theo thời gian tạo mới nhất")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
-            try
-            {
-                if (User.Identity?.IsAuthenticated == true)
-                {
-                    var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-                    if (roles.Contains("Parent") || roles.Contains("Student"))
-                    {
-                        query.Status = "Open";
-                    }
-                }
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
-                var result = await _courseService.GetCoursesPagedAsync(query);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
+            var result = await _courseService.GetCoursesPagedAsync(query);
+            return Ok(result);
         }
 
         [HttpPost("{courseId}/feedbacks")]
@@ -262,7 +245,11 @@ namespace IGCSE.Controller
         ""rating"": 5,
         ""comment"": ""Khóa học rất hay"",
         ""createdAt"": ""2024-01-15T10:30:00Z"",
-        ""updatedAt"": ""2024-01-15T10:30:00Z""
+        ""updatedAt"": ""2024-01-15T10:30:00Z"",
+        ""likeCount"": 11,
+        ""unlikeCount"": 2,
+        ""isLikedByCurrentUser"": true,
+        ""isUnlikedByCurrentUser"": false
       }
     ],
     ""totalCount"": 25,
@@ -286,19 +273,177 @@ namespace IGCSE.Controller
 
 **Lưu ý:**
 - API có thể truy cập công khai (không cần đăng nhập)
+- Nếu user đã đăng nhập, `isLikedByCurrentUser` và `isUnlikedByCurrentUser` sẽ hiển thị trạng thái reaction của user
+- Nếu user chưa đăng nhập, `isLikedByCurrentUser` và `isUnlikedByCurrentUser` sẽ luôn là `false`
 - Mặc định sắp xếp theo ngày tạo mới nhất (desc)
 - Có thể kết hợp nhiều filter cùng lúc")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseFeedbackResponse>>>> GetCourseFeedbacks(int courseId, [FromQuery] CourseFeedbackQueryRequest request)
         {
             try
             {
-                var result = await _courseFeedbackService.GetCourseFeedbacksPagedAsync(courseId, request);
+                string? currentUserId = null;
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    currentUserId = User.FindFirst("AccountID")?.Value;
+                }
+
+                var result = await _courseFeedbackService.GetCourseFeedbacksPagedAsync(courseId, request, currentUserId);
                 return Ok(result);
             }
             catch (Exception ex)
             {
                 return BadRequest(new BaseResponse<string>(
                     $"Lỗi khi lấy danh sách feedback: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("{courseId}/feedbacks/{feedbackId}/like")]
+        [Authorize]
+        [SwaggerOperation(
+            Summary = "Like feedback (Authorize)", 
+            Description = @"Api dùng để user like một feedback. Logic hoạt động giống Shopee:
+- Nếu chưa like/unlike: tạo like mới
+- Nếu đã like: bỏ like (toggle off)
+- Nếu đã unlike: đổi từ unlike sang like
+
+**Request:**
+- Path parameters:
+  - `courseId` (int) - ID của khóa học
+  - `feedbackId` (int) - ID của feedback cần like
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Thêm Like thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseFeedbackId"": 1,
+    ""courseId"": 34,
+    ""studentId"": ""user-id-123"",
+    ""studentName"": ""Nguyễn Văn A"",
+    ""rating"": 5,
+    ""comment"": ""Khóa học rất hay"",
+    ""createdAt"": ""2024-01-15T10:30:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z"",
+    ""likeCount"": 11,
+    ""unlikeCount"": 2,
+    ""isLikedByCurrentUser"": true,
+    ""isUnlikedByCurrentUser"": false
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Feedback không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi like feedback: Feedback not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API yêu cầu đăng nhập (Authorize)
+- User ID được lấy tự động từ JWT token
+- Mỗi user chỉ có thể like hoặc unlike một lần (không thể cùng lúc cả hai)
+- Có thể toggle (bật/tắt) like bằng cách click lại")]
+        public async Task<ActionResult<BaseResponse<CourseFeedbackResponse>>> LikeFeedback(int courseId, int feedbackId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseFeedbackService.ReactToFeedbackAsync(feedbackId, userId, "Like");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi like feedback: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("{courseId}/feedbacks/{feedbackId}/unlike")]
+        [Authorize]
+        [SwaggerOperation(
+            Summary = "Unlike feedback (Authorize)", 
+            Description = @"Api dùng để user unlike một feedback. Logic hoạt động giống Shopee:
+- Nếu chưa like/unlike: tạo unlike mới
+- Nếu đã unlike: bỏ unlike (toggle off)
+- Nếu đã like: đổi từ like sang unlike
+
+**Request:**
+- Path parameters:
+  - `courseId` (int) - ID của khóa học
+  - `feedbackId` (int) - ID của feedback cần unlike
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Thêm Unlike thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseFeedbackId"": 1,
+    ""courseId"": 34,
+    ""studentId"": ""user-id-123"",
+    ""studentName"": ""Nguyễn Văn A"",
+    ""rating"": 5,
+    ""comment"": ""Khóa học rất hay"",
+    ""createdAt"": ""2024-01-15T10:30:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z"",
+    ""likeCount"": 10,
+    ""unlikeCount"": 3,
+    ""isLikedByCurrentUser"": false,
+    ""isUnlikedByCurrentUser"": true
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Feedback không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi unlike feedback: Feedback not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API yêu cầu đăng nhập (Authorize)
+- User ID được lấy tự động từ JWT token
+- Mỗi user chỉ có thể like hoặc unlike một lần (không thể cùng lúc cả hai)
+- Có thể toggle (bật/tắt) unlike bằng cách click lại")]
+        public async Task<ActionResult<BaseResponse<CourseFeedbackResponse>>> UnlikeFeedback(int courseId, int feedbackId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseFeedbackService.ReactToFeedbackAsync(feedbackId, userId, "Unlike");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi unlike feedback: {ex.Message}",
                     StatusCodeEnum.BadRequest_400,
                     null
                 ));
