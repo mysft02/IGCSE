@@ -31,7 +31,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("trello/callback")]
-        [Authorize(Roles = "Teacher")]
+        [Authorize(Roles = "Teacher, Manager")]
         [SwaggerOperation(Summary = "Callback từ Trello")]
         public async Task<ActionResult<BaseResponse<string>>> CallbackTrello([FromQuery] string token)
         {

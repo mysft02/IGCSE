@@ -18,35 +18,59 @@ namespace Service
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly MediaService _mediaService;
         private readonly ICertificateRepository _certificateRepository;
+        private readonly IPaymentInformationRepository _paymentInformationRepository;
 
         public TeacherProfileService(
             ITeacherProfileRepository teacherProfileRepository,
             IMapper mapper,
             IWebHostEnvironment webHostEnvironment,
             MediaService mediaService,
-            ICertificateRepository certificateRepository)
+            ICertificateRepository certificateRepository,
+            IPaymentInformationRepository paymentInformationRepository)
         {
             _teacherProfileRepository = teacherProfileRepository;
             _mapper = mapper;
             _webHostEnvironment = webHostEnvironment;
             _mediaService = mediaService;
             _certificateRepository = certificateRepository;
+            _paymentInformationRepository = paymentInformationRepository;
         }
 
-        public async Task<BaseResponse<TeacherProfileResponse>> GetProfileByIdAsync(string teacherId)
+        public async Task<BaseResponse<object>> GetProfileByIdAsync(string userId, string teacherId, string userRole)
         {
             var teacherProfile = await _teacherProfileRepository.FindOneWithIncludeAsync(x => x.TeacherId == teacherId, c => c.Certificates);
-            var result = _mapper.Map<TeacherProfileResponse>(teacherProfile);
-            result.AvatarUrl = await _mediaService.GetMediaUrlAsync(result.AvatarUrl);
-            foreach(var certificate in result.Certificates)
+            if(teacherProfile == null)
             {
-                certificate.ImageUrl = await _mediaService.GetMediaUrlAsync(certificate.ImageUrl);
+                throw new Exception("Hồ sơ giáo viên chưa được tạo.");
+            }
+            teacherProfile.AvatarUrl = string.IsNullOrEmpty(teacherProfile.AvatarUrl) ? "" : await _mediaService.GetMediaUrlAsync(teacherProfile.AvatarUrl);
+
+            if (teacherProfile.Certificates != null)
+            {
+                foreach (var certificate in teacherProfile.Certificates)
+                {
+                    certificate.ImageUrl = string.IsNullOrEmpty(certificate.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(certificate.ImageUrl);
+                }
             }
 
-            return new BaseResponse<TeacherProfileResponse>(
-                "Lấy profile giáo viên thành công",
-                StatusCodeEnum.OK_200,
-                result);
+            if (userRole == "Manager" || userRole == "Admin" || userId == teacherProfile.TeacherId)
+            {
+                var result = _mapper.Map<TeacherProfileResponse>(teacherProfile);
+                var paymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == teacherId);
+                result.PaymentInformation = _mapper.Map<PaymentInformationResponse>(paymentInfo);
+
+                return new BaseResponse<object>(
+                    "Lấy profile giáo viên thành công",
+                    StatusCodeEnum.OK_200,
+                    result);
+            }
+
+            var response = _mapper.Map<TeacherProfileNoPaymentInfoResponse>(teacherProfile);
+
+            return new BaseResponse<object>(
+                    "Lấy profile giáo viên thành công",
+                    StatusCodeEnum.OK_200,
+                    response);
         }
 
         public async Task<BaseResponse<TeacherProfileResponse>> CreateTeacherProfile(TeacherProfileCreateRequest request, string userId)
