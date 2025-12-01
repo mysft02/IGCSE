@@ -68,47 +68,51 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-account")]
+        [Authorize(Roles = "Admin")]
         [SwaggerOperation(
-            Summary = "Lấy danh sách tất cả tài khoản (có paging và filter)", 
-            Description = @"Api dùng để lấy danh sách tất cả tài khoản trong hệ thống với phân trang và bộ lọc.
+            Summary = "Lấy danh sách tài khoản",
+            Description = @"Api trả về danh sách tài khoản cho admin quản lí:
 
-**Request:**
-- Query parameters:
-  - `Page` (int, mặc định: 1) - Số trang
-  - `PageSize` (int, mặc định: 10) - Số lượng item mỗi trang
-  - Các query parameters khác tùy theo `AccountListQuery`
+**Request `AccountListQuery`:**
+- `SearchByName` (string): tìm kiếm theo tên tài khoản
 
-**Response Schema - Trường hợp thành công:**
+- `Role` (`UserRoleEnum`): tìm kiếm theo role của tài khoản 
+**Lưu ý**: `1` là `Admin`, `2` là `Teacher`, `3` là `Parent`, `4` là `Student`, `5` là `Manager`
+
+- `IsActive` (bool): tìm kiếm theo trang thái hoạt động tài khoản. `true` là hoạt động, `false` là ngừng hoạt động
+
+**Response `FinalQuizResultReviewResponse`:**
+- Schema :
 ```json
 {
-  ""message"": ""Accounts retrieved successfully"",
-  ""statusCode"": 200,
+  ""message"": ""string"",
+  ""statusCode"": 100,
   ""data"": {
     ""items"": [
       {
-        ""userID"": ""user-id-123"",
-        ""userName"": ""username"",
-        ""email"": ""user@example.com"",
-        ""name"": ""Nguyễn Văn A"",
+        ""userID"": ""string"",
+        ""userName"": ""string"",
+        ""email"": ""string"",
+        ""name"": ""string"",
+        ""address"": ""string"",
+        ""phone"": ""string"",
         ""isActive"": true,
-        ""roles"": [""Student""]
+        ""roles"": [
+          ""string""
+        ]
       }
     ],
-    ""totalCount"": 100,
+    ""totalCount"": 0,
     ""page"": 0,
-    ""size"": 10,
-    ""totalPages"": 10
+    ""size"": 0,
+    ""totalPages"": 0,
+    ""hasNextPage"": true,
+    ""hasPreviousPage"": true,
+    ""currentPage"": 0
   }
 }
 ```
-
-**Response Schema - Trường hợp lỗi:**
-```json
-{
-  ""message"": ""Error message"",
-  ""statusCode"": 400,
-  ""data"": null
-}")]
+")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<NewUserDto>>>> GetAllAccountsAsync([FromQuery] AccountListQuery query)
         {
             var result = await _accountService.GetAccountsPagedAsync(query);

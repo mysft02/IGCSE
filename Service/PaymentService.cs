@@ -126,7 +126,7 @@ namespace Service
                 {
                     throw new Exception("Không tìm thấy khoá học này");
                 }
-                var teacherPaymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == userId);
+                var teacherPaymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == course.CreatedBy);
 
                 var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
                 studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
@@ -270,7 +270,7 @@ namespace Service
                     throw new Exception("Không tìm thấy khoá học này.");
                 }
 
-                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId && x.ParentId == userId);
+                var existed = await _studentEnrollmentRepository.FindOneAsync(x => x.StudentId == request.DestUserId && x.CourseId == request.CourseId);
                 if(existed == null)
                 {
                     var enroll = new Studentenrollment

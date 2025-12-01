@@ -62,7 +62,7 @@ namespace Repository.Repositories
                 query = query.Where(c => c.CourseId == couseId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(status.ToString()))
+            if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(c => c.Status == status.ToString());
             }
