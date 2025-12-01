@@ -1,4 +1,6 @@
-﻿namespace BusinessObject.DTOs.Response.TeacherProfile
+﻿using BusinessObject.Model;
+
+namespace BusinessObject.DTOs.Response.TeacherProfile
 {
     public class TeacherProfileResponse
     {
@@ -15,5 +17,13 @@
         public string Experience { get; set; }
 
         public List<CertificateResponse> Certificates { get; set; } = new List<CertificateResponse>();
+
+        public PaymentInformationResponse PaymentInformation { get; set; }
+    }
+
+    public class PaymentInformationResponse
+    {
+        public string BankName { get; set; }
+        public string BankAccount { get; set; }
     }
 }

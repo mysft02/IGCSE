@@ -2,6 +2,7 @@
 using BusinessObject.DTOs.Request.TeacherProfiles;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.TeacherProfile;
+using BusinessObject.Payload.Response.PayOS;
 using Common.Constants;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
@@ -17,10 +18,12 @@ namespace IGCSE.Controller
     public class TeacherProfileController : ControllerBase
     {
         private readonly TeacherProfileService _teacherProfileService;
+        private readonly PaymentService _paymentService;
 
-        public TeacherProfileController(TeacherProfileService teacherProfileService)
+        public TeacherProfileController(TeacherProfileService teacherProfileService, PaymentService paymentService)
         {
             _teacherProfileService = teacherProfileService;
+            _paymentService = paymentService;
         }
 
         [HttpGet("get-teacher-profile-by-id")]
@@ -92,6 +95,23 @@ namespace IGCSE.Controller
             }
 
             var result = await _teacherProfileService.UploadCertificate(request, userId);
+            return Ok(result);
+        }
+
+        [HttpPost("add-payment-information")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(Summary = "Lấy link thanh toán payos")]
+        public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> AddPaymentInfo()
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _paymentService.AddPaymentInfo(userId);
             return Ok(result);
         }
     }

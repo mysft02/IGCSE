@@ -641,6 +641,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
             entity.Property(e => e.BankAccountNumber).HasMaxLength(255);
             entity.Property(e => e.BankBin).HasMaxLength(255);
+            entity.Property(e => e.BankName).HasMaxLength(255);
             entity.Property(e => e.UserId).HasMaxLength(255);
         });
 
