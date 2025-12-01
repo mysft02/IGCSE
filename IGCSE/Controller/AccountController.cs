@@ -34,6 +34,51 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-account")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách tài khoản",
+            Description = @"Api trả về danh sách tài khoản cho admin quản lí:
+
+**Request `AccountListQuery`:**
+- `SearchByName` (string): tìm kiếm theo tên tài khoản
+
+- `Role` (`UserRoleEnum`): tìm kiếm theo role của tài khoản 
+**Lưu ý**: `1` là `Admin`, `2` là `Teacher`, `3` là `Parent`, `4` là `Student`, `5` là `Manager`
+
+- `IsActive` (bool): tìm kiếm theo trang thái hoạt động tài khoản. `true` là hoạt động, `false` là ngừng hoạt động
+
+**Response `FinalQuizResultReviewResponse`:**
+- Schema :
+```json
+{
+  ""message"": ""string"",
+  ""statusCode"": 100,
+  ""data"": {
+    ""items"": [
+      {
+        ""userID"": ""string"",
+        ""userName"": ""string"",
+        ""email"": ""string"",
+        ""name"": ""string"",
+        ""address"": ""string"",
+        ""phone"": ""string"",
+        ""isActive"": true,
+        ""roles"": [
+          ""string""
+        ]
+      }
+    ],
+    ""totalCount"": 0,
+    ""page"": 0,
+    ""size"": 0,
+    ""totalPages"": 0,
+    ""hasNextPage"": true,
+    ""hasPreviousPage"": true,
+    ""currentPage"": 0
+  }
+}
+```
+")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<NewUserDto>>>> GetAllAccountsAsync([FromQuery] AccountListQuery query)
         {
             var result = await _accountService.GetAccountsPagedAsync(query);
