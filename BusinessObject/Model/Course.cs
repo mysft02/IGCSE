@@ -39,4 +39,6 @@ public class Course
     public virtual ICollection<Coursesection> CourseSections { get; set; }
 
     public virtual ICollection<Coursefeedback> CourseFeedbacks { get; set; } = new List<Coursefeedback>();
+
+    public virtual ICollection<Studentenrollment> StudentEnrollments { get; set; } = new List<Studentenrollment>();
 }

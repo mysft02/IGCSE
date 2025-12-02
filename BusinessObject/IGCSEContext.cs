@@ -442,7 +442,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                 .HasConstraintName("fk_studentenrollment_student");
 
             entity.HasOne(e => e.Course)
-                .WithMany()
+                .WithMany(c => c.StudentEnrollments)
                 .HasForeignKey(e => e.CourseId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_studentenrollment_course");

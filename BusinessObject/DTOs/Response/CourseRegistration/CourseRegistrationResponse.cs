@@ -8,7 +8,11 @@ namespace BusinessObject.DTOs.Response.CourseRegistration
 
         public string CourseName { get; set; } = string.Empty;
 
+        public string CourseDescription { get; set; }
+
         public string? ImageUrl { get; set; }
+
+        public string CreatedBy { get; set; }
 
         public DateTime EnrollmentDate { get; set; }
 
