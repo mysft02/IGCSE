@@ -20,6 +20,7 @@ using Service.Trello;
 using BusinessObject.DTOs.Response.FinalQuizzes;
 using MimeKit.Tnef;
 using Org.BouncyCastle.Tls;
+using Org.BouncyCastle.Ocsp;
 
 namespace Service
 {
@@ -1277,6 +1278,52 @@ namespace Service
                         Size = request.GetPageSize(),
                         TotalPages = totalPages
                     }
+                );
+        }
+
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetSimilarCourses(string userId, string userRole)
+        {
+            var embeddingData = new List<float>();
+
+            if(userRole == "Student")
+            {
+                var request = await _courseRepository.GetCourseAndFinalQuizResult(userId);
+                embeddingData = await _openAIEmbeddingsApiService.EmbedData(request);
+            }
+
+            if(userRole == "Parent")
+            {
+                var request = new List<SimilarCourseForStudentRequest>();
+
+                var studentList = await _parentStudentLinkRepository.FindAsync(x => x.ParentId == userId);
+                if(studentList == null)
+                {
+                    var parentData = await _courseRepository.GetCourseAndFinalQuizResult(userId);
+                }
+
+                foreach(var student in studentList)
+                {
+                    var studentData = await _courseRepository.GetCourseAndFinalQuizResult(student.StudentId);
+                    request.Add(studentData);
+                }
+
+                embeddingData = await _openAIEmbeddingsApiService.EmbedData(request);
+            }
+
+            var courseList = await _courseRepository.GetAllSimilarCoursesForStudentAsync(embeddingData);
+
+            var result = new List<CourseResponse>();
+            foreach (var course in courseList)
+            {
+                var courseResponse = _mapper.Map<CourseResponse>(course);
+                courseResponse.ImageUrl = string.IsNullOrEmpty(courseResponse.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                result.Add(courseResponse);
+            }
+
+            return new BaseResponse<IEnumerable<CourseResponse>>(
+                "Lấy danh sách khoá học tương tự thành công.",
+                StatusCodeEnum.OK_200,
+                result
                 );
         }
     }

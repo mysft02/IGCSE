@@ -18,5 +18,7 @@ namespace Repository.IRepositories
         Task<CourseAnalyticsResponse> GetCourseAnalyticsAsync(int courseId);
         Task<CourseDetailWithoutProgressResponse> GetCourseDetailAsync(int courseId);
         Task<bool> CheckOwnedByLessonItemId(int lessonItemId, string userId);
+        Task<SimilarCourseForStudentRequest> GetCourseAndFinalQuizResult(string userId);
+        Task<IEnumerable<Course>> GetAllSimilarCoursesForStudentAsync(List<float> embeddingData);
     }
 }

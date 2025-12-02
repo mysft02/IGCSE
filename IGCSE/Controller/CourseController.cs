@@ -9,6 +9,7 @@ using Service;
 using Swashbuckle.AspNetCore.Annotations;
 using Common.Constants;
 using System.Security.Claims;
+using Common.Utils;
 
 
 namespace IGCSE.Controller
@@ -803,6 +804,69 @@ namespace IGCSE.Controller
             }
 
             var result = await _courseService.GetAllSimilarCoursesAsync(request.CourseId, userId);
+            return Ok(result);
+        }
+
+        [HttpGet("get-introduced-courses")]
+        [Authorize(Roles = "Parent, Student")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách các khóa học tương tự",
+            Description = @"Api dùng để lấy danh sách các khóa học tương tự với khóa học hiện tại dựa trên điểm số final quiz của user.
+
+**Request:**
+- Query parameter: `CourseId` (int, required) - ID của khóa học hiện tại
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Courses retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": [
+    {
+      ""courseId"": 35,
+      ""name"": ""Khóa học tương tự"",
+      ""description"": ""Mô tả khóa học"",
+      ""status"": ""Open"",
+      ""price"": 1000000,
+      ""imageUrl"": ""/path/to/image.jpg"",
+      ""createdAt"": ""2024-01-01T00:00:00Z"",
+      ""updatedAt"": ""2024-01-01T00:00:00Z""
+    }
+  ]
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""data"": ""Error details""
+}
+```
+
+**Logic:**
+- Hệ thống sử dụng điểm số final quiz của user để tính toán độ tương đồng
+- Nếu user chưa làm final quiz, score mặc định = 1
+- Các khóa học được sắp xếp theo độ tương đồng giảm dần
+
+**Lưu ý:**
+- Cần đăng nhập (Authorize) để sử dụng API này
+- User ID được lấy tự động từ JWT token")]
+        public async Task<ActionResult<BaseResponse<IEnumerable<CourseResponse>>>> GetAllSimilarCoursesWithFinalQuizResultList()
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _courseService.GetSimilarCourses(userId, userRole);
             return Ok(result);
         }
 
