@@ -20,6 +20,7 @@ using Service.Trello;
 using BusinessObject.DTOs.Response.FinalQuizzes;
 using MimeKit.Tnef;
 using Org.BouncyCastle.Tls;
+using Org.BouncyCastle.Ocsp;
 
 namespace Service
 {
@@ -666,42 +667,30 @@ namespace Service
 
         // ========== Methods from CourseRegistrationService ==========
 
-        public async Task<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>> GetStudentRegistrationsAsync(string studentId, CourseRegistrationQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>> GetStudentRegistrationsAsync(string studentId, CourseRegistrationQueryRequest request, string userRole)
         {
             try
             {
-                // Lấy từ process table như cũ
                 var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId, c => c.Course);
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
                 
                 foreach (var g in grouped)
                 {
-                    var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
+                    var course = g.First().Course;
                     if (course == null) continue;
                     var first = g.MinBy(p => p.Course.CreatedAt ?? DateTime.UtcNow);
+
+                    var finalQuizResult = await _finalQuizResultRepository.FindOneWithIncludeAsync(x => x.FinalQuiz.CourseId == course.CourseId && x.UserId == studentId && x.IsPassed == true, c => c.FinalQuiz);
+
                     var result = new CourseRegistrationResponse
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
+                        ImageUrl = string.IsNullOrEmpty(course.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(course.ImageUrl),
                         EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
-                        Status = "Active"
+                        Status = finalQuizResult != null ? "Completed" : "In Progress"
                     };
-                    if (!string.IsNullOrEmpty(course.ImageUrl))
-                    {
-                        try
-                        {
-                            result.ImageUrl = await _mediaService.GetMediaUrlAsync(course.ImageUrl);
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            result.ImageUrl = string.Empty;
-                        }
-                        catch (Exception)
-                        {
-                            result.ImageUrl = string.Empty;
-                        }
-                    }
 
                     responses.Add(result);
                 }
@@ -713,20 +702,8 @@ namespace Service
                 {
                     filtered = filtered.Where(r => r.CourseName.Contains(request.SearchByCourseName, StringComparison.OrdinalIgnoreCase));
                 }
-                
-                //if (!string.IsNullOrEmpty(request.Status))
-                //{
-                //    filtered = filtered.Where(r => r.Status.Equals(request.Status, StringComparison.OrdinalIgnoreCase));
-                //}
-                //else
-                //{
-                //    filtered = filtered.OrderByDescending(r => r.EnrollmentDate);
-                //}
-
-                // Get total count before pagination
                 var totalCount = filtered.Count();
 
-                // Apply pagination
                 var pagedItems = filtered
                     .Skip(request.Page * request.GetPageSize())
                     .Take(request.GetPageSize())
@@ -1277,6 +1254,52 @@ namespace Service
                         Size = request.GetPageSize(),
                         TotalPages = totalPages
                     }
+                );
+        }
+
+        public async Task<BaseResponse<IEnumerable<CourseResponse>>> GetSimilarCourses(string userId, string userRole)
+        {
+            var embeddingData = new List<float>();
+
+            if(userRole == "Student")
+            {
+                var request = await _courseRepository.GetCourseAndFinalQuizResult(userId);
+                embeddingData = await _openAIEmbeddingsApiService.EmbedData(request);
+            }
+
+            if(userRole == "Parent")
+            {
+                var request = new List<SimilarCourseForStudentRequest>();
+
+                var studentList = await _parentStudentLinkRepository.FindAsync(x => x.ParentId == userId);
+                if(studentList == null)
+                {
+                    var parentData = await _courseRepository.GetCourseAndFinalQuizResult(userId);
+                }
+
+                foreach(var student in studentList)
+                {
+                    var studentData = await _courseRepository.GetCourseAndFinalQuizResult(student.StudentId);
+                    request.Add(studentData);
+                }
+
+                embeddingData = await _openAIEmbeddingsApiService.EmbedData(request);
+            }
+
+            var courseList = await _courseRepository.GetAllSimilarCoursesForStudentAsync(embeddingData);
+
+            var result = new List<CourseResponse>();
+            foreach (var course in courseList)
+            {
+                var courseResponse = _mapper.Map<CourseResponse>(course);
+                courseResponse.ImageUrl = string.IsNullOrEmpty(courseResponse.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(courseResponse.ImageUrl);
+                result.Add(courseResponse);
+            }
+
+            return new BaseResponse<IEnumerable<CourseResponse>>(
+                "Lấy danh sách khoá học tương tự thành công.",
+                StatusCodeEnum.OK_200,
+                result
                 );
         }
     }

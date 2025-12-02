@@ -77,6 +77,7 @@ namespace Repository.Repositories
 
             return (items, total);
         }
+
         public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(int courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);
@@ -223,6 +224,74 @@ namespace Repository.Repositories
                 .AnyAsync(c => c.CreatedBy == userId && c.CourseSections.Any(cs => cs.Lessons.Any(ls => ls.Lessonitems.Any(li => li.LessonItemId == lessonItemId))));
 
             return check;
+        }
+
+        public async Task<SimilarCourseForStudentRequest> GetCourseAndFinalQuizResult(string userId)
+        {
+            var enrollments = await _context.Studentenrollments
+                .Include(x => x.Student)
+                .Include(x => x.Course)
+                .ThenInclude(xc => xc.FinalQuiz)
+                .ThenInclude(c => c.FinalQuizResult)
+                .Where(x => x.StudentId == userId)
+                .ToListAsync();
+
+            var courseResponse = enrollments
+                .Select(p => new CourseWithFinalQuizResultResponse
+                {
+                    Course = new CourseResponse
+                    {
+                        CourseId = p.Course.CourseId,
+                        Name = p.Course.Name,
+                        Description = p.Course.Description,
+                        Status = p.Course.Status,
+                        Price = p.Course.Price,
+                        ImageUrl = p.Course.ImageUrl,
+                        CreatedAt = p.Course.CreatedAt,
+                        UpdatedAt = p.Course.UpdatedAt,
+                    },
+                    Finalquizresults = p.Course?.FinalQuiz?.FinalQuizResult?
+                    .Where(x => x.UserId == userId)
+                    .Select(n => new FinalQuizResultResponse
+                    {
+                        FinalQuizResultId = n.FinalQuizResultId,
+                        Score = n.Score,
+                        IsPassed = n.IsPassed,
+                        CreatedAt = n.CreatedAt
+                    })
+                    .OrderByDescending(x => x.CreatedAt)
+                    .Take(3)
+                    .ToList()
+                    ?? new List<FinalQuizResultResponse>() 
+                    })
+                .ToList();
+
+
+            var result = new SimilarCourseForStudentRequest
+            {
+                User = enrollments.FirstOrDefault()?.Student,
+                Courses = courseResponse
+            };
+
+            return result;
+
+        }
+
+        public Task<IEnumerable<Course>> GetAllSimilarCoursesForStudentAsync(List<float> embeddingData)
+        {
+            var courses = _context.Courses
+                .AsEnumerable()
+                .Select(c => new
+                {
+                    Course = c,
+                    SimilarScore = CommonUtils.CosineSimilarity(embeddingData, CommonUtils.StringToObject<List<float>>(c.EmbeddingData))
+                })
+                .OrderByDescending(c => c.SimilarScore)
+                .Take(5)
+                .Select(c => c.Course)
+                .ToList();
+
+            return Task.FromResult(courses.AsEnumerable());
         }
     }
 }

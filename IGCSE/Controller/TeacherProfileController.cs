@@ -152,25 +152,9 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
-        [HttpPost("add-payment-information")]
-        [Authorize(Roles = "Teacher")]
-        [SwaggerOperation(Summary = "Thêm thông tin thanh toán của giáo viên")]
-        public async Task<ActionResult<BaseResponse<CertificateResponse>>> AddPaymentInfo([FromQuery] CertificateCreateRequest request)
-        {
-            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-
-            if (CommonUtils.IsEmptyString(userId))
-            {
-                throw new Exception("Không tìm thấy thông tin người dùng");
-            }
-
-            var result = await _teacherProfileService.UploadCertificate(request, userId);
-            return Ok(result);
-        }
-
         [HttpGet("add-payment-information")]
         [Authorize(Roles = "Teacher")]
-        [SwaggerOperation(Summary = "Lấy link thanh toán payos")]
+        [SwaggerOperation(Summary = "Thêm thông tin thanh toán của giáo viên")]
         public async Task<ActionResult<BaseResponse<PayOSApiResponse>>> AddPaymentInfo()
         {
             var user = HttpContext.User;
