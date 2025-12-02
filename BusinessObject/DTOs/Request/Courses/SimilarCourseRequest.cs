@@ -17,7 +17,7 @@ namespace BusinessObject.DTOs.Request.Courses
 
     public class CourseWithFinalQuizResultResponse
     {
-        public CourseResponse Course { get; set; }
+        public CourseWithStudyingTimeResponse Course { get; set; }
 
         public List<FinalQuizResultResponse> Finalquizresults { get; set; }
     }

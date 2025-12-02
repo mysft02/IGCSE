@@ -171,6 +171,7 @@ namespace Repository.Repositories
                     IsEnrolled = true,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
+                    CreatedBy = c.CreatedBy,
                     Sections = c.CourseSections
                     .Select(n => new CourseSectionDetailWithoutProgressResponse
                     {
@@ -237,11 +238,12 @@ namespace Repository.Repositories
                 .ToListAsync();
 
             var courseResponse = enrollments
+                .AsEnumerable()
                 .Select(p => new CourseWithFinalQuizResultResponse
                 {
-                    Course = new CourseResponse
+                    Course = new CourseWithStudyingTimeResponse
                     {
-                        CourseId = p.Course.CourseId,
+                        CourseId = p.CourseId,
                         Name = p.Course.Name,
                         Description = p.Course.Description,
                         Status = p.Course.Status,
@@ -249,6 +251,7 @@ namespace Repository.Repositories
                         ImageUrl = p.Course.ImageUrl,
                         CreatedAt = p.Course.CreatedAt,
                         UpdatedAt = p.Course.UpdatedAt,
+                        AverageLearningTime = GetAverageStudyingTime(p.CourseId, userId),
                     },
                     Finalquizresults = p.Course?.FinalQuiz?.FinalQuizResult?
                     .Where(x => x.UserId == userId)
@@ -292,6 +295,38 @@ namespace Repository.Repositories
                 .ToList();
 
             return Task.FromResult(courses.AsEnumerable());
+        }
+
+        private TimeSpan GetAverageStudyingTime(int courseId, string studentId)
+        {
+            var data = _context.Processitems
+                .Include(c => c.Process).ThenInclude(c => c.Course).ThenInclude(c => c.CourseSections).ThenInclude(c => c.Lessons).ThenInclude(c => c.Lessonitems)
+                .Include(c => c.Process).ThenInclude(c => c.Course).ThenInclude(c => c.StudentEnrollments)
+                .Where(x => x.Process.CourseId == courseId && x.Process.Course.StudentEnrollments.Any(c => c.StudentId == studentId))
+                .OrderBy(x => x.UpdatedAt)
+                .Select(x => x.UpdatedAt)
+                .ToList();
+
+
+            var durations = new List<TimeSpan>();
+            
+            for (int i = 1; i < data.Count; i++)
+            {
+                // chắc chắn cả 2 đều có giá trị
+                var d1 = data[i].Value;
+                var d2 = data[i - 1].Value;
+
+                durations.Add(d1 - d2);
+            }
+
+            if (!durations.Any())
+            {
+                return TimeSpan.Zero;
+            }
+
+            var average = TimeSpan.FromTicks((long)durations.Average(x => x.Ticks));
+
+            return average;
         }
     }
 }

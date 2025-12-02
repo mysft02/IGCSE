@@ -16,6 +16,6 @@ public class Studentenrollment
 
     public virtual Account? Parent { get; set; }
 
-    public virtual Course Course { get; set; } = null!;
+    public virtual Course Course { get; set; }
 }
 

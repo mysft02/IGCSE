@@ -687,7 +687,9 @@ namespace Service
                     {
                         CourseId = (int)g.Key,
                         CourseName = course.Name,
+                        CourseDescription= course.Description,
                         ImageUrl = string.IsNullOrEmpty(course.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(course.ImageUrl),
+                        CreatedBy = studentId,
                         EnrollmentDate = first?.Course.CreatedAt ?? DateTime.UtcNow,
                         Status = finalQuizResult != null ? "Completed" : "In Progress"
                     };

@@ -1,6 +1,6 @@
-namespace BusinessObject.DTOs.Response.Courses
+﻿namespace BusinessObject.DTOs.Response.Courses
 {
-    public class CourseResponse
+    public class CourseWithStudyingTimeResponse
     {
         public int CourseId { get; set; }
 
@@ -18,6 +18,6 @@ namespace BusinessObject.DTOs.Response.Courses
 
         public DateTime? UpdatedAt { get; set; }
 
-        public string CreatedBy { get; set; }
+        public TimeSpan? AverageLearningTime { get; set; }
     }
 }

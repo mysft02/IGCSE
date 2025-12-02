@@ -14,6 +14,7 @@ namespace BusinessObject.DTOs.Response.Courses
         public bool IsEnrolled { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public string CreatedBy { get; set; }
         public List<CourseSectionDetailWithoutProgressResponse> Sections { get; set; } = new();
     }
 
