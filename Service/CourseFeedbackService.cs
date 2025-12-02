@@ -161,11 +161,6 @@ namespace Service
                 throw new Exception("Feedback not found");
             }
 
-            if (reactionType != "Like" && reactionType != "Unlike")
-            {
-                throw new Exception("Reaction type must be 'Like' or 'Unlike'");
-            }
-
             var existingReaction = await _reactionRepository.GetByFeedbackAndUserAsync(courseFeedbackId, userId);
             var timestamp = DateTime.UtcNow;
 
@@ -242,7 +237,7 @@ namespace Service
             response.IsUnlikedByCurrentUser = await _reactionRepository.HasUserUnlikedAsync(courseFeedbackId, userId);
 
             return new BaseResponse<CourseFeedbackResponse>(
-                $"{(existingReaction == null ? "Thêm" : existingReaction.ReactionType == reactionType ? "Bỏ" : "Đổi")} {reactionType} thành công",
+                $"{(existingReaction == null ? "Thêm" : existingReaction.ReactionType == reactionType ? "" : "Đổi")} {reactionType} thành công",
                 StatusCodeEnum.OK_200,
                 response);
         }

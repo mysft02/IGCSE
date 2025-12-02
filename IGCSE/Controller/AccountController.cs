@@ -68,7 +68,6 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-account")]
-        [Authorize(Roles = "Admin")]
         [SwaggerOperation(
             Summary = "Lấy danh sách tài khoản",
             Description = @"Api trả về danh sách tài khoản cho admin quản lí:

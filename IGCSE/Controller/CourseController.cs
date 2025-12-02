@@ -303,7 +303,7 @@ namespace IGCSE.Controller
         [HttpPost("{courseId}/feedbacks/{feedbackId}/like")]
         [Authorize]
         [SwaggerOperation(
-            Summary = "Like feedback (Authorize)", 
+            Summary = "Like feedback", 
             Description = @"Api dùng để user like một feedback. Logic hoạt động giống Shopee:
 - Nếu chưa like/unlike: tạo like mới
 - Nếu đã like: bỏ like (toggle off)
@@ -378,7 +378,7 @@ namespace IGCSE.Controller
         [HttpPost("{courseId}/feedbacks/{feedbackId}/unlike")]
         [Authorize]
         [SwaggerOperation(
-            Summary = "Unlike feedback (Authorize)", 
+            Summary = "Unlike feedback", 
             Description = @"Api dùng để user unlike một feedback. Logic hoạt động giống Shopee:
 - Nếu chưa like/unlike: tạo unlike mới
 - Nếu đã unlike: bỏ unlike (toggle off)
