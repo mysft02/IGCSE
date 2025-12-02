@@ -647,27 +647,17 @@ namespace IGCSE.Controller
 - Kết quả chỉ trả về các khóa học mà học sinh đã enroll")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseRegistrationResponse>>>> GetMyRegistrations([FromQuery] CourseRegistrationQueryRequest request)
         {
-            try
-            {
-                var user = HttpContext.User;
-                var userId = user.FindFirst("AccountID")?.Value;
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
 
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
-                }
-
-                var result = await _courseService.GetStudentRegistrationsAsync(userId, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest(new BaseResponse<string>(
-                    $"Lỗi khi lấy danh sách khóa học đã đăng ký: {ex.Message}",
-                    StatusCodeEnum.BadRequest_400,
-                    null
-                ));
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
             }
+
+            var result = await _courseService.GetStudentRegistrationsAsync(userId, request, userRole);
+            return Ok(result);
         }
 
         [HttpGet("my-create-course")]
