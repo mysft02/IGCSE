@@ -313,8 +313,8 @@ namespace Repository.Repositories
             for (int i = 1; i < data.Count; i++)
             {
                 // chắc chắn cả 2 đều có giá trị
-                var d1 = data[i].Value;
-                var d2 = data[i - 1].Value;
+                var d1 = data[i];
+                var d2 = data[i - 1];
 
                 durations.Add(d1 - d2);
             }
@@ -327,6 +327,62 @@ namespace Repository.Repositories
             var average = TimeSpan.FromTicks((long)durations.Average(x => x.Ticks));
 
             return average;
+        }
+
+        public async Task<List<ActivityCountResponse>> GetActivityForYear(string userId, int year)
+        {
+            var start = new DateTime(year, 1, 1);
+            var end = new DateTime(year + 1, 1, 1);
+
+            var courseQuery = _context.Processitems
+                .Where(x => x.Process.StudentId == userId
+                    && x.UpdatedAt >= start
+                    && x.UpdatedAt < end)
+                .Select(x => new { Date = x.UpdatedAt });
+
+            var quizQuery = _context.Quizresults
+                .Where(x => x.UserId == userId
+                    && x.CreatedAt >= start
+                    && x.CreatedAt < end)
+                .Select(x => new { Date = x.CreatedAt });
+
+            var finalQuizQuery = _context.Finalquizresults
+                .Where(x => x.UserId == userId
+                    && x.CreatedAt >= start
+                    && x.CreatedAt < end)
+                .Select(x => new { Date = x.CreatedAt });
+
+            // Gộp 3 bảng
+            var merged = courseQuery
+                .Concat(quizQuery)
+                .Concat(finalQuizQuery);
+
+            // Lấy dữ liệu raw
+            var raw = await merged
+                .GroupBy(x => x.Date.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            // Tạo full 365 ngày
+            var days = Enumerable.Range(0, 365)
+                .Select(i => start.AddDays(i))
+                .Select(day =>
+                {
+                    var match = raw.FirstOrDefault(x => x.Date == day.Date);
+
+                    return new ActivityCountResponse
+                    {
+                        Date = day.ToString("yyyy-MM-dd"),
+                        Count = match?.Count ?? 0   // 👈 ngày không có thì = 0
+                    };
+                })
+                .ToList();
+
+            return days;
         }
     }
 }

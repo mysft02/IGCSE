@@ -21,6 +21,7 @@ using BusinessObject.DTOs.Response.FinalQuizzes;
 using MimeKit.Tnef;
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Ocsp;
+using Org.BouncyCastle.Bcpg;
 
 namespace Service
 {
@@ -1300,6 +1301,39 @@ namespace Service
 
             return new BaseResponse<IEnumerable<CourseResponse>>(
                 "Lấy danh sách khoá học tương tự thành công.",
+                StatusCodeEnum.OK_200,
+                result
+                );
+        }
+
+        public async Task<BaseResponse<List<ActivityCountResponse>>> GetStudentActivityCount(string userId, string userRole, string studentId)
+        {
+            string destStudentId;
+
+            if(studentId != null)
+            {
+                if(userRole == "Student" && userId != studentId)
+                {
+                    throw new Exception("Bạn không được phép truy cập thông tin này.");
+                }
+
+                destStudentId = studentId;
+            }
+            else
+            {
+                if(userRole == "Parent")
+                {
+                    throw new Exception("Id của học sinh không được phép trống.");
+                }
+
+                destStudentId = userId;
+            }
+
+            int year = DateTime.UtcNow.Year;
+            var result = await _courseRepository.GetActivityForYear(destStudentId, year);
+
+            return new BaseResponse<List<ActivityCountResponse>>(
+                "Lấy danh sách hoạt động thành công.",
                 StatusCodeEnum.OK_200,
                 result
                 );
