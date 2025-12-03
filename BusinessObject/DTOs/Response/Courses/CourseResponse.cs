@@ -1,3 +1,5 @@
+using BusinessObject.DTOs.Response.Modules;
+
 namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseResponse
@@ -17,6 +19,8 @@ namespace BusinessObject.DTOs.Response.Courses
         public DateTime? CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
+
+        public ModuleResponse Module { get; set; }
 
         public string CreatedBy { get; set; }
     }

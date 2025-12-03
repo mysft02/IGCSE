@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
+using BusinessObject.DTOs.Request.Courses;
 using BusinessObject.DTOs.Request.Modules;
 using BusinessObject.DTOs.Response;
+using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Response.Modules;
 using BusinessObject.Enums;
 using BusinessObject.Model;
 using Common.Constants;
-using Common.Utils;
 using Repository.IRepositories;
 using Service.OpenAI;
 
@@ -20,15 +17,18 @@ namespace Service
         private readonly IModuleRepository _moduleRepository;
         private readonly IMapper _mapper;
         private readonly OpenAIEmbeddingsApiService _embeddingsService;
+        private readonly ICourseRepository _courseRepository;
 
         public ModuleService(
             IModuleRepository moduleRepository,
             IMapper mapper,
-            OpenAIEmbeddingsApiService embeddingsService)
+            OpenAIEmbeddingsApiService embeddingsService,
+            ICourseRepository courseRepository)
         {
             _moduleRepository = moduleRepository;
             _mapper = mapper;
             _embeddingsService = embeddingsService;
+            _courseRepository = courseRepository;
         }
 
         public async Task<BaseResponse<PaginatedResponse<ModuleResponse>>> GetModulesPagedAsync(ModuleListQuery query)
@@ -217,6 +217,30 @@ namespace Service
         {
             var modules = await _moduleRepository.GetByCourseIdAsync(courseId);
             return _mapper.Map<List<ModuleResponse>>(modules);
+        }
+
+        public async Task<BaseResponse<CourseResponse>> AddCourseModule(CourseModuleAddRequest request)
+        {
+            var course = await _courseRepository.FindOneAsync(x => x.CourseId == request.CourseId);
+            if(course == null)
+            {
+                throw new Exception("Không tìm thấy khóa học.");
+            }
+
+            var module = await _moduleRepository.FindOneAsync(x => x.ModuleID == request.ModuleId);
+            if (module == null)
+            {
+                throw new Exception("Không tìm thấy module.");
+            }
+
+            course.ModuleId = request.ModuleId;
+            course.UpdatedAt = DateTime.UtcNow;
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                "Thêm module cho khóa học thành công", 
+                StatusCodeEnum.OK_200, 
+                response);
         }
     }
 }

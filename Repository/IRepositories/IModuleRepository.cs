@@ -1,13 +1,10 @@
 using BusinessObject.Model;
-using BusinessObject.DTOs.Response.Modules;
-using BusinessObject.Model;
 using BusinessObject.Enums;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Repository.IBaseRepository;
 
 namespace Repository.IRepositories
 {
-    public interface IModuleRepository
+    public interface IModuleRepository : IBaseRepository<Module>
     {
         Task<IEnumerable<Module>> GetAllAsync();
         Task<(IEnumerable<Module> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, CourseSubject? courseSubject, bool? isActive);

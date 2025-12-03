@@ -24,67 +24,31 @@ namespace IGCSE.Controller
         [Authorize]
         [SwaggerOperation(
             Summary = "Lấy dữ liệu hoạt động của student",
-            Description = @"Api dùng để giáo viên xem thống kê chi tiết về một khóa học của mình, bao gồm số lượng học sinh, điểm số trung bình và thu nhập.
+            Description = @"Api dùng để lấy dữ liệu hoạt động của student
 
 **Request:**
-- Query parameter: `courseId` (int, required) - ID của khóa học cần xem thống kê
+- Query parameter: `studentId` (int, required) - ID của student cần xem thống kê
+
+**Lưu ý:**
+- api chỉ dùng cho role ""Parent"", ""Student""
+- Nếu role ""Student"" k cần truyền ""studentId""
+- Nếu role ""Parent"" cần truyền ""studentId"" của học sinh cần xem
 
 **Response Schema - Trường hợp thành công:**
 ```json
 {
-  ""message"": ""Course analytics retrieved successfully"",
-  ""statusCode"": 200,
+  ""message"": ""string"",
+  ""statusCode"": 100,
   ""data"": {
-    ""courseId"": 34,
-    ""courseName"": ""Tên khóa học"",
-    ""totalStudents"": 150,
-    ""averageScore"": 8.5,
-    ""totalRevenue"": 150000000,
-    ""revenueByDate"": [
-      {
-        ""date"": ""2024-01-15"",
-        ""revenue"": 5000000,
-        ""enrollments"": 5
-      }
-    ]
+    ""date"": ""string"",
+    ""count"": 0
   }
 }
 ```
 
-**Response Schema - Trường hợp lỗi:**
-
-1. **Không tìm thấy thông tin người dùng:**
-```json
-{
-  ""message"": ""Không tìm thấy thông tin người dùng"",
-  ""statusCode"": 500,
-  ""data"": null
-}
-```
-
-2. **Khóa học không tồn tại:**
-```json
-{
-  ""message"": ""Course not found"",
-  ""statusCode"": 400,
-  ""data"": null
-}
-```
-
-3. **Khóa học không thuộc về giáo viên này:**
-```json
-{
-  ""message"": ""You don't have permission to view this course analytics"",
-  ""statusCode"": 403,
-  ""data"": null
-}
-```
-
 **Lưu ý:**
-- Chỉ Teacher role mới có quyền sử dụng API này
-- Teacher ID được lấy tự động từ JWT token
-- Chỉ có thể xem thống kê của các khóa học do chính teacher đó tạo
-- `revenueByDate` hiển thị doanh thu theo ngày (các khóa học được mua trong ngày)")]
+- Api sẽ trả về tần suất hoạt động của học sinh trong 365 ngày
+- Nếu count = 0 nghĩa là không có hoạt động.")]
         public async Task<ActionResult<BaseResponse<ActivityCountResponse>>> GetActivityCount([FromQuery] string? studentId)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;

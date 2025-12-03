@@ -680,7 +680,7 @@ namespace Service
                 {
                     var course = g.First().Course;
                     if (course == null) continue;
-                    var first = g.MinBy(p => p.Course.CreatedAt ?? DateTime.UtcNow);
+                    var first = g.MinBy(p => p.Course?.CreatedAt ?? DateTime.UtcNow);
 
                     var finalQuizResult = await _finalQuizResultRepository.FindOneWithIncludeAsync(x => x.FinalQuiz.CourseId == course.CourseId && x.UserId == studentId && x.IsPassed == true, c => c.FinalQuiz);
 

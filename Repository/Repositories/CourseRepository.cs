@@ -7,7 +7,6 @@ using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Common.Constants;
 using BusinessObject.DTOs.Request.Courses;
 
 namespace Repository.Repositories
