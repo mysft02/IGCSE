@@ -107,6 +107,68 @@ namespace IGCSE.Controller
             return Ok(result);
         }
 
+        [HttpGet("get-course-certificates")]
+        [Authorize(Roles = "Parent, Student")]
+        [SwaggerOperation(
+            Summary = "Lấy toàn bộ chứng chỉ hoàn thành khoá học",
+            Description = @"Api dùng để lấy danh sách chứng chỉ khoá học của học sinh dùng cho ""Parent"" và ""Student""
+
+**Request:**
+- Query parameters:
+  - `Page` (int, mặc định: 1) - Số trang
+  - `PageSize` (int, mặc định: 10) - Số lượng item mỗi trang
+  - `StudentId` (int, optional) - Lọc theo ID khóa học
+
+**Lưu ý:**
+- Nếu Role là ""Parent"" thì cần truyền ""StudentId"" để lấy thông tin của học sinh
+- Nếu Role là ""Student"" thì k cần truyền gì hết api sẽ tự lấy ""StudentId"" từ token
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""string"",
+  ""statusCode"": 100,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseId"": 0,
+        ""userId"": ""string"",
+        ""imageUrl"": ""string"",
+        ""createdAt"": ""2025-12-04T14:54:55.699Z""
+      }
+    ],
+    ""totalCount"": 0,
+    ""page"": 0,
+    ""size"": 0,
+    ""totalPages"": 0,
+    ""hasNextPage"": true,
+    ""hasPreviousPage"": true,
+    ""currentPage"": 0
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+```json
+{
+  ""message"": ""Error message"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Kết quả được sắp xếp mặc định theo thời gian tạo mới nhất")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseCertificateResponse>>>> GetAllCertificates([FromQuery] CourseCertificatesQuery request)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            var result = await _courseService.GetCourseCertificates(userRole, userId, request);
+            return Ok(result);
+        }
+
         [HttpPost]
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(

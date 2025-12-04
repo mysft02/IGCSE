@@ -235,6 +235,8 @@ namespace BusinessObject.Mapping
             CreateMap<Finalquiz, FinalQuizCourseDetailResponse>().ReverseMap();
 
             CreateMap<Paymentinformation, PaymentInformationResponse>().ReverseMap();
+
+            CreateMap<Coursecertificate, CourseCertificateResponse>().ReverseMap();
         }
     }
 }
