@@ -53,8 +53,16 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
             CreateMap<CourseRequest, Course>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.Price))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
-                .ForMember(dest => dest.ModuleId, opt => opt.MapFrom(src => src.ModuleId));
+                .ForMember(dest => dest.ModuleId, opt => opt.MapFrom(src => src.ModuleId))
+                .ForMember(dest => dest.ImageUrl, opt => opt.Ignore()) // Sẽ được set trong service
+                .ForMember(dest => dest.EmbeddingData, opt => opt.Ignore()) // Sẽ được set trong service
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Sẽ được set trong service
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Sẽ được set trong service
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore()) // Sẽ được set trong service
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore()); // Sẽ được set trong service
 
             CreateMap<Coursesection, CourseSectionResponse>()
                 .ForMember(dest => dest.CourseSectionId, opt => opt.MapFrom(src => src.CourseSectionId))
@@ -173,13 +181,19 @@ namespace BusinessObject.Mapping
             CreateMap<Processitem, LessonItemProgressResponse>()
                 .ForMember(dest => dest.LessonItemName, opt => opt.MapFrom(src => src.LessonItem.Name));
 
-            CreateMap<CourseSectionRequest, Coursesection>();
+            CreateMap<CourseSectionRequest, Coursesection>()
+                .ForMember(dest => dest.CourseId, opt => opt.Ignore()) // Sẽ được set trong service từ path parameter
+                .ForMember(dest => dest.CourseSectionId, opt => opt.Ignore()) // Auto-generated
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Sẽ được set trong service
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()); // Sẽ được set trong service
 
             CreateMap<Quiz, QuizResponse>().ReverseMap();
             CreateMap<Quiz, QuizQueryResponse>().ReverseMap();
             CreateMap<Quiz, LessonQuizResponse>().ReverseMap();
+            CreateMap<Quiz, QuizCreateResponse>().ReverseMap();
 
             CreateMap<Question, QuestionResponse>().ReverseMap();
+            CreateMap<Question, QuestionCreateResponse>().ReverseMap();
 
             CreateMap<Parentstudentlink, ParentStudentLinkResponse>().ReverseMap()
                 .ForMember(dest => dest.Student, opt => opt.MapFrom(src => src.Student));
@@ -194,8 +208,10 @@ namespace BusinessObject.Mapping
 
             CreateMap<Mocktest, MockTestResponse>().ReverseMap();
             CreateMap<Mocktest, MockTestQueryResponse>().ReverseMap();
+            CreateMap<Mocktest, MockTestCreateResponse>().ReverseMap();
 
             CreateMap<Mocktestquestion, MockTestQuestionResponse>().ReverseMap();
+            CreateMap<Mocktestquestion, MockTestQuestionCreateResponse>().ReverseMap();
             
             CreateMap<TrelloBoardResponse, TrelloBoardDtoResponse>()
                 .ForMember(dest => dest.trelloBoardId, opt => opt.MapFrom(src => src.Id)) 

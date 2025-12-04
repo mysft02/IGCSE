@@ -20,7 +20,5 @@ public class Mocktestquestion
 
     public decimal? Mark { get; set; }
 
-    public virtual Mocktestresult Mocktestresult { get; set; }
-
-    public virtual ICollection<Mocktestuseranswer> MockTestUserAnswer { get; set; }
+    public virtual ICollection<Mocktestuseranswer> Mocktestuseranswers { get; set; } = new List<Mocktestuseranswer>();
 }

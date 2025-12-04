@@ -27,7 +27,7 @@ namespace BusinessObject.DTOs.Request.Courses
         public int ModuleId { get; set; }
 
         [Required]
-        [SwaggerSchema("Trạng thái khóa học", Nullable = false, Description ="Mặc định tạo là Open")]
+        [SwaggerSchema("Trạng thái khóa học", Nullable = false, Description ="Mặc định tạo là Pending")]
         public string Status { get; set; } = string.Empty;
 
         [SwaggerSchema("Hình ảnh khóa học", Nullable = false, Description = "Nếu chọn hình ảnh bằng link thì chọn send null")]

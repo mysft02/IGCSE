@@ -167,7 +167,7 @@ namespace Repository.Repositories
                     Status = c.Status,
                     Price = c.Price,
                     ImageUrl = CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
-                    IsEnrolled = true,
+                    IsEnrolled = false, // Sẽ được set trong service dựa trên enrollment status
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
                     CreatedBy = c.CreatedBy,
@@ -193,14 +193,22 @@ namespace Repository.Repositories
                             {
                                 LessonItemId = p.LessonItemId,
                                 Name = p.Name,
+                                Description = p.Description,
+                                Content = p.Content,
+                                ItemType = p.ItemType,
                                 Order = p.Order,
                             })
                             .ToList(),
-                            Quiz = new LessonQuizResponse
+                            Quiz = s.Quiz != null ? new LessonQuizResponse
                             {
                                 QuizId = s.Quiz.QuizId,
                                 QuizTitle = s.Quiz.QuizTitle,
                                 QuizDescription = s.Quiz.QuizDescription,
+                            } : new LessonQuizResponse
+                            {
+                                QuizId = 0,
+                                QuizTitle = string.Empty,
+                                QuizDescription = string.Empty,
                             }
                         })
                         .ToList()
