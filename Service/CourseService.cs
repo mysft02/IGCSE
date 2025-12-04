@@ -22,6 +22,9 @@ using MimeKit.Tnef;
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Ocsp;
 using Org.BouncyCastle.Bcpg;
+using BusinessObject.DTOs.Response.TeacherProfile;
+using BusinessObject.DTOs.Response.MockTest;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Service
 {
@@ -46,6 +49,7 @@ namespace Service
         private readonly IFinalQuizResultRepository _finalQuizResultRepository;
         private readonly IFinalQuizRepository _finalQuizRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ICourseCertificateRepository _courseCertificateRepository;
 
         public CourseService(
             IMapper mapper,
@@ -66,7 +70,8 @@ namespace Service
             ICreateSlotRepository createSlotRepository,
             IFinalQuizResultRepository finalQuizResultRepository,
             IFinalQuizRepository finalQuizRepository,
-            IWebHostEnvironment webHostEnvironment)
+            IWebHostEnvironment webHostEnvironment,
+            ICourseCertificateRepository courseCertificateRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -87,6 +92,7 @@ namespace Service
             _finalQuizResultRepository = finalQuizResultRepository;
             _finalQuizRepository = finalQuizRepository;
             _webHostEnvironment = webHostEnvironment;
+            _courseCertificateRepository = courseCertificateRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(int courseId)
@@ -518,26 +524,18 @@ namespace Service
         public async Task<BaseResponse<CourseDetailResponse>> GetCourseDetailForStudentAsync(int courseId, string? studentId = null)
         {
             // 1. Get course with related data
-            var course = await _courseRepository.GetByCourseIdWithCategoryAsync(courseId);
+            var course = await _courseRepository.FindOneWithIncludeAsync(x => x.CourseId == courseId, c => c.FinalQuiz);
             if (course == null)
                 throw new Exception("Course not found");
 
             // 2. Map course to DTO
             var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
-            // Kiểm tra FinalQuiz có tồn tại không
-            if (course.FinalQuiz != null)
+
+            var fquizResult = await _finalQuizResultRepository.FindOneAsync(x => x.FinalQuizId == course.FinalQuiz.FinalQuizId && x.IsPassed == true && x.UserId == studentId);
+            if(fquizResult != null)
             {
-                courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
-            }
-            else
-            {
-                // Tạo FinalQuiz mặc định nếu chưa có
-                courseDetailResponse.FinalQuiz = new FinalQuizCourseDetailResponse
-                {
-                    FinalQuizId = 0,
-                    Title = $"{course.Name} final quiz",
-                    Description = "Summary course content"
-                };
+                var certificate = await _courseCertificateRepository.FindOneAsync(x => x.UserId == studentId && x.CourseId == course.CourseId);
+                courseDetailResponse.Certificate = _mapper.Map<CourseCertificateResponse>(certificate);
             }
 
             // 3. Lấy tiến trình học của student nếu có studentId
@@ -1608,6 +1606,55 @@ namespace Service
                 StatusCodeEnum.OK_200,
                 result
                 );
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<CourseCertificateResponse>>> GetCourseCertificates(string userRole, string userId, CourseCertificatesQuery request)
+        {
+            var items = new List<CourseCertificateResponse>();
+            if(userRole == "Student")
+            {
+                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == userId);
+                items = _mapper.Map<List<CourseCertificateResponse>>(certificates);
+
+            }
+            else
+            {
+                if(request.StudentId == null)
+                {
+                    throw new Exception("Id học sinh không được để trống.");
+                }
+
+                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == userId);
+                items = _mapper.Map<List<CourseCertificateResponse>>(certificates);
+            }
+
+            foreach(var cert in items)
+            {
+                cert.ImageUrl = string.IsNullOrEmpty(cert.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(cert.ImageUrl);
+            }
+
+            var pagedItems = items
+                .OrderBy(x => x.CreatedAt)
+                .Skip(request.Page * request.Size)
+                .Take(request.Size)
+                .ToList();
+
+            var totalCount = items.Count();
+            var totalPages = (int)Math.Ceiling((double)totalCount / request.Size);
+
+            return new BaseResponse<PaginatedResponse<CourseCertificateResponse>>
+            {
+                Data = new PaginatedResponse<CourseCertificateResponse>
+                {
+                    Items = items,
+                    TotalCount = totalCount,
+                    Page = request.Page,
+                    Size = request.Size,
+                    TotalPages = totalPages
+                },
+                Message = "Lấy toàn bộ chứng chỉ khoá học thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
         }
     }
 }

@@ -1,27 +1,37 @@
-using BusinessObject.DTOs.Response.CourseContent;
 using BusinessObject.DTOs.Response.FinalQuizzes;
-using BusinessObject.DTOs.Response.Quizzes;
 
 namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseDetailResponse
     {
         public int CourseId { get; set; }
+
         public string Name { get; set; } = string.Empty;
+
         public string Description { get; set; } = string.Empty;
+
         public string Status { get; set; } = string.Empty;
+
         public decimal Price { get; set; }
+
         public string ImageUrl { get; set; } = string.Empty;
+
         public DateTime? CreatedAt { get; set; }
+
         public DateTime? UpdatedAt { get; set; }
 
         public string CreatedBy { get; set; } 
+
         public List<CourseSectionDetailResponse> Sections { get; set; } = new();
         
         // Thông tin tiến trình học (chỉ có khi student đã đăng nhập và enroll)
         public bool IsEnrolled { get; set; } = false;
+
         public double? OverallProgress { get; set; } = null; // Phần trăm hoàn thành (0-100)
+
         public FinalQuizCourseDetailResponse FinalQuiz { get; set; }
+
+        public CourseCertificateResponse Certificate { get; set; }
     }
     public class ModuleDetailResponse
     {
