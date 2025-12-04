@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using SkiaSharp;
 
 namespace Common.Utils
 {
@@ -13,6 +14,7 @@ namespace Common.Utils
         private const string CertificatesFolder = "certificates";
         private const string LessonDocsFolder = "lessons/docs";
         private const string LessonVideosFolder = "lessons/videos";
+        private const string CourseCertificatesFolder = "courses/certificates";
 
         /// <summary>
         /// Uploads an image file and returns the relative URL path
@@ -299,6 +301,65 @@ namespace Common.Utils
                 "video/ogg" => ".ogg",
                 _ => Path.GetExtension(contentType) ?? ".bin"
             };
+        }
+
+        public static async Task<string> GenerateCertificateAsync(string userName, string courseName, string webRootPath)
+        {
+            var templatePath = Path.Combine(webRootPath, CourseCertificatesFolder, "course-template.png");
+
+            if (!File.Exists(templatePath))
+                throw new FileNotFoundException("Certificate template file not found", templatePath);
+
+            // Tạo thư mục nếu chưa có
+            var outputFolder = Path.Combine(webRootPath, CourseCertificatesFolder);
+            if (!Directory.Exists(outputFolder))
+            {
+                Directory.CreateDirectory(outputFolder);
+            }
+
+            var fileName = $"{Guid.NewGuid()}.png";
+            var outputPath = Path.Combine(outputFolder, fileName);
+
+            File.Copy(templatePath, outputPath, overwrite: true);
+
+            using var bitmap = SKBitmap.Decode(outputPath);
+            using var surface = SKSurface.Create(new SKImageInfo(bitmap.Width, bitmap.Height));
+            var canvas = surface.Canvas;
+
+            canvas.DrawBitmap(bitmap, 0, 0);
+
+            var userPaint = new SKPaint
+            {
+                Color = SKColors.Black,
+                TextSize = 54,
+                IsAntialias = true,
+                Typeface = SKTypeface.FromFamilyName("Georgia"),
+                TextAlign = SKTextAlign.Center
+            };
+
+            var coursePaint = new SKPaint
+            {
+                Color = SKColors.Black,
+                TextSize = 48,
+                IsAntialias = true,
+                Typeface = SKTypeface.FromFamilyName("Georgia"),
+                TextAlign = SKTextAlign.Center
+            };
+
+            float centerX = bitmap.Width / 2f;
+
+            canvas.DrawText(courseName.ToUpper(), centerX, 835, coursePaint);
+
+            canvas.DrawText(userName.ToUpper(), centerX, 600, userPaint);
+
+            // Export lại PNG
+            using var image = surface.Snapshot();
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+
+            await File.WriteAllBytesAsync(outputPath, data.ToArray());
+
+            // Trả về URL cho client
+            return $"courses/certificates/{fileName}";
         }
     }
 }

@@ -78,6 +78,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<CourseFeedbackReaction> CourseFeedbackReactions { get; set; }
 
+    public virtual DbSet<Coursecertificate> CourseCertificates { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (optionsBuilder.IsConfigured)
@@ -688,6 +690,17 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.TeacherId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Coursecertificate>(entity =>
+        {
+            entity.HasKey(e => e.CourseCertificateId).HasName("PRIMARY");
+
+            entity.ToTable("coursecertificate");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
+            entity.Property(e => e.UserId).HasMaxLength(255);
         });
 
         OnModelCreatingPartial(modelBuilder);
