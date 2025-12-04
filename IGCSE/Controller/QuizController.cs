@@ -318,5 +318,58 @@ namespace IGCSE.Controller
             var result = await _quizService.MarkQuizAsync(request, userId);
             return Ok(result);
         }
+
+        [HttpPost("create-quiz")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Tạo bài quiz",
+            Description = @"Api dùng để tạo bài quiz cho teacher.
+
+**Request Query:**
+- ""CourseId"": ID khóa học
+- ""LessonId"": ID lớp học
+- ""QuizTitle"": Tiêu đề bài quiz
+- ""QuizDescription"": Mô tả bài quiz
+- ""ExcelFile"": File Excel bài quiz
+
+**Response Schema:**
+1. Trường hợp tạo thành công:
+```json
+{
+  ""message"": ""Tạo bài quiz thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""quizId"": 136,
+    ""courseId"": 58,
+    ""lessonId"": 137,
+    ""quizTitle"": ""Test"",
+    ""quizDescription"": ""QuizTest1"",
+    ""questions"": [
+      {
+        ""questionId"": 568,
+        ""questionContent"": ""Simplify the expression: 5a + 3b - 2a + 7b."",
+        ""correctAnswer"": ""Combine like terms: (5a - 2a) + (3b + 7b) = 3a + 10b.""
+      },
+      {
+        ""questionId"": 569,
+        ""questionContent"": ""A rectangle has a length of 12 cm and a width of 5 cm. Find its perimeter."",
+        ""correctAnswer"": ""Perimeter = 2 × (12 + 5) = 2 × 17 = 34 cm.""
+      }
+    ]
+  }
+}
+```")]
+        public async Task<ActionResult<BaseResponse<QuizCreateResponse>>> CreateQuiz([FromQuery] QuizCreateRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _quizService.CreateQuizAsync(request);
+            return Ok(result);
+        }
     }
 }

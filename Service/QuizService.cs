@@ -13,6 +13,8 @@ using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
 using OfficeOpenXml.ConditionalFormatting.Contracts;
+using System.Collections.Generic;
+using ClosedXML.Excel;
 
 namespace Service
 {
@@ -424,6 +426,52 @@ namespace Service
                 Questions = questions
             }; 
             await _quizRepository.AddAsync(quiz);
+        }
+
+        public async Task<BaseResponse<QuizCreateResponse>> CreateQuizAsync(QuizCreateRequest request)
+        {
+            var quiz = new Quiz
+            {
+                CourseId = request.CourseId,
+                LessonId = request.LessonId,
+                QuizTitle = request.QuizTitle,
+                QuizDescription = request.QuizDescription,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+
+            var quizCreate = await _quizRepository.AddAsync(quiz);
+
+            var questions = new List<Question>();
+
+            using (var stream = request?.ExcelFile?.OpenReadStream())
+            using (var workbook = new XLWorkbook(stream))
+            {
+                var worksheet = workbook.Worksheet(1);
+                var rows = worksheet?.RangeUsed().RowsUsed().Skip(1); // bỏ header
+
+                foreach (var row in rows)
+                {
+                    var question = new Question
+                    {
+                        QuizId = quizCreate.QuizId,
+                        QuestionContent = row.Cell(1).GetString(),
+                        CorrectAnswer = row.Cell(2).GetString(),
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                    };
+                    questions.Add(question);
+                    await _questionRepository.AddAsync(question);
+                }
+            }
+
+            var result = _mapper.Map<QuizCreateResponse>(quizCreate);
+            result.Questions = _mapper.Map<List<QuestionCreateResponse>>(questions);
+
+            return new BaseResponse<QuizCreateResponse>(
+                "Tạo bài quiz thành công",
+                StatusCodeEnum.OK_200,
+                result);
         }
     }
 }

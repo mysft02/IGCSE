@@ -1,8 +1,10 @@
 using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Request.CourseContent;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.Courses;
 using BusinessObject.DTOs.Response.ParentStudentLink;
+using BusinessObject.DTOs.Response.CourseContent;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
@@ -44,7 +46,7 @@ namespace IGCSE.Controller
         [HttpGet("all")]
         [AllowAnonymous]
         [SwaggerOperation(
-            Summary = "Lấy danh sách các khóa học (có paging và filter)", 
+            Summary = "Lấy danh sách các khóa học",
             Description = @"Api dùng để lấy danh sách khóa học với phân trang và bộ lọc. Hệ thống tự động áp dụng filter theo role của user.
 
 **Request:**
@@ -103,6 +105,358 @@ namespace IGCSE.Controller
 
             var result = await _courseService.GetCoursesPagedAsync(query);
             return Ok(result);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Tạo mới khóa học (Teacher)", 
+            Description = @"Api dùng để giáo viên tạo khóa học. Hệ thống sẽ tự động kiểm tra available slot và trừ slot khi tạo thành công.
+
+**Request:**
+- Body (multipart/form-data hoặc JSON):
+```json
+{
+  ""name"": ""Tên khóa học"",
+  ""description"": ""Mô tả khóa học"",
+  ""price"": 1000000,
+  ""moduleId"": 1,
+  ""status"": ""Pending"",
+  ""imageUrl"": ""https://example.com/image.jpg"",
+  ""imageFile"": null
+}
+```
+  - `name` (string, required, max 200) - Tên khóa học
+  - `description` (string, optional, max 1000) - Mô tả khóa học
+  - `price` (decimal, required) - Giá khóa học
+  - `moduleId` (int, required) - ID của module
+  - `status` (string, required) - Trạng thái khóa học (mặc định: ""Pending"")
+  - `imageUrl` (string, optional) - Link hình ảnh khóa học (nếu upload file thì để null)
+  - `imageFile` (IFormFile, optional) - File hình ảnh khóa học (nếu dùng link thì để null)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course created successfully"",
+  ""statusCode"": 201,
+  ""data"": {
+    ""courseId"": 1,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Pending"",
+    ""price"": 1000000,
+    ""imageUrl"": ""https://example.com/api/media/get-media?imagePath=courses/images/xxx.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-01T00:00:00Z"",
+    ""createdBy"": ""user-id-123""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Chưa mua gói:**
+```json
+{
+  ""message"": ""Bạn chưa mua gói để tạo mới khoá học. Vui lòng mua gói trước."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Hết slot:**
+```json
+{
+  ""message"": ""Bạn không còn suất tạo mới khoá học. Vui lòng mua thêm gói."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Module không tồn tại:**
+```json
+{
+  ""message"": ""Module not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Logic tự động:**
+- Kiểm tra available slot của teacher
+- Trừ 1 slot khi tạo thành công
+- Tự động tạo FinalQuiz cho khóa học
+- Tạo embedding data cho khóa học
+- Khóa học được tạo với status ""Pending"" để manager duyệt
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Có thể upload image bằng file hoặc link URL
+- Nếu không có image, sẽ dùng image mặc định")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> CreateCourse([FromForm] CourseRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.CreateCourseAsync(request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("{courseId}/sections")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Tạo mới section cho khóa học (Teacher)",
+            Description = @"Api dùng để giáo viên tạo section mới cho khóa học của mình.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học
+- Body:
+```json
+{
+  ""name"": ""Section 1"",
+  ""description"": ""Mô tả section"",
+  ""courseId"": 1,
+  ""order"": 1,
+  ""isActive"": 1
+}
+```
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course section created successfully"",
+  ""statusCode"": 201,
+  ""data"": {
+    ""courseId"": 1,
+    ""courseSectionId"": 1,
+    ""name"": ""Section 1"",
+    ""description"": ""Mô tả section"",
+    ""order"": 1,
+    ""isActive"": true
+  }
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- Chỉ có thể tạo section cho khóa học do chính mình tạo")]
+        public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> CreateCourseSection(int courseId, [FromBody] CourseSectionRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.CreateCourseSectionAsync(courseId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("sections/{sectionId}/lessons")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Tạo mới lesson cho section (Teacher)",
+            Description = @"Api dùng để giáo viên tạo lesson mới cho section của khóa học.
+
+**Request:**
+- Path parameter: `sectionId` (int) - ID của section
+- Body:
+```json
+{
+  ""name"": ""Lesson 1"",
+  ""description"": ""Mô tả lesson"",
+  ""courseSectionId"": 1,
+  ""order"": 1,
+  ""isActive"": 1
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- Chỉ có thể tạo lesson cho section thuộc khóa học do chính mình tạo")]
+        public async Task<ActionResult<BaseResponse<LessonResponse>>> CreateLesson(int sectionId, [FromBody] LessonRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.CreateLessonAsync(sectionId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("lessons/{lessonId}/items")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Tạo mới lesson item cho lesson (Teacher)",
+            Description = @"Api dùng để giáo viên tạo lesson item mới (video, pdf, image, text) cho lesson.
+
+**Request:**
+- Path parameter: `lessonId` (int) - ID của lesson
+- Body (multipart/form-data):
+  - `name` (string, required) - Tên lesson item
+  - `description` (string, optional) - Mô tả
+  - `content` (string, optional) - Nội dung/URL (nếu upload file thì để null)
+  - `itemType` (string, optional) - Loại: video, pdf, image, text (tự động detect từ file)
+  - `lessonId` (int, required) - ID của lesson
+  - `order` (int, required) - Thứ tự
+  - `file` (IFormFile, optional) - File để upload (video/pdf/image)
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- Hỗ trợ upload: video (mp4, webm, ogg), PDF, image (jpg, png, gif, webp)
+- Nếu upload file, hệ thống sẽ tự động detect loại file và set itemType")]
+        public async Task<ActionResult<BaseResponse<LessonItemResponse>>> CreateLessonItem(int lessonId, [FromForm] LessonItemRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.CreateLessonItemAsync(lessonId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPost("complete-lesson-item")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(
+            Summary = "Đánh dấu hoàn thành lesson item (Student)",
+            Description = @"Api dùng để đánh dấu đã hoàn thành lesson item khi học sinh đã học xong. API này có logic tự động mở khóa lesson tiếp theo khi hoàn thành tất cả lesson items trong lesson hiện tại.
+
+**Request:**
+- Query parameter: `lessonItemId` (int) - ID của lesson item cần đánh dấu hoàn thành
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lesson item completed successfully"",
+  ""statusCode"": 200,
+  ""data"": true
+}
+```
+
+**Response Schema - Trường hợp đã hoàn thành trước đó (Idempotent):**
+```json
+{
+  ""message"": ""Lesson item already completed"",
+  ""statusCode"": 200,
+  ""data"": true
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Lesson item không tồn tại:**
+```json
+{
+  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: Lesson item not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Student chưa enroll vào course/lesson:**
+```json
+{
+  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: Student is not enrolled in this course or lesson not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Lesson chưa được mở khóa:**
+```json
+{
+  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: This lesson is locked. Please complete previous lessons first."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Logic tự động:**
+- Khi hoàn thành một lesson item, hệ thống sẽ kiểm tra xem tất cả lesson items trong lesson đó đã hoàn thành chưa
+- Nếu tất cả lesson items đã hoàn thành:
+  - Lesson hiện tại được đánh dấu hoàn thành
+  - Lesson tiếp theo trong cùng section sẽ được tự động mở khóa (`IsUnlocked = true`)
+  - Nếu đã hết lesson trong section hiện tại, lesson đầu tiên của section tiếp theo sẽ được mở khóa
+
+**Lưu ý:**
+- Chỉ Student role mới có quyền sử dụng API này
+- API có tính idempotent: gọi nhiều lần với cùng lessonItemId sẽ không tạo duplicate record
+- Cần hoàn thành lesson trước đó trước khi có thể hoàn thành lesson tiếp theo")]
+        public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int lessonItemId)
+        {
+            try
+            {
+                var user = HttpContext.User;
+                var userId = user.FindFirst("AccountID")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.CompleteLessonItemAsync(userId, lessonItemId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi hoàn thành thành phần của bài học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
         }
 
         [HttpPost("{courseId}/feedbacks")]
@@ -498,98 +852,6 @@ namespace IGCSE.Controller
             {
                 return BadRequest(new BaseResponse<string>(
                     $"Lỗi khi lấy thống kê feedback: {ex.Message}",
-                    StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
-
-        [HttpPost("complete-lesson-item")]
-        [Authorize(Roles = "Student")]
-        [SwaggerOperation(
-            Summary = "Đánh dấu hoàn thành lesson item (Student)", 
-            Description = @"Api dùng để đánh dấu đã hoàn thành lesson item khi học sinh đã học xong. API này có logic tự động mở khóa lesson tiếp theo khi hoàn thành tất cả lesson items trong lesson hiện tại.
-
-**Request:**
-- Query parameter: `lessonItemId` (int) - ID của lesson item cần đánh dấu hoàn thành
-
-**Response Schema - Trường hợp thành công:**
-```json
-{
-  ""message"": ""Lesson item completed successfully"",
-  ""statusCode"": 200,
-  ""data"": true
-}
-```
-
-**Response Schema - Trường hợp đã hoàn thành trước đó (Idempotent):**
-```json
-{
-  ""message"": ""Lesson item already completed"",
-  ""statusCode"": 200,
-  ""data"": true
-}
-```
-
-**Response Schema - Trường hợp lỗi:**
-
-1. **Lesson item không tồn tại:**
-```json
-{
-  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: Lesson item not found"",
-  ""statusCode"": 400,
-  ""data"": null
-}
-```
-
-2. **Student chưa enroll vào course/lesson:**
-```json
-{
-  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: Student is not enrolled in this course or lesson not found"",
-  ""statusCode"": 400,
-  ""data"": null
-}
-```
-
-3. **Lesson chưa được mở khóa:**
-```json
-{
-  ""message"": ""Lỗi khi hoàn thành thành phần của bài học: This lesson is locked. Please complete previous lessons first."",
-  ""statusCode"": 400,
-  ""data"": null
-}
-```
-
-**Logic tự động:**
-- Khi hoàn thành một lesson item, hệ thống sẽ kiểm tra xem tất cả lesson items trong lesson đó đã hoàn thành chưa
-- Nếu tất cả lesson items đã hoàn thành:
-  - Lesson hiện tại được đánh dấu hoàn thành
-  - Lesson tiếp theo trong cùng section sẽ được tự động mở khóa (`IsUnlocked = true`)
-  - Nếu đã hết lesson trong section hiện tại, lesson đầu tiên của section tiếp theo sẽ được mở khóa
-
-**Lưu ý:**
-- Chỉ Student role mới có quyền sử dụng API này
-- API có tính idempotent: gọi nhiều lần với cùng lessonItemId sẽ không tạo duplicate record
-- Cần hoàn thành lesson trước đó trước khi có thể hoàn thành lesson tiếp theo")]
-        public async Task<ActionResult<BaseResponse<bool>>> CompleteLessonItem([FromQuery] int lessonItemId)
-        {
-            try
-            {
-                var user = HttpContext.User;
-                var userId = user.FindFirst("AccountID")?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
-                }
-
-                var result = await _courseService.CompleteLessonItemAsync(userId, lessonItemId);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    $"Lỗi khi hoàn thành thành phần của bài học: {ex.Message}",
                     StatusCodeEnum.BadRequest_400,
                     null
                 ));
@@ -1025,7 +1287,7 @@ namespace IGCSE.Controller
             }
             else
             {
-                result = await _courseService.GetCourseDetailAsync(courseId);
+                result = await _courseService.GetCourseDetailAsync(courseId, userId, userRole);
             }
 
             return Ok(result);

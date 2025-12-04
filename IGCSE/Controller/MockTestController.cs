@@ -1,6 +1,8 @@
 ﻿using BusinessObject.DTOs.Request.MockTest;
+using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.MockTest;
+using BusinessObject.DTOs.Response.Quizzes;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -331,6 +333,55 @@ Lấy danh sách mock test với các trạng thái:
             }
 
             var result = await _mockTestService.MarkMockTestAsync(request, userId);
+            return Ok(result);
+        }
+
+        [HttpPost("create-mocktest")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(
+            Summary = "Tạo bài mocktest",
+            Description = @"Api dùng để tạo bài mocktest cho teacher.
+
+**Request Query:**
+- ""MockTestTitle"": Tiêu đề bài mocktest
+- ""MockTestDescription"": Mô tả bài mocktest
+- ""ExcelFile"": File Excel bài mocktest
+
+**Response Schema:**
+1. Trường hợp tạo thành công:
+```json
+{
+  ""message"": ""Tạo bài mock test thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""mockTestId"": 20,
+    ""mockTestTitle"": ""testfinal"",
+    ""mockTestDescription"": ""testfinal"",
+    ""createdAt"": ""2025-12-04T01:45:31.1654015Z"",
+    ""updatedAt"": ""2025-12-04T01:45:31.1654516Z"",
+    ""mockTestQuestions"": [
+      {
+        ""mockTestQuestionId"": 99,
+        ""mockTestId"": 20,
+        ""questionContent"": ""1+1=?"",
+        ""correctAnswer"": ""2"",
+        ""partialMark"": ""if 3 is wrong"",
+        ""mark"": 2
+      }
+    ]
+  }
+}
+```")]
+        public async Task<ActionResult<BaseResponse<MockTestCreateResponse>>> CreateQuiz([FromQuery] MockTestCreateRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _mockTestService.CreateMockTestAsync(request, userId);
             return Ok(result);
         }
     }

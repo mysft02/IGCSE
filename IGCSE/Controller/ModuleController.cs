@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BusinessObject.DTOs.Request.Modules;
-using BusinessObject.DTOs.Response.Modules;
 using Swashbuckle.AspNetCore.Annotations;
 using Service;
 using Common.Constants;
 using BusinessObject.DTOs.Response;
 using BusinessObject.Enums;
+using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.Courses;
 
 namespace IGCSE.Controller
 {
@@ -356,6 +357,82 @@ namespace IGCSE.Controller
             {
                 return StatusCode(500, $"Có lỗi xảy ra khi xóa module {moduleId}");
             }
+        }
+
+        [HttpPost("add-module-to-course")]
+        [Authorize]
+        [SwaggerOperation(
+            Summary = "Thêm module cho course",
+            Description = @"Api dùng để thêm module cho course.
+
+**Request:**
+- Path parameter: 
++ `moduleId` (int, required) - ID của module cần thêm
++ `courseId` (int, required) - ID của course cần thêm module
+
+**Response:**
+- Status Code: 204 (No Content) nếu thành công
+
+**Response Schema: ""CourseResponse""**
+
+1. **Module không tồn tại:**
+```json
+{
+  ""message"": ""Không tìm thấy module."",
+  ""statusCode"": 404
+}
+```
+
+2. **Course không tồn tại:**
+```json
+{
+  ""message"": ""Không tìm thấy khóa học."",
+  ""statusCode"": 404
+}
+```
+
+3. **Lỗi server:**
+```json
+{
+  ""message"": ""Có lỗi xảy ra khi thêm module 1 cho khóa học 1"",
+  ""statusCode"": 500
+}
+```
+
+4. **Thành công:**
+```json
+{
+  ""message"": ""string"",
+  ""statusCode"": 100,
+  ""data"": {
+    ""courseId"": 0,
+    ""name"": ""string"",
+    ""description"": ""string"",
+    ""status"": ""string"",
+    ""price"": 0,
+    ""imageUrl"": ""string"",
+    ""createdAt"": ""2025-12-03T17:17:34.814Z"",
+    ""updatedAt"": ""2025-12-03T17:17:34.814Z"",
+    ""module"": {
+      ""moduleId"": 0,
+      ""moduleName"": ""string"",
+      ""description"": ""string"",
+      ""isActive"": true,
+      ""createdAt"": ""2025-12-03T17:17:34.814Z"",
+      ""updatedAt"": ""2025-12-03T17:17:34.814Z"",
+      ""courseSubject"": 0,
+      ""courseSubjectName"": ""string""
+    },
+    ""createdBy"": ""string""
+  }
+}
+```")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> AddCourseModule([FromQuery] CourseModuleAddRequest request)
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            var result = await _moduleService.AddCourseModule(request);
+            return Ok(result);
         }
     }
 }

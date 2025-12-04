@@ -44,6 +44,9 @@ namespace BusinessObject.DTOs.Response.Courses
     {
         public int LessonItemId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Content { get; set; }
+        public string ItemType { get; set; } = string.Empty;
         public int Order { get; set; }
     }
 }

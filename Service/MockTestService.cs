@@ -9,13 +9,12 @@ using BusinessObject.DTOs.Response.MockTest;
 using BusinessObject.DTOs.Response;
 using Microsoft.AspNetCore.Hosting;
 using BusinessObject.DTOs.Request.MockTest;
-using Common.Utils;
 using System.Text.RegularExpressions;
 using BusinessObject.Payload.Response.Trello;
-using BusinessObject.DTOs.Request.Packages;
-using BusinessObject.DTOs.Response.Packages;
+using BusinessObject.DTOs.Request.Quizzes;
+using BusinessObject.DTOs.Response.Quizzes;
+using ClosedXML.Excel;
 using Repository.Repositories;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Service
 {
@@ -425,6 +424,53 @@ namespace Service
 
             return new BaseResponse<List<MockTestMarkResponse>>(
                 $"Chấm bài mock test thành công",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<MockTestCreateResponse>> CreateMockTestAsync(MockTestCreateRequest request, string userId)
+        {
+            var mocktest = new Mocktest
+            {
+                MockTestTitle = request.MockTestTitle,
+                MockTestDescription = request.MockTestDescription,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+
+            var mockTestCreate = await _mockTestRepository.AddAsync(mocktest);
+
+            var questions = new List<Mocktestquestion>();
+
+            using (var stream = request?.ExcelFile?.OpenReadStream())
+            using (var workbook = new XLWorkbook(stream))
+            {
+                var worksheet = workbook.Worksheet(1);
+                var rows = worksheet?.RangeUsed().RowsUsed().Skip(1); // bỏ header
+
+                foreach (var row in rows)
+                {
+                    var question = new Mocktestquestion
+                    {
+                        MockTestId = mockTestCreate.MockTestId,
+                        QuestionContent = row.Cell(1).GetString(),
+                        CorrectAnswer = row.Cell(2).GetString(),
+                        PartialMark = row.Cell(3).GetString(),
+                        Mark = Convert.ToDecimal(row.Cell(4).GetString()),
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                    };
+                    questions.Add(question);
+                    await _questionRepository.AddAsync(question);
+                }
+            }
+
+            var result = _mapper.Map<MockTestCreateResponse>(mockTestCreate);
+            result.MockTestQuestions = _mapper.Map<List<MockTestQuestionCreateResponse>>(questions);
+
+            return new BaseResponse<MockTestCreateResponse>(
+                "Tạo bài mock test thành công",
                 StatusCodeEnum.OK_200,
                 result);
         }

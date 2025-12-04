@@ -21,6 +21,7 @@ using BusinessObject.DTOs.Response.FinalQuizzes;
 using MimeKit.Tnef;
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Ocsp;
+using Org.BouncyCastle.Bcpg;
 
 namespace Service
 {
@@ -43,6 +44,8 @@ namespace Service
         private readonly TrelloCardService _trelloCardService;
         private readonly ICreateSlotRepository _createSlotRepository;
         private readonly IFinalQuizResultRepository _finalQuizResultRepository;
+        private readonly IFinalQuizRepository _finalQuizRepository;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public CourseService(
             IMapper mapper,
@@ -61,7 +64,9 @@ namespace Service
             MediaService mediaService,
             TrelloCardService trelloCardService,
             ICreateSlotRepository createSlotRepository,
-            IFinalQuizResultRepository finalQuizResultRepository)
+            IFinalQuizResultRepository finalQuizResultRepository,
+            IFinalQuizRepository finalQuizRepository,
+            IWebHostEnvironment webHostEnvironment)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -80,6 +85,8 @@ namespace Service
             _trelloCardService = trelloCardService;
             _createSlotRepository = createSlotRepository;
             _finalQuizResultRepository = finalQuizResultRepository;
+            _finalQuizRepository = finalQuizRepository;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(int courseId)
@@ -225,9 +232,22 @@ namespace Service
 
         // Course Content Management Methods
 
-        public async Task<BaseResponse<CourseSectionResponse>> CreateCourseSectionAsync(CourseSectionRequest request)
+        public async Task<BaseResponse<CourseSectionResponse>> CreateCourseSectionAsync(int courseId, CourseSectionRequest request, string userId)
         {
+            // Kiểm tra course tồn tại và thuộc về teacher
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền tạo section cho khóa học này.");
+            }
+
             var courseSection = _mapper.Map<Coursesection>(request);
+            courseSection.CourseId = courseId; // Set CourseId từ parameter
             courseSection.CreatedAt = DateTime.UtcNow;
             courseSection.UpdatedAt = DateTime.UtcNow;
 
@@ -241,11 +261,24 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<LessonResponse>> CreateLessonAsync(LessonRequest request)
+        public async Task<BaseResponse<LessonResponse>> CreateLessonAsync(int sectionId, LessonRequest request, string userId)
         {
+            // Kiểm tra section tồn tại và thuộc về teacher
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(sectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền tạo lesson cho section này.");
+            }
+
             var lesson = new Lesson
             {
-                CourseSectionId = request.CourseSectionId,
+                CourseSectionId = sectionId, // Set CourseSectionId từ parameter
                 Name = request.Name,
                 Description = request.Description,
                 Order = request.Order,
@@ -264,15 +297,63 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<LessonItemResponse>> CreateLessonItemAsync(LessonItemRequest request)
+        public async Task<BaseResponse<LessonItemResponse>> CreateLessonItemAsync(int lessonId, LessonItemRequest request, string userId)
         {
+            // Kiểm tra lesson tồn tại và thuộc về teacher
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền tạo lesson item cho lesson này.");
+            }
+
+            // Xử lý upload file nếu có
+            string content = request.Content ?? string.Empty;
+            string itemType = request.ItemType ?? "text";
+
+            if (request.File != null)
+            {
+                var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                
+                if (FileUploadHelper.IsValidLessonVideo(request.File))
+                {
+                    content = await FileUploadHelper.UploadLessonVideoAsync(request.File, webRootPath);
+                    itemType = "video";
+                }
+                else if (FileUploadHelper.IsValidLessonDocument(request.File))
+                {
+                    content = await FileUploadHelper.UploadLessonDocumentAsync(request.File, webRootPath);
+                    itemType = "pdf";
+                }
+                else if (FileUploadHelper.IsValidImageFile(request.File))
+                {
+                    content = await FileUploadHelper.UploadCourseImageAsync(request.File, webRootPath);
+                    itemType = "image";
+                }
+                else
+                {
+                    throw new Exception("File type not supported. Only video, PDF, and image files are allowed.");
+                }
+            }
+
             var lessonItem = new Lessonitem
             {
-                LessonId = request.LessonId,
+                LessonId = lessonId, // Set LessonId từ parameter
                 Name = request.Name,
                 Description = request.Description,
-                Content = request.Content,
-                ItemType = request.ItemType,
+                Content = content,
+                ItemType = itemType,
                 Order = request.Order,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -280,6 +361,12 @@ namespace Service
 
             var createdLessonItem = await _lessonitemRepository.AddAsync(lessonItem);
             var response = _mapper.Map<LessonItemResponse>(createdLessonItem);
+            
+            // Convert content to full URL
+            if (!string.IsNullOrEmpty(response.Content))
+            {
+                response.Content = await _mediaService.GetMediaUrlAsync(response.Content);
+            }
 
             return new BaseResponse<LessonItemResponse>(
                 "Lesson item created successfully",
@@ -437,7 +524,21 @@ namespace Service
 
             // 2. Map course to DTO
             var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
-            courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
+            // Kiểm tra FinalQuiz có tồn tại không
+            if (course.FinalQuiz != null)
+            {
+                courseDetailResponse.FinalQuiz = _mapper.Map<FinalQuizCourseDetailResponse>(course.FinalQuiz);
+            }
+            else
+            {
+                // Tạo FinalQuiz mặc định nếu chưa có
+                courseDetailResponse.FinalQuiz = new FinalQuizCourseDetailResponse
+                {
+                    FinalQuizId = 0,
+                    Title = $"{course.Name} final quiz",
+                    Description = "Summary course content"
+                };
+            }
 
             // 3. Lấy tiến trình học của student nếu có studentId
             List<Process>? studentProcesses = null;
@@ -476,7 +577,21 @@ namespace Service
                         foreach (var c in section.Lessons)
                         {
                             var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
-                            c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
+                            // Kiểm tra Quiz có tồn tại không
+                            if (lesson != null && lesson.Quiz != null)
+                            {
+                                c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
+                            }
+                            else
+                            {
+                                // Tạo Quiz mặc định nếu chưa có
+                                c.Quiz = new LessonQuizResponse
+                                {
+                                    QuizId = 0,
+                                    QuizTitle = string.Empty,
+                                    QuizDescription = string.Empty
+                                };
+                            }
                         }
 
                         foreach (var lesson in section.Lessons)
@@ -568,9 +683,69 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<CourseDetailWithoutProgressResponse>> GetCourseDetailAsync(int courseId)
+        public async Task<BaseResponse<CourseDetailWithoutProgressResponse>> GetCourseDetailAsync(int courseId, string? userId = null, string? userRole = null)
         {
             var courseDetail = await _courseRepository.GetCourseDetailAsync(courseId);
+            
+            if (courseDetail == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            // Kiểm tra IsEnrolled: chỉ true khi user là Student và đã enroll khóa học
+            if (string.IsNullOrEmpty(userId) || userRole != "Student")
+            {
+                courseDetail.IsEnrolled = false;
+            }
+            else
+            {
+                // Kiểm tra xem Student có enroll khóa học này không
+                courseDetail.IsEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(userId, courseId);
+            }
+
+            // Convert ImageUrl to full URL
+            if (!string.IsNullOrEmpty(courseDetail.ImageUrl))
+            {
+                try
+                {
+                    courseDetail.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetail.ImageUrl);
+                }
+                catch
+                {
+                    courseDetail.ImageUrl = string.Empty;
+                }
+            }
+
+            // Convert Content URL to full URL for all lesson items
+            if (courseDetail.Sections != null)
+            {
+                foreach (var section in courseDetail.Sections)
+                {
+                    if (section.Lessons != null)
+                    {
+                        foreach (var lesson in section.Lessons)
+                        {
+                            if (lesson.LessonItems != null)
+                            {
+                                foreach (var lessonItem in lesson.LessonItems)
+                                {
+                                    if (!string.IsNullOrEmpty(lessonItem.Content))
+                                    {
+                                        try
+                                        {
+                                            lessonItem.Content = await _mediaService.GetMediaUrlAsync(lessonItem.Content);
+                                        }
+                                        catch
+                                        {
+                                            // Keep original content if conversion fails
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             return new BaseResponse<CourseDetailWithoutProgressResponse>(
                 "Lấy khoá học thành công",
@@ -616,6 +791,103 @@ namespace Service
                 Data = result,
                 StatusCode = StatusCodeEnum.OK_200,
             };
+        }
+
+        public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string userId)
+        {
+            // Kiểm tra available slot
+            var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+            if (createSlot == null)
+            {
+                throw new Exception("Bạn chưa mua gói để tạo mới khoá học. Vui lòng mua gói trước.");
+            }
+
+            if (createSlot.AvailableSlot <= 0)
+            {
+                throw new Exception("Bạn không còn suất tạo mới khoá học. Vui lòng mua thêm gói.");
+            }
+
+            // Kiểm tra module tồn tại
+            var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
+            if (module == null)
+            {
+                throw new Exception("Module not found");
+            }
+
+            // Xử lý upload image nếu có
+            string imageUrl = request.ImageUrl;
+            if (request.ImageFile != null)
+            {
+                var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                imageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, webRootPath);
+            }
+            else if (string.IsNullOrEmpty(imageUrl))
+            {
+                // Default image nếu không có image
+                imageUrl = "/courses/images/7daee94e-f728-48a8-95aa-ee68566b617e.jpg";
+            }
+
+            // Tạo course
+            var course = _mapper.Map<Course>(request);
+            course.ImageUrl = imageUrl;
+            course.Status = "Pending"; // Mặc định là Pending để manager duyệt
+            course.CreatedAt = DateTime.UtcNow;
+            course.UpdatedAt = DateTime.UtcNow;
+            course.CreatedBy = userId;
+            course.UpdatedBy = userId;
+
+            // Tạo embedding data
+            var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
+            course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+
+            // Lưu course
+            var createdCourse = await _courseRepository.AddAsync(course);
+
+            try
+            {
+                // Trừ available slot NGAY SAU KHI tạo course thành công
+                // Reload createSlot để tránh stale data
+                createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+                if (createSlot != null)
+                {
+                    createSlot.AvailableSlot -= 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+
+                // Tạo FinalQuiz cho course
+                var finalQuiz = new Finalquiz
+                {
+                    CourseId = createdCourse.CourseId,
+                    Title = $"{createdCourse.Name} final quiz",
+                    Description = "Summary course content",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                };
+                await _finalQuizRepository.AddAsync(finalQuiz);
+            }
+            catch (Exception ex)
+            {
+                // Nếu có lỗi sau khi tạo course, rollback bằng cách xóa course
+                try
+                {
+                    await _courseRepository.DeleteAsync(createdCourse);
+                }
+                catch
+                {
+                    // Ignore delete error
+                }
+                throw new Exception($"Lỗi khi tạo khóa học: {ex.Message}");
+            }
+
+            // Map response
+            var response = _mapper.Map<CourseResponse>(createdCourse);
+            response.ImageUrl = string.IsNullOrEmpty(response.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(response.ImageUrl);
+
+            return new BaseResponse<CourseResponse>(
+                "Course created successfully",
+                StatusCodeEnum.Created_201,
+                response
+            );
         }
 
         public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId, TrelloToken trelloToken)
@@ -679,7 +951,7 @@ namespace Service
                 {
                     var course = g.First().Course;
                     if (course == null) continue;
-                    var first = g.MinBy(p => p.Course.CreatedAt ?? DateTime.UtcNow);
+                    var first = g.MinBy(p => p.Course?.CreatedAt ?? DateTime.UtcNow);
 
                     var finalQuizResult = await _finalQuizResultRepository.FindOneWithIncludeAsync(x => x.FinalQuiz.CourseId == course.CourseId && x.UserId == studentId && x.IsPassed == true, c => c.FinalQuiz);
 
@@ -1300,6 +1572,39 @@ namespace Service
 
             return new BaseResponse<IEnumerable<CourseResponse>>(
                 "Lấy danh sách khoá học tương tự thành công.",
+                StatusCodeEnum.OK_200,
+                result
+                );
+        }
+
+        public async Task<BaseResponse<List<ActivityCountResponse>>> GetStudentActivityCount(string userId, string userRole, string studentId)
+        {
+            string destStudentId;
+
+            if(studentId != null)
+            {
+                if(userRole == "Student" && userId != studentId)
+                {
+                    throw new Exception("Bạn không được phép truy cập thông tin này.");
+                }
+
+                destStudentId = studentId;
+            }
+            else
+            {
+                if(userRole == "Parent")
+                {
+                    throw new Exception("Id của học sinh không được phép trống.");
+                }
+
+                destStudentId = userId;
+            }
+
+            int year = DateTime.UtcNow.Year;
+            var result = await _courseRepository.GetActivityForYear(destStudentId, year);
+
+            return new BaseResponse<List<ActivityCountResponse>>(
+                "Lấy danh sách hoạt động thành công.",
                 StatusCodeEnum.OK_200,
                 result
                 );

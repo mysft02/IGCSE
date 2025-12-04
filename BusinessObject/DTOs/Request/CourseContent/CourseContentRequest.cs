@@ -13,8 +13,8 @@ namespace BusinessObject.DTOs.Request.CourseContent
         [StringLength(1000)]
         public string? Description { get; set; }
 
-        [Required]
-        public int CourseId { get; set; }
+        // CourseId sẽ được lấy từ path parameter, không cần trong body
+        // public int CourseId { get; set; }
 
         //[Required]
         //public int ChapterId { get; set; }
@@ -35,8 +35,8 @@ namespace BusinessObject.DTOs.Request.CourseContent
         [StringLength(1000)]
         public string? Description { get; set; }
 
-        [Required]
-        public int CourseSectionId { get; set; }
+        // CourseSectionId sẽ được lấy từ path parameter, không cần trong body
+        // public int CourseSectionId { get; set; }
 
         [Required]
         public int Order { get; set; }
@@ -64,9 +64,10 @@ namespace BusinessObject.DTOs.Request.CourseContent
         [SwaggerSchema("Thể loại thành phần bài học (tự động detect từ file nếu upload)", Nullable = true, Description = "video, pdf, image, text - Tự động từ file extension")]
         public string? ItemType { get; set; } // video, pdf, image, text - auto-detected from file
 
-        [Required]
-        [SwaggerSchema("Id bài học của item này", Nullable = false)]
-        public int LessonId { get; set; }
+        // LessonId sẽ được lấy từ path parameter, không cần trong body
+        // [Required]
+        // [SwaggerSchema("Id bài học của item này", Nullable = false)]
+        // public int LessonId { get; set; }
 
         [Required]
         [SwaggerSchema("Thứ tự thành phần bài học", Nullable = false)]
