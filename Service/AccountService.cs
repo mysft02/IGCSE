@@ -48,20 +48,25 @@ namespace Service
 
             if (user == null)
             {
-                throw new Exception("Invalid username!");
+                throw new Exception("tên người dùng không hợp lệ");
             }
 
             if (user.Status == false)
             {
-              throw new Exception("Cannot login with this account anymore");
+              throw new Exception("Không đăng nhập bằng tài khoản này được nữa");
             }
 
+            // Kiểm tra email đã được xác thực chưa
+            if (!await _userManager.IsEmailConfirmedAsync(user))
+            {
+                throw new Exception("Email chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.");
+            }
 
             var result = await _signinManager.CheckPasswordSignInAsync(user, request.Password, false);
 
             if (!result.Succeeded)
             {
-                throw new Exception("Username not found and/or password incorrect");
+                throw new Exception("Mật khẩu không chính xác");
             }
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -83,7 +88,7 @@ namespace Service
                 RefreshToken = token.RefreshToken
             };
 
-            return new BaseResponse<LoginResponse>("Login successfully", StatusCodeEnum.OK_200, loginResponse);
+            return new BaseResponse<LoginResponse>("Đăng nhập thành công", StatusCodeEnum.OK_200, loginResponse);
         }
 
         public async Task<BaseResponse<RegisterResponse>> Register(RegisterRequest request)
@@ -105,62 +110,76 @@ namespace Service
                 var existUser = await _userManager.FindByEmailAsync(request.Email);
                 if (existUser != null)
                 {
-                    throw new Exception("Email already exists!");
+                    throw new Exception("Email đã tồn tại");
+                }
+
+                // Kiểm tra số điện thoại đã tồn tại chưa
+                var existUserByPhone = await _accountRepository.FindOneAsync(x => x.Phone == request.Phone);
+                if (existUserByPhone != null)
+                {
+                    throw new Exception("Số điện thoại đã tồn tại");
+                }
+
+                // Ensure Student role exists
+                if (!await _roleManager.RoleExistsAsync("Student"))
+                {
+                    var roleResult = await _roleManager.CreateAsync(new IdentityRole("Student"));
+                    if (!roleResult.Succeeded)
+                    {
+                        throw new Exception($"Tạo vai trò học sinh thất bại: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                    }
+                }
+
+                var createdUser = await _userManager.CreateAsync(accountApp, request.Password);
+                if (createdUser.Succeeded)
+                {
+                    // Automatically assign Student role to new users
+                    var roleResult = await _userManager.AddToRoleAsync(accountApp, "Student");
+                    if (!roleResult.Succeeded)
+                    {
+                        await _userManager.DeleteAsync(accountApp); // Clean up the user if role assignment fails
+                        throw new Exception($"Gán vai trò học sinh thất bại: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                    }
+
+                    // Generate email confirmation token
+                    var _user = await GetUser(request.Email);
+                    var emailCode = await _userManager.GenerateEmailConfirmationTokenAsync(_user!);
+
+                    if (string.IsNullOrEmpty(emailCode))
+                    {
+                        await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
+                        throw new Exception("Failed to generate confirmation token. Please try again.");
+                    }
+
+                    // Send verification email
+                    try
+                    {
+                        _accountRepository.SendVerificationEmail(request.Email, emailCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        await _userManager.DeleteAsync(accountApp); // Xóa tài khoản nếu không gửi được email
+                        throw new Exception($"Không thể gửi email xác thực: {ex.Message}");
+                    }
+
+                    // Không trả về token, yêu cầu user verify email trước
+                    var customerResponse = new RegisterResponse
+                    {
+                        UserName = accountApp.UserName,
+                        Email = accountApp.Email,
+                        Name = accountApp.Name,
+                        Address = accountApp.Address,
+                        Phone = accountApp.Phone,
+                        DateOfBirth = accountApp.DateOfBirth,
+                        Roles = new List<string>(),
+                        Token = null,
+                        RefreshToken = null
+                    };
+                    return new BaseResponse<RegisterResponse>("Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.", StatusCodeEnum.OK_200, customerResponse);
                 }
                 else
                 {
-                    // Ensure Student role exists
-                    if (!await _roleManager.RoleExistsAsync("Student"))
-                    {
-                        var roleResult = await _roleManager.CreateAsync(new IdentityRole("Student"));
-                        if (!roleResult.Succeeded)
-                        {
-                            throw new Exception($"Failed to create Student role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-                        }
-                    }
-
-                    var createdUser = await _userManager.CreateAsync(accountApp, request.Password);
-                    if (createdUser.Succeeded)
-                    {
-                        // Automatically assign Student role to new users
-                        var roleResult = await _userManager.AddToRoleAsync(accountApp, "Student");
-                        if (!roleResult.Succeeded)
-                        {
-                            await _userManager.DeleteAsync(accountApp); // Clean up the user if role assignment fails
-                            throw new Exception($"Failed to assign Student role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-                        }
-
-                        var token = await _tokenRepository.createToken(accountApp);
-                        var _user = await GetUser(request.Email);
-                        var emailCode = await _userManager.GenerateEmailConfirmationTokenAsync(_user!);
-
-                        if (string.IsNullOrEmpty(emailCode))
-                        {
-                            await _userManager.DeleteAsync(accountApp); // Xóa tài khoản để tránh bị kẹt
-                            throw new Exception("Failed to generate confirmation token. Please try again.");
-                        }
-
-                        var userRoles = await _userManager.GetRolesAsync(accountApp);
-                        var customerResponse = new RegisterResponse
-                        {
-                            UserName = accountApp.UserName,
-                            Email = accountApp.Email,
-                            Name = accountApp.Name,
-                            Address = accountApp.Address,
-                            Phone = accountApp.Phone,
-                            DateOfBirth = accountApp.DateOfBirth,
-                            Roles = (userRoles?.FirstOrDefault() is string singleRoleReg && !string.IsNullOrWhiteSpace(singleRoleReg))
-                                ? new List<string> { singleRoleReg }
-                                : new List<string>(),
-                            Token = token.AccessToken,
-                            RefreshToken = token.RefreshToken
-                        };
-                        return new BaseResponse<RegisterResponse>("Register successfully", StatusCodeEnum.OK_200, customerResponse);
-                    }
-                    else
-                    {
-                        throw new Exception($"{createdUser.Errors}");
-                    }
+                    throw new Exception($"{createdUser.Errors}");
                 }
             }
             catch (Exception e)
@@ -172,7 +191,6 @@ namespace Service
                 {
                     errorMessage += " | InnerException: " + e.InnerException.Message;
 
-                    // Nếu còn lồng nữa (2 cấp), bạn có thể lấy tiếp:
                     if (e.InnerException.InnerException != null)
                     {
                         errorMessage += " | InnerInnerException: " + e.InnerException.InnerException.Message;
@@ -190,11 +208,11 @@ namespace Service
             var user = await _userManager.FindByNameAsync(changePassword.UserName);
             if (user == null)
             {
-                throw new Exception("User Not Exist");
+                throw new Exception("Người dùng không tồn tại");
             }
             if (string.Compare(changePassword.NewPassword, changePassword.ConfirmNewPassword) != 0)
             {
-                throw new Exception("Password and ConfirmPassword doesnot match! ");
+                throw new Exception("Mật khẩu và xác nhận mật khẩu không chính xác");
             }
             var result = await _userManager.ChangePasswordAsync(user, changePassword.CurrentPassword, changePassword.NewPassword);
             if (!result.Succeeded)
@@ -215,7 +233,142 @@ namespace Service
                 Password = changePassword.NewPassword,
                 ConfirmPassword = changePassword.ConfirmNewPassword
             };
-            return new BaseResponse<AccountChangePasswordResponse>("Password changed successfully.", StatusCodeEnum.OK_200, response);
+            return new BaseResponse<AccountChangePasswordResponse>("Đổi mật khẩu thành công", StatusCodeEnum.OK_200, response);
+        }
+
+        public async Task<BaseResponse<ForgotPasswordResponse>> ForgotPassword(ForgotPasswordRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                // Không tiết lộ thông tin email có tồn tại hay không vì lý do bảo mật
+                throw new Exception("Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn");
+            }
+
+            if (user.Status == false)
+            {
+                throw new Exception("Tài khoản này đã bị khóa");
+            }
+
+            // Tạo token reset password
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            
+            // Tạo URL reset password (có thể tùy chỉnh theo frontend URL)
+            var resetUrl = $"https://your-frontend-url.com/reset-password?email={Uri.EscapeDataString(request.Email)}&token={Uri.EscapeDataString(resetToken)}";
+            
+            // Tạo nội dung email
+            var emailSubject = "Đặt lại mật khẩu";
+            var emailBody = $@"
+                <html>
+                <body>
+                    <h2>Yêu cầu đặt lại mật khẩu</h2>
+                    <p>Xin chào {user.Name},</p>
+                    <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+                    <p>Vui lòng click vào link sau để đặt lại mật khẩu:</p>
+                    <p><a href=""{resetUrl}"" style=""background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"">Đặt lại mật khẩu</a></p>
+                    <p>Hoặc copy link sau vào trình duyệt:</p>
+                    <p>{resetUrl}</p>
+                    <p>Link này sẽ hết hạn sau 1 giờ.</p>
+                    <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+                    <p>Trân trọng,<br/>Đội ngũ IGCSE</p>
+                </body>
+                </html>";
+
+            // Gửi email
+            try
+            {
+                _accountRepository.SendEmail(request.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Không thể gửi email: {ex.Message}");
+            }
+
+            var response = new ForgotPasswordResponse
+            {
+                Email = request.Email,
+                Message = "Chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư."
+            };
+
+            return new BaseResponse<ForgotPasswordResponse>("Gửi email thành công", StatusCodeEnum.OK_200, response);
+        }
+
+        public async Task<BaseResponse<string>> ResetPassword(ResetPasswordRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                throw new Exception("Email không tồn tại");
+            }
+
+            if (user.Status == false)
+            {
+                throw new Exception("Tài khoản này đã bị khóa");
+            }
+
+            // Xác thực token và reset password
+            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+            
+            if (!result.Succeeded)
+            {
+                var errors = new List<string>();
+                foreach (var error in result.Errors)
+                {
+                    errors.Add(error.Description);
+                }
+                string errorMessage = string.Join(" | ", errors);
+                throw new Exception($"Đặt lại mật khẩu thất bại: {errorMessage}");
+            }
+
+            return new BaseResponse<string>("Đặt lại mật khẩu thành công", StatusCodeEnum.OK_200, "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.");
+        }
+
+        public async Task<BaseResponse<VerifyEmailResponse>> VerifyEmail(VerifyEmailRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                throw new Exception("Email không tồn tại");
+            }
+
+            if (user.Status == false)
+            {
+                throw new Exception("Tài khoản này đã bị khóa");
+            }
+
+            // Kiểm tra email đã được xác thực chưa
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                throw new Exception("Email đã được xác thực trước đó");
+            }
+
+            // Xác thực email với token
+            var result = await _userManager.ConfirmEmailAsync(user, request.VerificationCode);
+            
+            if (!result.Succeeded)
+            {
+                var errors = new List<string>();
+                foreach (var error in result.Errors)
+                {
+                    errors.Add(error.Description);
+                }
+                string errorMessage = string.Join(" | ", errors);
+                throw new Exception($"Xác thực email thất bại: {errorMessage}");
+            }
+
+            // Sau khi xác thực thành công, tạo token để user có thể đăng nhập ngay
+            var token = await _tokenRepository.createToken(user);
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var response = new VerifyEmailResponse
+            {
+                Email = request.Email,
+                Message = "Email đã được xác thực thành công. Bạn có thể đăng nhập ngay.",
+                Token = token.AccessToken,
+                RefreshToken = token.RefreshToken
+            };
+
+            return new BaseResponse<VerifyEmailResponse>("Xác thực email thành công", StatusCodeEnum.OK_200, response);
         }
 
         public async Task<Account> GetByStringId(string id)
@@ -223,7 +376,7 @@ namespace Service
             var account = await _accountRepository.GetByStringId(id);
             if (account == null)
             {
-                throw new ArgumentException("Cannot Find account!");
+                throw new ArgumentException("Không tìm thấy tài khoản");
             }
             return account;
         }
@@ -322,7 +475,7 @@ namespace Service
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to set user role: {ex.Message}");
+                throw new Exception($"Thay đổi vai trò thất bại: {ex.Message}");
             }
         }
 
@@ -443,21 +596,21 @@ namespace Service
 
             if (parent == null)
             {
-                throw new Exception("Parent not found.");
+                throw new Exception("Không tìm thấy phụ huynh này");
             }
 
             var parentRole = await _userManager.GetRolesAsync(parent);
 
             if (!parentRole.Contains("Parent"))
             {
-                throw new Exception("You are not a parent.");
+                throw new Exception("Bạn không phải là phụ huynh");
             }
 
             var result = await _parentStudentLinkRepository.GetByParentId(parentId);
             var response = _mapper.Map<IEnumerable<AccountResponse>>(result);
 
             return new BaseResponse<IEnumerable<AccountResponse>>(
-                "Parent-Student link created successfully",
+                "Liên kết phụ huynh - học sinh thành công",
                 StatusCodeEnum.Created_201,
                 response
             );

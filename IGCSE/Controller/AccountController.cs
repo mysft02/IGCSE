@@ -62,7 +62,7 @@ namespace IGCSE.Controller
             var userProfile = await _accountService.GetProfileAsync(userId);
             if (userProfile == null)
             {
-                return NotFound(new { Message = "User not found" });
+                return NotFound(new { Message = "Không tìm thấy người dùng" });
             }
             return Ok(userProfile);
         }
@@ -272,10 +272,20 @@ namespace IGCSE.Controller
 }
 ```
 
+4. **Số điện thoại đã tồn tại:**
+```json
+{
+  ""message"": ""Số điện thoại đã tồn tại"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
 **Lưu ý:**
 - API có thể truy cập công khai (không cần đăng nhập)
 - Sau khi đăng ký thành công, user tự động được gán role mặc định (Student)
-- Token được trả về ngay sau khi đăng ký thành công, user có thể sử dụng ngay")]
+- Sau khi đăng ký, hệ thống sẽ gửi email xác thực. User cần xác thực email trước khi có thể đăng nhập
+- Token chỉ được trả về sau khi xác thực email thành công")]
         public async Task<ActionResult<BaseResponse<RegisterResponse>>> Register(RegisterRequest request)
         {
             if (!ModelState.IsValid)
@@ -478,6 +488,269 @@ namespace IGCSE.Controller
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             return await _accountService.ChangePassword(changePassword);
+        }
+
+        [HttpPost("forgot-password")]
+        [SwaggerOperation(
+            Summary = "Quên mật khẩu", 
+            Description = @"Api dùng để yêu cầu đặt lại mật khẩu khi người dùng quên mật khẩu. Hệ thống sẽ gửi email chứa link đặt lại mật khẩu đến email đã đăng ký.
+
+**Request:**
+- Body:
+```json
+{
+  ""email"": ""user@example.com""
+}
+```
+  - `email` (string, required) - Email của tài khoản cần đặt lại mật khẩu
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Gửi email thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""email"": ""user@example.com"",
+    ""message"": ""Chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư.""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Email không tồn tại (vì lý do bảo mật, không tiết lộ email có tồn tại hay không):**
+```json
+{
+  ""message"": ""Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Tài khoản này đã bị khóa"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""errors"": [""Email không hợp lệ""]
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Link đặt lại mật khẩu sẽ hết hạn sau 1 giờ
+- Vì lý do bảo mật, hệ thống sẽ luôn trả về thông báo thành công ngay cả khi email không tồn tại")]
+        public async Task<ActionResult<BaseResponse<ForgotPasswordResponse>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ", Errors = errors });
+            }
+            return Ok(await _accountService.ForgotPassword(request));
+        }
+
+        [HttpPost("reset-password")]
+        [SwaggerOperation(
+            Summary = "Đặt lại mật khẩu", 
+            Description = @"Api dùng để đặt lại mật khẩu mới sau khi người dùng click vào link trong email từ chức năng quên mật khẩu.
+
+**Request:**
+- Body:
+```json
+{
+  ""email"": ""user@example.com"",
+  ""token"": ""reset-token-from-email"",
+  ""newPassword"": ""NewPassword123!@#"",
+  ""confirmPassword"": ""NewPassword123!@#""
+}
+```
+  - `email` (string, required) - Email của tài khoản cần đặt lại mật khẩu
+  - `token` (string, required) - Token reset password từ email
+  - `newPassword` (string, required, 8-20 ký tự) - Mật khẩu mới (phải có chữ hoa, chữ thường, số và ký tự đặc biệt)
+  - `confirmPassword` (string, required) - Xác nhận mật khẩu mới (phải khớp với newPassword)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Đặt lại mật khẩu thành công"",
+  ""statusCode"": 200,
+  ""data"": ""Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.""
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Email không tồn tại:**
+```json
+{
+  ""message"": ""Email không tồn tại"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Token không hợp lệ hoặc đã hết hạn:**
+```json
+{
+  ""message"": ""Đặt lại mật khẩu thất bại: Invalid token"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Mật khẩu không đáp ứng yêu cầu:**
+```json
+{
+  ""message"": ""Đặt lại mật khẩu thất bại: Password must have at least one uppercase letter"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Tài khoản này đã bị khóa"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+5. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""errors"": [
+    ""Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt"",
+    ""Mật khẩu và xác nhận mật khẩu không khớp""
+  ]
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Token reset password có thời hạn 1 giờ
+- Sau khi đặt lại mật khẩu thành công, người dùng cần đăng nhập lại với mật khẩu mới")]
+        public async Task<ActionResult<BaseResponse<string>>> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ", Errors = errors });
+            }
+            return Ok(await _accountService.ResetPassword(request));
+        }
+
+        [HttpPost("verify-email")]
+        [SwaggerOperation(
+            Summary = "Xác thực email", 
+            Description = @"Api dùng để xác thực email sau khi đăng ký tài khoản. User sẽ nhận được mã xác thực qua email và cần nhập mã này để hoàn tất đăng ký.
+
+**Request:**
+- Body:
+```json
+{
+  ""email"": ""user@example.com"",
+  ""verificationCode"": ""CfDJ8...""
+}
+```
+  - `email` (string, required) - Email của tài khoản cần xác thực
+  - `verificationCode` (string, required) - Mã xác thực nhận được từ email
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Xác thực email thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""email"": ""user@example.com"",
+    ""message"": ""Email đã được xác thực thành công. Bạn có thể đăng nhập ngay."",
+    ""token"": ""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."",
+    ""refreshToken"": ""refresh-token-here""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Email không tồn tại:**
+```json
+{
+  ""message"": ""Email không tồn tại"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Mã xác thực không hợp lệ hoặc đã hết hạn:**
+```json
+{
+  ""message"": ""Xác thực email thất bại: Invalid token"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Email đã được xác thực trước đó:**
+```json
+{
+  ""message"": ""Email đã được xác thực trước đó"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Tài khoản này đã bị khóa"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+5. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""errors"": [
+    ""Email không hợp lệ"",
+    ""Mã xác thực là bắt buộc""
+  ]
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Mã xác thực được gửi qua email sau khi đăng ký
+- Sau khi xác thực thành công, user sẽ nhận được token và có thể đăng nhập ngay
+- Mỗi mã xác thực chỉ có thể sử dụng một lần")]
+        public async Task<ActionResult<BaseResponse<VerifyEmailResponse>>> VerifyEmail([FromBody] VerifyEmailRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ", Errors = errors });
+            }
+            return Ok(await _accountService.VerifyEmail(request));
         }
 
         [HttpPost("link-student-to-parent")]
