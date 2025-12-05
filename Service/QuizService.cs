@@ -461,6 +461,7 @@ namespace Service
                         QuizId = quizCreate.QuizId,
                         QuestionContent = row.Cell(1).GetString(),
                         CorrectAnswer = row.Cell(2).GetString(),
+                        PictureUrl = "",
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
                     };
