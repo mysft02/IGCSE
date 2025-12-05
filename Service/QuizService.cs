@@ -85,6 +85,10 @@ namespace Service
             if(userRole != "Parent" && userRole != "Student")
             {
                 var quizReview = await _quizRepository.GetQuizWithAnswerAsync(quizId);
+                foreach(var item in quizReview.Questions)
+                {
+                    item.ImageUrl = string.IsNullOrEmpty(item.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(item.ImageUrl);
+                }
                 return new BaseResponse<object>
                 {
                     Message = "Lấy kết quả quiz thành công.",
