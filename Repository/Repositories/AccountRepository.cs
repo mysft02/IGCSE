@@ -2,6 +2,7 @@ using BusinessObject;
 using BusinessObject.DTOs.Request.Accounts;
 using BusinessObject.DTOs.Response.Accounts;
 using BusinessObject.Model;
+using Common.Utils;
 using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
@@ -10,6 +11,7 @@ using MimeKit;
 using MySqlConnector;
 using Repository.BaseRepository;
 using Repository.IRepositories;
+using System.Text;
 
 namespace Repository.Repositories
 {
@@ -54,21 +56,85 @@ namespace Repository.Repositories
             return await base.GetByStringId(accountId);
         }
 
+        private (string smtpServer, int smtpPort, string senderEmail, string senderPassword, string senderName) GetEmailSettings()
+        {
+            var smtpServer = CommonUtils.GetApiKey("EMAIL_SMTP_SERVER");
+            var smtpPortStr = CommonUtils.GetApiKey("EMAIL_SMTP_PORT");
+            var senderEmail = CommonUtils.GetApiKey("EMAIL_SENDER_EMAIL");
+            var senderPassword = CommonUtils.GetApiKey("EMAIL_SENDER_PASSWORD");
+            var senderName = CommonUtils.GetApiKey("EMAIL_SENDER_NAME");
+
+            // Kiểm tra và throw exception nếu không tìm thấy trong file
+            if (smtpServer.StartsWith("Api Key not found") || smtpServer.StartsWith("Api Key file not found"))
+                throw new Exception("EMAIL_SMTP_SERVER không được cấu hình trong file ApiKey.env");
+            
+            if (smtpPortStr.StartsWith("Api Key not found") || smtpPortStr.StartsWith("Api Key file not found") || !int.TryParse(smtpPortStr, out int smtpPort))
+                throw new Exception("EMAIL_SMTP_PORT không được cấu hình trong file ApiKey.env");
+            
+            if (senderEmail.StartsWith("Api Key not found") || senderEmail.StartsWith("Api Key file not found"))
+                throw new Exception("EMAIL_SENDER_EMAIL không được cấu hình trong file ApiKey.env");
+            
+            if (senderPassword.StartsWith("Api Key not found") || senderPassword.StartsWith("Api Key file not found"))
+                throw new Exception("EMAIL_SENDER_PASSWORD không được cấu hình trong file ApiKey.env");
+            
+            if (senderName.StartsWith("Api Key not found") || senderName.StartsWith("Api Key file not found"))
+                senderName = "IGCSE"; // Sender name có thể có default value
+
+            return (smtpServer, smtpPort, senderEmail, senderPassword, senderName);
+        }
+
         public string SendEmail(string recipientEmail, string subject, string htmlBody)
         {
+            var (smtpServer, smtpPort, senderEmail, senderPassword, senderName) = GetEmailSettings();
+
             var message = new MimeMessage();
             message.To.Add(MailboxAddress.Parse(recipientEmail));
-            message.From.Add(MailboxAddress.Parse("huydqse173363@fpt.edu.vn"));
+            message.From.Add(new MailboxAddress(senderName, senderEmail));
             message.Subject = subject;
             message.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = htmlBody };
 
             using var smtp = new SmtpClient();
-            smtp.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
-            smtp.Authenticate("huydqse173363@fpt.edu.vn", "hmkf wdjs epwx ibfg");
+            smtp.Connect(smtpServer, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+            smtp.Authenticate(senderEmail, senderPassword);
             smtp.Send(message);
             smtp.Disconnect(true);
 
             return "Email sent successfully";
+        }
+
+        public string SendVerificationEmail(string email, string emailCode)
+        {
+            var (smtpServer, smtpPort, senderEmail, senderPassword, senderName) = GetEmailSettings();
+
+            StringBuilder emailMessage = new StringBuilder();
+            emailMessage.Append("<html>");
+            emailMessage.Append("<body>");
+            emailMessage.Append($"<p>Dear {email},</p>");
+            emailMessage.Append("<p>Thank you for your registering with us. To verify your email address, please use the following verification code: </p>");
+            emailMessage.Append($"<h2>Verification Code: {emailCode}</h2>");
+            emailMessage.Append("<p>Please enter this code on our website to complete your registration.</p>");
+            emailMessage.Append("<p>If you did not request this, please ignore this email</p>");
+            emailMessage.Append("<br>");
+            emailMessage.Append("<p>Best regards,</p>");
+            emailMessage.Append($"<p><strong>{senderName}</strong></p>");
+            emailMessage.Append("</body>");
+            emailMessage.Append("</html>");
+
+            string message = emailMessage.ToString();
+
+            var _email = new MimeMessage();
+            _email.To.Add(MailboxAddress.Parse(email));
+            _email.From.Add(new MailboxAddress(senderName, senderEmail));
+            _email.Subject = "Email Confirmation";
+            _email.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = message };
+
+            using var smtp = new SmtpClient();
+            smtp.Connect(smtpServer, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+            smtp.Authenticate(senderEmail, senderPassword);
+            smtp.Send(_email);
+            smtp.Disconnect(true);
+
+            return "Thank you for your registration, kindly check your email for confirmation code";
         }
 
         public async Task<(List<Account> items, int totalCount, int page, int size)> GetPagedUserList(AccountListQuery query)
