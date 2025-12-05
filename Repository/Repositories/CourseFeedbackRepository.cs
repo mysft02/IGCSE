@@ -34,11 +34,17 @@ namespace Repository.Repositories
 
         public async Task<double> GetAverageRatingAsync(int courseId)
         {
+            var count = await _context.Coursefeedbacks
+                .CountAsync(f => f.CourseId == courseId);
+            
+            if (count == 0)
+            {
+                return 0;
+            }
+
             return await _context.Coursefeedbacks
                 .Where(f => f.CourseId == courseId)
-                .Select(f => (double)f.Rating)
-                .DefaultIfEmpty(0)
-                .AverageAsync();
+                .AverageAsync(f => (double)f.Rating);
         }
 
         public async Task<int> GetFeedbackCountAsync(int courseId)
