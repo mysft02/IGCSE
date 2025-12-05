@@ -79,7 +79,7 @@ namespace Repository.Repositories
                     {
                         QuestionId = c.QuestionId,
                         QuestionContent = c.QuestionContent,
-                        ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        ImageUrl = string.IsNullOrEmpty(c.PictureUrl) ? "" : CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                         CorrectAnswer = c.CorrectAnswer
                     })
                     .ToList()
