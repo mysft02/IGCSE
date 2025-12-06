@@ -152,59 +152,59 @@ builder.Services.AddControllersWithViews()
 var app = builder.Build();
 
 // Khởi tạo các role khi ứng dụng chạy
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
-
-    // Danh sách các role cần tạo
-    string[] roleNames = { "Admin", "Parent", "Student", "Teacher", "Manager" };
-
-    foreach (var roleName in roleNames)
-    {
-        if (!await roleManager.RoleExistsAsync(roleName))
-        {
-            await roleManager.CreateAsync(new IdentityRole(roleName));
-        }
-    }
-
-    // Tạo tài khoản Admin mặc định nếu chưa có, hoặc cập nhật role nếu đã có
-    var adminUser = await userManager.FindByNameAsync("admin");
-    if (adminUser == null)
-    {
-        adminUser = new Account
-        {
-            UserName = "admin",
-            Email = "admin@example.com",
-            Name = "System Administrator",
-            Address = "Admin Address",
-            Phone = "0123456789",
-            Status = true,
-            DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddYears(-30))
-        };
-
-        var result = await userManager.CreateAsync(adminUser, "A123456789a!");
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(adminUser, "Admin");
-        }
-    }
-    else
-    {
-        // Tài khoản admin đã tồn tại, kiểm tra và cập nhật role
-        var currentRoles = await userManager.GetRolesAsync(adminUser);
-        if (!currentRoles.Contains("Admin"))
-        {
-            // Xóa tất cả role cũ
-            if (currentRoles.Any())
-            {
-                await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
-            }
-            // Thêm role Admin
-            await userManager.AddToRoleAsync(adminUser, "Admin");
-        }
-    }
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+//     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+//
+//     // Danh sách các role cần tạo
+//     string[] roleNames = { "Admin", "Parent", "Student", "Teacher", "Manager" };
+//
+//     foreach (var roleName in roleNames)
+//     {
+//         if (!await roleManager.RoleExistsAsync(roleName))
+//         {
+//             await roleManager.CreateAsync(new IdentityRole(roleName));
+//         }
+//     }
+//
+//     // Tạo tài khoản Admin mặc định nếu chưa có, hoặc cập nhật role nếu đã có
+//     var adminUser = await userManager.FindByNameAsync("admin");
+//     if (adminUser == null)
+//     {
+//         adminUser = new Account
+//         {
+//             UserName = "admin",
+//             Email = "admin@example.com",
+//             Name = "System Administrator",
+//             Address = "Admin Address",
+//             Phone = "0123456789",
+//             Status = true,
+//             DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddYears(-30))
+//         };
+//
+//         var result = await userManager.CreateAsync(adminUser, "A123456789a!");
+//         if (result.Succeeded)
+//         {
+//             await userManager.AddToRoleAsync(adminUser, "Admin");
+//         }
+//     }
+//     else
+//     {
+//         // Tài khoản admin đã tồn tại, kiểm tra và cập nhật role
+//         var currentRoles = await userManager.GetRolesAsync(adminUser);
+//         if (!currentRoles.Contains("Admin"))
+//         {
+//             // Xóa tất cả role cũ
+//             if (currentRoles.Any())
+//             {
+//                 await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
+//             }
+//             // Thêm role Admin
+//             await userManager.AddToRoleAsync(adminUser, "Admin");
+//         }
+//     }
+// }
 
 app.UseGlobalExceptionHandling();
 

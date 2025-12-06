@@ -198,7 +198,17 @@ namespace Service
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, query.Status);
+            // Parse Status string to CourseStatusEnum?
+            CourseStatusEnum? statusEnum = null;
+            if (!string.IsNullOrEmpty(query.Status) && int.TryParse(query.Status, out var statusInt))
+            {
+                if (Enum.IsDefined(typeof(CourseStatusEnum), statusInt))
+                {
+                    statusEnum = (CourseStatusEnum)statusInt;
+                }
+            }
+
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query.SearchByName, query.CouseId, statusEnum);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
