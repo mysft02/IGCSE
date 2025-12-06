@@ -187,6 +187,9 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+            // Tự động xác thực email cho Admin
+            var emailConfirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(adminUser);
+            await userManager.ConfirmEmailAsync(adminUser, emailConfirmationToken);
         }
     }
     else
@@ -202,6 +205,12 @@ using (var scope = app.Services.CreateScope())
             }
             // Thêm role Admin
             await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+        // Đảm bảo email của Admin đã được xác thực
+        if (!await userManager.IsEmailConfirmedAsync(adminUser))
+        {
+            var emailConfirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(adminUser);
+            await userManager.ConfirmEmailAsync(adminUser, emailConfirmationToken);
         }
     }
 }

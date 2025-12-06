@@ -16,7 +16,7 @@ namespace BusinessObject.DTOs.Request.Accounts
 
         [Required(ErrorMessage = "Email là bắt buộc")]
         [EmailAddress(ErrorMessage = "Email không hợp lệ, vui lòng thêm @ vào địa chỉ email")]
-        [StringLength(20, ErrorMessage = "Email tối đa 20 ký tự")]
+        [StringLength(40, ErrorMessage = "Email tối đa 40 ký tự")]
         public string Email { get; set; }
 
         [Required(ErrorMessage = "Địa chỉ là bắt buộc")]

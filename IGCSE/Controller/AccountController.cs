@@ -175,7 +175,16 @@ namespace IGCSE.Controller
 }
 ```
 
-3. **Dữ liệu không hợp lệ:**
+3. **Email chưa được xác thực (chỉ áp dụng cho non-Admin users):**
+```json
+{
+  ""message"": ""Email chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Dữ liệu không hợp lệ:**
 ```json
 {
   ""message"": ""Username and password are required"",
@@ -187,7 +196,8 @@ namespace IGCSE.Controller
 **Lưu ý:**
 - API có thể truy cập công khai (không cần đăng nhập)
 - Token có thời hạn sử dụng, cần sử dụng refresh token để lấy token mới
-- Refresh token dùng để làm mới access token khi hết hạn")]
+- Refresh token dùng để làm mới access token khi hết hạn
+- **Đặc biệt:** Tài khoản với role Admin không cần xác thực email và có thể đăng nhập ngay")]
         public async Task<BaseResponse<LoginResponse>> Login(LoginRequest request)
         {
             return await _accountService.Login(request);
@@ -285,7 +295,8 @@ namespace IGCSE.Controller
 - API có thể truy cập công khai (không cần đăng nhập)
 - Sau khi đăng ký thành công, user tự động được gán role mặc định (Student)
 - Sau khi đăng ký, hệ thống sẽ gửi email xác thực. User cần xác thực email trước khi có thể đăng nhập
-- Token chỉ được trả về sau khi xác thực email thành công")]
+- Token chỉ được trả về sau khi xác thực email thành công
+- **Đặc biệt:** Tài khoản với role Admin không cần xác thực email và có thể đăng nhập ngay")]
         public async Task<ActionResult<BaseResponse<RegisterResponse>>> Register(RegisterRequest request)
         {
             if (!ModelState.IsValid)
