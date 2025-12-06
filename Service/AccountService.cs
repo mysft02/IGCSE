@@ -56,8 +56,12 @@ namespace Service
               throw new Exception("Không đăng nhập bằng tài khoản này được nữa");
             }
 
-            // Kiểm tra email đã được xác thực chưa
-            if (!await _userManager.IsEmailConfirmedAsync(user))
+            // Kiểm tra role của user
+            var roles = await _userManager.GetRolesAsync(user);
+            var isAdmin = roles.Contains("Admin");
+
+            // Kiểm tra email đã được xác thực chưa (bỏ qua nếu là Admin)
+            if (!isAdmin && !await _userManager.IsEmailConfirmedAsync(user))
             {
                 throw new Exception("Email chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.");
             }
@@ -68,8 +72,6 @@ namespace Service
             {
                 throw new Exception("Mật khẩu không chính xác");
             }
-
-            var roles = await _userManager.GetRolesAsync(user);
 
             var token = await _tokenRepository.createToken(user);
             var loginResponse = new LoginResponse
@@ -453,6 +455,13 @@ namespace Service
                 if (!result.Succeeded)
                 {
                     throw new Exception($"Không thể thay đổi role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+
+                // Nếu role mới là Admin, tự động xác thực email
+                if (request.Role == "Admin" && !await _userManager.IsEmailConfirmedAsync(targetUser))
+                {
+                    var emailConfirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(targetUser);
+                    await _userManager.ConfirmEmailAsync(targetUser, emailConfirmationToken);
                 }
 
                 // Tạo response
