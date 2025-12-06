@@ -41,13 +41,14 @@ function printMenu() {
   console.log("13) Run DB migrations (Liquibase menu)");
   console.log("14) Execute command in container (select port)");
   console.log("15) View container environment variables (select port)");
+  console.log("16) Upload appsettings.json to server");
   console.log(
-    "16) Cleanup Docker on LOCAL (remove unused images, containers, build cache)"
+    "17) Cleanup Docker on LOCAL (remove unused images, containers, build cache)"
   );
   console.log(
-    "17) Cleanup Docker on VPS (remove unused images, containers, build cache on server)"
+    "18) Cleanup Docker on VPS (remove unused images, containers, build cache on server)"
   );
-  console.log("18) Exit\n");
+  console.log("19) Exit\n");
 }
 
 function executeCommand(command, description) {
@@ -117,16 +118,86 @@ function loadDockerImageOnServer() {
   );
 }
 
-function deployContainer(port, containerName) {
+function uploadAppSettings() {
+  console.log("\nUploading appsettings.json to server...");
+  const localFile = "IGCSE/appsettings.json";
+  const remotePath = "/var/www/igcse/appsettings.json";
+
+  // Check if local file exists
+  if (!require("fs").existsSync(localFile)) {
+    console.error(`Error: ${localFile} not found locally.`);
+    return false;
+  }
+
+  // First ensure directory exists
+  if (
+    !executeCommand(sshCommand("mkdir -p /var/www/igcse"), "Creating directory")
+  ) {
+    return false;
+  }
+
+  // Remove if it's a directory
+  executeCommand(
+    sshCommand(
+      "if [ -d /var/www/igcse/appsettings.json ]; then rm -rf /var/www/igcse/appsettings.json; fi"
+    ),
+    "Cleaning up"
+  );
+
+  // Upload file
+  if (
+    !executeCommand(
+      scpCommand(localFile, remotePath),
+      "Uploading appsettings.json"
+    )
+  ) {
+    return false;
+  }
+
+  // Verify file was uploaded and has content
+  console.log("\nVerifying uploaded file...");
+  const verifyCmd = `test -f ${remotePath} && cat ${remotePath} | grep -q "JWT" && echo "File verified successfully" || echo "File verification failed"`;
+  const verifyResult = execSync(sshCommand(verifyCmd), {
+    encoding: "utf-8",
+    stdio: "pipe",
+  });
+
+  if (verifyResult.includes("File verified successfully")) {
+    console.log("✓ appsettings.json uploaded and verified successfully\n");
+    return true;
+  } else {
+    console.error("✗ File verification failed\n");
+    return false;
+  }
+}
+
+function deployContainer(port, containerName, skipAppSettingsUpload = false) {
   // First, ensure directories and files exist on server
   // Use a single line command to avoid quote issues
-  const setupCmd = `mkdir -p /var/www/igcse/wwwroot && if [ -d /var/www/igcse/appsettings.json ]; then rm -rf /var/www/igcse/appsettings.json; fi && if [ ! -f /var/www/igcse/appsettings.json ]; then echo "{}" > /var/www/igcse/appsettings.json && echo "Created /var/www/igcse/appsettings.json"; fi`;
+  const setupCmd = `mkdir -p /var/www/igcse/wwwroot && if [ -d /var/www/igcse/appsettings.json ]; then rm -rf /var/www/igcse/appsettings.json; fi`;
 
   console.log(
     `\nSetting up directories and files on server for port ${port}...`
   );
   if (!executeCommand(sshCommand(setupCmd), `Setting up server directories`)) {
     return false;
+  }
+
+  // Upload appsettings.json if it exists locally and not skipped
+  if (
+    !skipAppSettingsUpload &&
+    require("fs").existsSync("IGCSE/appsettings.json")
+  ) {
+    console.log("\nUploading appsettings.json...");
+    if (!uploadAppSettings()) {
+      console.warn(
+        "Warning: Failed to upload appsettings.json. Using existing file on server."
+      );
+    }
+  } else if (!skipAppSettingsUpload) {
+    console.warn(
+      "Warning: IGCSE/appsettings.json not found locally. Using existing file on server."
+    );
   }
 
   const dockerComposeCmd = `
@@ -158,8 +229,24 @@ function deployContainer7211() {
 
 function deployBothContainers() {
   console.log("\n🚀 Deploying both containers...\n");
-  const success1 = deployContainer5121();
-  const success2 = deployContainer7211();
+
+  // Upload appsettings.json once before deploying both containers
+  if (require("fs").existsSync("IGCSE/appsettings.json")) {
+    console.log("\nUploading appsettings.json...");
+    if (!uploadAppSettings()) {
+      console.warn(
+        "Warning: Failed to upload appsettings.json. Using existing file on server."
+      );
+    }
+  }
+
+  // Deploy containers (skip appsettings.json upload in deployContainer since we already uploaded)
+  const setupCmd = `mkdir -p /var/www/igcse/wwwroot && if [ -d /var/www/igcse/appsettings.json ]; then rm -rf /var/www/igcse/appsettings.json; fi`;
+  executeCommand(sshCommand(setupCmd), "Setting up server directories");
+
+  // Deploy containers without uploading appsettings.json again (skipAppSettingsUpload = true)
+  const success1 = deployContainer(PORT_5121, CONTAINER_NAME_5121, true);
+  const success2 = deployContainer(PORT_7211, CONTAINER_NAME_7211, true);
   if (success1 && success2) {
     console.log("\n✅ Both containers deployed successfully!\n");
   }
@@ -347,7 +434,7 @@ async function main() {
 
   while (true) {
     printMenu();
-    const choice = await askQuestion("Select an option (1-18): ");
+    const choice = await askQuestion("Select an option (1-19): ");
 
     switch (choice.trim()) {
       case "1":
@@ -396,6 +483,9 @@ async function main() {
         await viewContainerEnv();
         break;
       case "16":
+        uploadAppSettings();
+        break;
+      case "17":
         const confirmLocal = await askQuestion(
           "Are you sure you want to cleanup Docker on LOCAL? (yes/no): "
         );
@@ -403,7 +493,7 @@ async function main() {
           cleanupDockerLocal();
         }
         break;
-      case "17":
+      case "18":
         const confirmVPS = await askQuestion(
           "Are you sure you want to cleanup Docker on VPS? (yes/no): "
         );
@@ -411,12 +501,12 @@ async function main() {
           cleanupDockerVPS();
         }
         break;
-      case "18":
+      case "19":
         console.log("\nGoodbye! 👋\n");
         rl.close();
         process.exit(0);
       default:
-        console.log("\nInvalid option. Please select 1-18.\n");
+        console.log("\nInvalid option. Please select 1-19.\n");
     }
 
     if (choice !== "18") {
