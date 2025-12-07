@@ -7,12 +7,14 @@ public class QuizCreateRequest
 {
     [Required]
     public int CourseId { get; set; }
+
+    public int LessonId { get; set; }
     
     [Required]
     public string QuizTitle { get; set; } = null!;
 
     [Required]
-    public string? QuizDescription { get; set; }
+    public string QuizDescription { get; set; }
     
     public IFormFile? ExcelFile { get; set; } = null!;
 }

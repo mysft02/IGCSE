@@ -1,3 +1,4 @@
+using Common.Constants;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace BusinessObject.DTOs.Request.Accounts
@@ -12,7 +13,7 @@ namespace BusinessObject.DTOs.Request.Accounts
         public string? SearchByName { get; set; } = null;
 
         [SwaggerSchema("Lọc theo role (nếu có): Admin/Teacher/Parent/Student")]
-        public string? Role { get; set; } = null;
+        public UserRoleEnum? Role { get; set; } = null;
 
         [SwaggerSchema("Trạng thái hoạt động (nếu có)")]
         public bool? IsActive { get; set; } = null;

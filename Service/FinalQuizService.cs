@@ -8,11 +8,8 @@ using Common.Constants;
 using Repository.IRepositories;
 using Service.OpenAI;
 using BusinessObject.DTOs.Response;
-using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
-using Repository.Repositories;
-using BusinessObject.DTOs.Response.Quizzes;
 using System.Text.RegularExpressions;
 
 namespace Service
@@ -27,6 +24,10 @@ namespace Service
         private readonly TrelloCardService _trelloCardService;
         private readonly IWebHostEnvironment _env;
         private readonly IFinalQuizUserAnswerRepository _finalQuizUserAnswerRepository;
+        private readonly ICourseRepository _courseRepository;
+        private readonly ICourseCertificateRepository _courseCertificateRepository;
+        private readonly IAccountRepository _accountRepository;
+        private readonly MediaService _mediaService;
 
         public FinalQuizService(
             IMapper mapper,
@@ -36,7 +37,11 @@ namespace Service
             IFinalQuizResultRepository finalQuizResultRepository,
             TrelloCardService trelloCardService,
             IWebHostEnvironment env,
-            IFinalQuizUserAnswerRepository finalQuizUserAnswerRepository)
+            IFinalQuizUserAnswerRepository finalQuizUserAnswerRepository,
+            ICourseRepository courseRepository,
+            ICourseCertificateRepository courseCertificateRepository,
+            IAccountRepository accountRepository,
+            MediaService mediaService)
         {
             _mapper = mapper;
             _finalQuizRepository = finalQuizRepository;
@@ -46,6 +51,10 @@ namespace Service
             _trelloCardService = trelloCardService;
             _env = env;
             _finalQuizUserAnswerRepository = finalQuizUserAnswerRepository;
+            _courseRepository = courseRepository;
+            _courseCertificateRepository = courseCertificateRepository;
+            _accountRepository = accountRepository;
+            _mediaService = mediaService;
         }
 
         public async Task<BaseResponse<object>> GetFinalQuizByIdAsync(int finalQuizId, string userId)
@@ -308,6 +317,25 @@ namespace Service
             finalQuizResult.Score = finalScore;
 
             await _finalQuizResultRepository.UpdateAsync(finalQuizResult);
+
+            if(finalQuizResult.IsPassed == true)
+            {
+                var fquiz = await _finalQuizRepository.FindOneWithIncludeAsync(x => x.FinalQuizId == request.FinalQuizID, c => c.Course);
+                var course = fquiz?.Course;
+                var user = await _accountRepository.FindOneAsync(x => x.Id == userId);
+
+                var certificateUrl = await _mediaService.GenerateCertificate(user.NormalizedUserName, course.Name);
+
+                var certificate = new Coursecertificate
+                {
+                    UserId = userId,
+                    CourseId = fquiz.CourseId,
+                    ImageUrl = certificateUrl,
+                    CreatedAt = DateTime.UtcNow,
+                };
+
+                await _courseCertificateRepository.AddAsync(certificate);
+            }
 
             return new BaseResponse<List<FinalQuizMarkResponse>>(
                     "Chấm bài quiz thành công",

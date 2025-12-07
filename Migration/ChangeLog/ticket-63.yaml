@@ -1,0 +1,43 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 63
+      author: dungnt
+      changes:
+        - createTable:
+            tableName: coursecertificate
+            columns:
+              - column:
+                  name: CourseCertificateId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: CourseId
+                  type: INT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: UserId
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: ImageUrl
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+
+      rollback:
+        - dropTable:
+            tableName: coursecertificate

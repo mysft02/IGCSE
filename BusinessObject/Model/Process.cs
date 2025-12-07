@@ -22,4 +22,6 @@ public class Process
     public virtual Lesson Lesson { get; set; } = null!;
 
     public virtual ICollection<Processitem> Processitems { get; set; } = new List<Processitem>();
+
+    public virtual Course Course { get; set; }
 }

@@ -70,7 +70,15 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Teacherprofile> Teacherprofiles { get; set; }
 
+    public virtual DbSet<Paymentinformation> Paymentinformations { get; set; }
+
+    public virtual DbSet<Payouthistory> Payouthistories { get; set; }
+
     public virtual DbSet<Coursefeedback> Coursefeedbacks { get; set; }
+
+    public virtual DbSet<CourseFeedbackReaction> CourseFeedbackReactions { get; set; }
+
+    public virtual DbSet<Coursecertificate> CourseCertificates { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -292,6 +300,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Comment).HasColumnType("text");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.Property(e => e.LikeCount).HasColumnType("int").HasDefaultValue(0);
+            entity.Property(e => e.UnlikeCount).HasColumnType("int").HasDefaultValue(0);
 
             entity.HasOne(d => d.Course)
                 .WithMany(p => p.CourseFeedbacks)
@@ -304,6 +314,37 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                 .HasForeignKey(d => d.StudentId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_CourseFeedback_Student");
+        });
+
+        modelBuilder.Entity<CourseFeedbackReaction>(entity =>
+        {
+            entity.HasKey(e => e.CourseFeedbackReactionId).HasName("PRIMARY");
+            entity.ToTable("coursefeedbackreaction");
+            entity.Property(e => e.CourseFeedbackReactionId).HasColumnName("CourseFeedbackReactionID");
+            entity.Property(e => e.CourseFeedbackId).HasColumnName("CourseFeedbackID");
+            entity.Property(e => e.UserId)
+                .HasMaxLength(255)
+                .HasColumnName("UserID");
+            entity.Property(e => e.ReactionType)
+                .HasMaxLength(10)
+                .HasColumnName("ReactionType");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.CourseFeedback)
+                .WithMany(p => p.Reactions)
+                .HasForeignKey(d => d.CourseFeedbackId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CourseFeedbackReaction_CourseFeedback");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CourseFeedbackReaction_User");
+
+            // Unique constraint: mỗi user chỉ có thể react một lần cho mỗi feedback
+            entity.HasIndex(e => new { e.CourseFeedbackId, e.UserId }, "uk_feedback_user_reaction").IsUnique();
         });
 
         modelBuilder.Entity<Quiz>(entity =>
@@ -403,7 +444,7 @@ public partial class IGCSEContext : IdentityDbContext<Account>
                 .HasConstraintName("fk_studentenrollment_student");
 
             entity.HasOne(e => e.Course)
-                .WithMany()
+                .WithMany(c => c.StudentEnrollments)
                 .HasForeignKey(e => e.CourseId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_studentenrollment_course");
@@ -627,6 +668,39 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.TeacherId).HasMaxLength(255);
             entity.Property(e => e.TeacherName).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Paymentinformation>(entity =>
+        {
+            entity.HasKey(e => e.PaymentInfoId).HasName("PRIMARY");
+
+            entity.ToTable("paymentinformation");
+
+            entity.Property(e => e.BankAccountNumber).HasMaxLength(255);
+            entity.Property(e => e.BankBin).HasMaxLength(255);
+            entity.Property(e => e.UserId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Payouthistory>(entity =>
+        {
+            entity.HasKey(e => e.PayoutId).HasName("PRIMARY");
+
+            entity.ToTable("payouthistory");
+
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.TeacherId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Coursecertificate>(entity =>
+        {
+            entity.HasKey(e => e.CourseCertificateId).HasName("PRIMARY");
+
+            entity.ToTable("coursecertificate");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
+            entity.Property(e => e.UserId).HasMaxLength(255);
         });
 
         OnModelCreatingPartial(modelBuilder);

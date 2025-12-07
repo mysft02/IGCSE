@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 62
+      author: quanghuy
+      changes:
+        - addColumn:
+            tableName: coursefeedback
+            columns:
+              - column:
+                  name: LikeCount
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addColumn:
+            tableName: coursefeedback
+            columns:
+              - column:
+                  name: UnlikeCount
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: coursefeedbackreaction
+            columns:
+              - column:
+                  name: CourseFeedbackReactionID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseFeedbackID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UserID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ReactionType
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropTable:
+            tableName: coursefeedbackreaction
+        - dropColumn:
+            tableName: coursefeedback
+            columnName: UnlikeCount
+        - dropColumn:
+            tableName: coursefeedback
+            columnName: LikeCount
+      tags:
+        - coursefeedback
+        - reaction

@@ -15,7 +15,7 @@ namespace Repository.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Process>> GetByLessonAsync(long lessonId)
+        public async Task<IEnumerable<Process>> GetByLessonAsync(int lessonId)
         {
             return await _context.Set<Process>()
                 .Include(p => p.Lesson)
@@ -23,14 +23,14 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Process?> GetByStudentAndLessonAsync(string studentId, long lessonId)
+        public async Task<Process?> GetByStudentAndLessonAsync(string studentId, int lessonId)
         {
             return await _context.Set<Process>()
                 .Include(p => p.Lesson)
                 .FirstOrDefaultAsync(p => p.StudentId == studentId && p.LessonId == lessonId);
         }
 
-        public async Task<IEnumerable<Process>> GetByStudentAndCourseAsync(string studentId, long courseId)
+        public async Task<IEnumerable<Process>> GetByStudentAndCourseAsync(string studentId, int courseId)
         {
             return await _context.Set<Process>()
                 .Include(p => p.Lesson)
@@ -38,7 +38,7 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> IsLessonCompletedForStudentAsync(string studentId, long lessonId)
+        public async Task<bool> IsLessonCompletedForStudentAsync(string studentId, int lessonId)
         {
             var process = await GetByStudentAndLessonAsync(studentId, lessonId);
             if (process == null) return false;
@@ -93,7 +93,7 @@ namespace Repository.Repositories
             return newProcess;
         }
 
-        public async Task<bool> HasStudentCompletedCourseAsync(string studentId, long courseId)
+        public async Task<bool> HasStudentCompletedCourseAsync(string studentId, int courseId)
         {
             var totalLessons = await _context.Set<Lesson>()
                 .Where(l => l.CourseSection.CourseId == courseId && l.IsActive == 1)

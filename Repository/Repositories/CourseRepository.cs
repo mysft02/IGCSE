@@ -5,11 +5,9 @@ using Repository.BaseRepository;
 using Repository.IRepositories;
 using Common.Utils;
 using BusinessObject.DTOs.Response.Courses;
-using BusinessObject.DTOs.Request.Courses;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Common.Constants;
+using BusinessObject.DTOs.Request.Courses;
 
 namespace Repository.Repositories
 {
@@ -26,13 +24,13 @@ namespace Repository.Repositories
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Course?> GetByCourseIdAsync(long courseId)
+        public async Task<Course?> GetByCourseIdAsync(int courseId)
         {
             return await _context.Set<Course>()
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<Course?> GetByCourseIdWithCategoryAsync(long courseId)
+        public async Task<Course?> GetByCourseIdWithCategoryAsync(int courseId)
         {
             return await _context.Set<Course>()
                 .Include(c => c.Module)
@@ -40,37 +38,38 @@ namespace Repository.Repositories
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
         }
 
-        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(long categoryId)
+        public async Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId)
         {
             return await _context.Set<Course>()
                 .Where(c => c.ModuleId == categoryId)
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, string? searchByName, long? couseId, CourseStatusEnum? status)
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query)
         {
-            var query = _context.Set<Course>().AsQueryable();
+            var courseQuery = _context.Set<Course>()
+                .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(searchByName))
+            if (!string.IsNullOrWhiteSpace(query.SearchByName))
             {
-                var keyword = searchByName.Trim();
-                query = query.Where(c => c.Name.Contains(keyword));
+                var keyword = query.SearchByName.Trim();
+                courseQuery = courseQuery.Where(c => c.Name.Contains(keyword));
             }
 
-            if (couseId.HasValue)
+            if (query.CouseId.HasValue)
             {
-                query = query.Where(c => c.CourseId == couseId.Value);
+                courseQuery = courseQuery.Where(c => c.CourseId == query.CouseId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(status.ToString()))
+            if (!string.IsNullOrWhiteSpace(query.Status.ToString()))
             {
-                query = query.Where(c => c.Status == status.ToString());
+                courseQuery = courseQuery.Where(c => c.Status == query.Status.ToString());
             }
 
-            var total = await query.CountAsync();
+            var total = await courseQuery.CountAsync();
 
             var skip = (page <= 1 ? 0 : (page - 1) * pageSize);
-            var items = await query
+            var items = await courseQuery
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip(skip)
                 .Take(pageSize)
@@ -78,7 +77,8 @@ namespace Repository.Repositories
 
             return (items, total);
         }
-        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(long courseId, decimal score)
+
+        public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(int courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);
 
@@ -171,6 +171,7 @@ namespace Repository.Repositories
                     IsEnrolled = true,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
+                    CreatedBy = c.CreatedBy,
                     Sections = c.CourseSections
                     .Select(n => new CourseSectionDetailWithoutProgressResponse
                     {
@@ -193,6 +194,9 @@ namespace Repository.Repositories
                             {
                                 LessonItemId = p.LessonItemId,
                                 Name = p.Name,
+                                Description = p.Description,
+                                Content = p.Content,
+                                ItemType = p.ItemType,
                                 Order = p.Order,
                             })
                             .ToList(),
@@ -201,7 +205,12 @@ namespace Repository.Repositories
                                 QuizId = s.Quiz.QuizId,
                                 QuizTitle = s.Quiz.QuizTitle,
                                 QuizDescription = s.Quiz.QuizDescription,
-                            } : null
+                            } : new LessonQuizResponse
+                            {
+                                QuizId = 0,
+                                QuizTitle = string.Empty,
+                                QuizDescription = string.Empty,
+                            }
                         })
                         .ToList()
                     })
@@ -224,6 +233,164 @@ namespace Repository.Repositories
                 .AnyAsync(c => c.CreatedBy == userId && c.CourseSections.Any(cs => cs.Lessons.Any(ls => ls.Lessonitems.Any(li => li.LessonItemId == lessonItemId))));
 
             return check;
+        }
+
+        public async Task<SimilarCourseForStudentRequest> GetCourseAndFinalQuizResult(string userId)
+        {
+            var enrollments = await _context.Studentenrollments
+                .Include(x => x.Student)
+                .Include(x => x.Course)
+                .ThenInclude(xc => xc.FinalQuiz)
+                .ThenInclude(c => c.FinalQuizResult)
+                .Where(x => x.StudentId == userId)
+                .ToListAsync();
+
+            var courseResponse = enrollments
+                .AsEnumerable()
+                .Select(p => new CourseWithFinalQuizResultResponse
+                {
+                    Course = new CourseWithStudyingTimeResponse
+                    {
+                        CourseId = p.CourseId,
+                        Name = p.Course.Name,
+                        Description = p.Course.Description,
+                        Status = p.Course.Status,
+                        Price = p.Course.Price,
+                        ImageUrl = p.Course.ImageUrl,
+                        CreatedAt = p.Course.CreatedAt,
+                        UpdatedAt = p.Course.UpdatedAt,
+                        AverageLearningTime = GetAverageStudyingTime(p.CourseId, userId),
+                    },
+                    Finalquizresults = p.Course?.FinalQuiz?.FinalQuizResult?
+                    .Where(x => x.UserId == userId)
+                    .Select(n => new FinalQuizResultResponse
+                    {
+                        FinalQuizResultId = n.FinalQuizResultId,
+                        Score = n.Score,
+                        IsPassed = n.IsPassed,
+                        CreatedAt = n.CreatedAt
+                    })
+                    .OrderByDescending(x => x.CreatedAt)
+                    .Take(3)
+                    .ToList()
+                    ?? new List<FinalQuizResultResponse>() 
+                    })
+                .ToList();
+
+
+            var result = new SimilarCourseForStudentRequest
+            {
+                User = enrollments.FirstOrDefault()?.Student,
+                Courses = courseResponse
+            };
+
+            return result;
+
+        }
+
+        public Task<IEnumerable<Course>> GetAllSimilarCoursesForStudentAsync(List<float> embeddingData)
+        {
+            var courses = _context.Courses
+                .AsEnumerable()
+                .Select(c => new
+                {
+                    Course = c,
+                    SimilarScore = CommonUtils.CosineSimilarity(embeddingData, CommonUtils.StringToObject<List<float>>(c.EmbeddingData))
+                })
+                .OrderByDescending(c => c.SimilarScore)
+                .Take(5)
+                .Select(c => c.Course)
+                .ToList();
+
+            return Task.FromResult(courses.AsEnumerable());
+        }
+
+        private TimeSpan GetAverageStudyingTime(int courseId, string studentId)
+        {
+            var data = _context.Processitems
+                .Include(c => c.Process).ThenInclude(c => c.Course).ThenInclude(c => c.CourseSections).ThenInclude(c => c.Lessons).ThenInclude(c => c.Lessonitems)
+                .Include(c => c.Process).ThenInclude(c => c.Course).ThenInclude(c => c.StudentEnrollments)
+                .Where(x => x.Process.CourseId == courseId && x.Process.Course.StudentEnrollments.Any(c => c.StudentId == studentId))
+                .OrderBy(x => x.UpdatedAt)
+                .Select(x => x.UpdatedAt)
+                .ToList();
+
+
+            var durations = new List<TimeSpan>();
+            
+            for (int i = 1; i < data.Count; i++)
+            {
+                // chắc chắn cả 2 đều có giá trị
+                var d1 = data[i];
+                var d2 = data[i - 1];
+
+                durations.Add(d1 - d2);
+            }
+
+            if (!durations.Any())
+            {
+                return TimeSpan.Zero;
+            }
+
+            var average = TimeSpan.FromTicks((long)durations.Average(x => x.Ticks));
+
+            return average;
+        }
+
+        public async Task<List<ActivityCountResponse>> GetActivityForYear(string userId, int year)
+        {
+            var start = new DateTime(year, 1, 1);
+            var end = new DateTime(year + 1, 1, 1);
+
+            var courseQuery = _context.Processitems
+                .Where(x => x.Process.StudentId == userId
+                    && x.UpdatedAt >= start
+                    && x.UpdatedAt < end)
+                .Select(x => new { Date = x.UpdatedAt });
+
+            var quizQuery = _context.Quizresults
+                .Where(x => x.UserId == userId
+                    && x.CreatedAt >= start
+                    && x.CreatedAt < end)
+                .Select(x => new { Date = x.CreatedAt });
+
+            var finalQuizQuery = _context.Finalquizresults
+                .Where(x => x.UserId == userId
+                    && x.CreatedAt >= start
+                    && x.CreatedAt < end)
+                .Select(x => new { Date = x.CreatedAt });
+
+            // Gộp 3 bảng
+            var merged = courseQuery
+                .Concat(quizQuery)
+                .Concat(finalQuizQuery);
+
+            // Lấy dữ liệu raw
+            var raw = await merged
+                .GroupBy(x => x.Date.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            // Tạo full 365 ngày
+            var days = Enumerable.Range(0, 365)
+                .Select(i => start.AddDays(i))
+                .Select(day =>
+                {
+                    var match = raw.FirstOrDefault(x => x.Date == day.Date);
+
+                    return new ActivityCountResponse
+                    {
+                        Date = day.ToString("yyyy-MM-dd"),
+                        Count = match?.Count ?? 0   // 👈 ngày không có thì = 0
+                    };
+                })
+                .ToList();
+
+            return days;
         }
     }
 }

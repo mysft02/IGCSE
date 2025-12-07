@@ -5,9 +5,9 @@ namespace Repository.IRepositories
 {
     public interface ILessonRepository : IBaseRepository<Lesson>
     {
-        Task<IEnumerable<Lesson>> GetByCourseSectionIdAsync(long courseSectionId);
-        Task<Lesson?> GetByLessonIdAsync(long lessonId);
-        Task<IEnumerable<Lesson>> GetActiveLessonsBySectionAsync(long courseSectionId);
+        Task<IEnumerable<Lesson>> GetByCourseSectionIdAsync(int courseSectionId);
+        Task<Lesson?> GetByLessonIdAsync(int lessonId);
+        Task<IEnumerable<Lesson>> GetActiveLessonsBySectionAsync(int courseSectionId);
         Task<Lesson?> GetNextLessonAsync(int currentLessonId);
     }
 }

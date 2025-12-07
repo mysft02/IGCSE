@@ -23,10 +23,16 @@ public class Coursefeedback
 
     public DateTime? UpdatedAt { get; set; }
 
+    public int LikeCount { get; set; } = 0;
+
+    public int UnlikeCount { get; set; } = 0;
+
     [ForeignKey(nameof(CourseId))]
     public virtual Course Course { get; set; } = null!;
 
     [ForeignKey(nameof(StudentId))]
     public virtual Account Student { get; set; } = null!;
+
+    public virtual ICollection<CourseFeedbackReaction> Reactions { get; set; } = new List<CourseFeedbackReaction>();
 }
 

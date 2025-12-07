@@ -2,8 +2,8 @@
 {
     public enum CourseStatusEnum
     {
-        Pending = 0,
-        Open = 1,
-        Rejected = 2,
+        Pending = 1,
+        Open = 2, 
+        Rejected = 3
     }
 }

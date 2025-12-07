@@ -23,17 +23,95 @@ namespace IGCSE.Controller
 
         
         [HttpGet("profile/{userId}")]
+        [SwaggerOperation(
+            Summary = "Lấy thông tin profile của user", 
+            Description = @"Api dùng để lấy thông tin chi tiết profile của một user theo userId.
+
+**Request:**
+- Path parameter: `userId` (string) - ID của user cần lấy thông tin
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Profile retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""userID"": ""user-id-123"",
+    ""userName"": ""username"",
+    ""email"": ""user@example.com"",
+    ""name"": ""Nguyễn Văn A"",
+    ""address"": ""123 Đường ABC"",
+    ""phone"": ""0123456789"",
+    ""dateOfBirth"": ""2000-01-01"",
+    ""isActive"": true,
+    ""roles"": [""Student""]
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **User không tồn tại:**
+```json
+{
+  ""message"": ""User not found"",
+  ""statusCode"": 404
+}")]
         public async Task<IActionResult> GetProfile(string userId)
         {
             var userProfile = await _accountService.GetProfileAsync(userId);
             if (userProfile == null)
             {
-                return NotFound(new { Message = "User not found" });
+                return NotFound(new { Message = "Không tìm thấy người dùng" });
             }
             return Ok(userProfile);
         }
 
         [HttpGet("get-all-account")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách tài khoản",
+            Description = @"Api trả về danh sách tài khoản cho admin quản lí:
+
+**Request `AccountListQuery`:**
+- `SearchByName` (string): tìm kiếm theo tên tài khoản
+
+- `Role` (`UserRoleEnum`): tìm kiếm theo role của tài khoản 
+**Lưu ý**: `1` là `Admin`, `2` là `Teacher`, `3` là `Parent`, `4` là `Student`, `5` là `Manager`
+
+- `IsActive` (bool): tìm kiếm theo trang thái hoạt động tài khoản. `true` là hoạt động, `false` là ngừng hoạt động
+
+**Response `FinalQuizResultReviewResponse`:**
+- Schema :
+```json
+{
+  ""message"": ""string"",
+  ""statusCode"": 100,
+  ""data"": {
+    ""items"": [
+      {
+        ""userID"": ""string"",
+        ""userName"": ""string"",
+        ""email"": ""string"",
+        ""name"": ""string"",
+        ""address"": ""string"",
+        ""phone"": ""string"",
+        ""isActive"": true,
+        ""roles"": [
+          ""string""
+        ]
+      }
+    ],
+    ""totalCount"": 0,
+    ""page"": 0,
+    ""size"": 0,
+    ""totalPages"": 0,
+    ""hasNextPage"": true,
+    ""hasPreviousPage"": true,
+    ""currentPage"": 0
+  }
+}
+```
+")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<NewUserDto>>>> GetAllAccountsAsync([FromQuery] AccountListQuery query)
         {
             var result = await _accountService.GetAccountsPagedAsync(query);
@@ -41,12 +119,184 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("login")]
+        [SwaggerOperation(
+            Summary = "Đăng nhập vào hệ thống", 
+            Description = @"Api dùng để user đăng nhập vào hệ thống bằng username và password. Sau khi đăng nhập thành công, hệ thống trả về JWT token và refresh token.
+
+**Request:**
+- Body:
+```json
+{
+  ""username"": ""username"",
+  ""password"": ""password123""
+}
+```
+  - `username` (string, required) - Tên đăng nhập
+  - `password` (string, required) - Mật khẩu
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Login successful"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""userID"": ""user-id-123"",
+    ""userName"": ""username"",
+    ""email"": ""user@example.com"",
+    ""name"": ""Nguyễn Văn A"",
+    ""address"": ""123 Đường ABC"",
+    ""phone"": ""0123456789"",
+    ""dateOfBirth"": ""2000-01-01"",
+    ""isActive"": true,
+    ""roles"": [""Student""],
+    ""token"": ""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."",
+    ""refreshToken"": ""refresh-token-here""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Username hoặc password không đúng:**
+```json
+{
+  ""message"": ""Invalid username or password"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Account is locked"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Email chưa được xác thực (chỉ áp dụng cho non-Admin users):**
+```json
+{
+  ""message"": ""Email chưa được xác thực. Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Username and password are required"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Token có thời hạn sử dụng, cần sử dụng refresh token để lấy token mới
+- Refresh token dùng để làm mới access token khi hết hạn
+- **Đặc biệt:** Tài khoản với role Admin không cần xác thực email và có thể đăng nhập ngay")]
         public async Task<BaseResponse<LoginResponse>> Login(LoginRequest request)
         {
             return await _accountService.Login(request);
         }
 
         [HttpPost("register")]
+        [SwaggerOperation(
+            Summary = "Đăng ký tài khoản mới", 
+            Description = @"Api dùng để đăng ký tài khoản mới trong hệ thống. Sau khi đăng ký thành công, user sẽ tự động được gán role mặc định và nhận JWT token.
+
+**Request:**
+- Body:
+```json
+{
+  ""username"": ""newuser"",
+  ""fullName"": ""Nguyễn Văn A"",
+  ""email"": ""user@example.com"",
+  ""address"": ""123 Đường ABC"",
+  ""phone"": ""0123456789"",
+  ""password"": ""Password123!@#"",
+  ""dateOfBirth"": ""2000-01-01""
+}
+```
+  - `username` (string, required, max 50) - Tên đăng nhập (chỉ chứa chữ và số)
+  - `fullName` (string, required, max 100) - Họ và tên
+  - `email` (string, required, max 100) - Email (phải đúng format)
+  - `address` (string, required, max 200) - Địa chỉ
+  - `phone` (string, required) - Số điện thoại (bắt đầu bằng 0, 10-11 chữ số)
+  - `password` (string, required, 8-100 ký tự) - Mật khẩu (phải có chữ hoa, chữ thường, số và ký tự đặc biệt)
+  - `dateOfBirth` (DateTime, required) - Ngày sinh
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Registration successful"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""userID"": ""user-id-123"",
+    ""userName"": ""newuser"",
+    ""email"": ""user@example.com"",
+    ""name"": ""Nguyễn Văn A"",
+    ""address"": ""123 Đường ABC"",
+    ""phone"": ""0123456789"",
+    ""dateOfBirth"": ""2000-01-01"",
+    ""isActive"": true,
+    ""roles"": [""Student""],
+    ""token"": ""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."",
+    ""refreshToken"": ""refresh-token-here""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""errors"": [
+    ""Username chỉ được chứa chữ và số"",
+    ""Email không hợp lệ"",
+    ""Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt""
+  ]
+}
+```
+
+2. **Username đã tồn tại:**
+```json
+{
+  ""message"": ""Username already exists"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Email đã tồn tại:**
+```json
+{
+  ""message"": ""Email already exists"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Số điện thoại đã tồn tại:**
+```json
+{
+  ""message"": ""Số điện thoại đã tồn tại"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Sau khi đăng ký thành công, user tự động được gán role mặc định (Student)
+- Sau khi đăng ký, hệ thống sẽ gửi email xác thực. User cần xác thực email trước khi có thể đăng nhập
+- Token chỉ được trả về sau khi xác thực email thành công
+- **Đặc biệt:** Tài khoản với role Admin không cần xác thực email và có thể đăng nhập ngay")]
         public async Task<ActionResult<BaseResponse<RegisterResponse>>> Register(RegisterRequest request)
         {
             if (!ModelState.IsValid)
@@ -60,6 +310,76 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("set-role")]
+        [SwaggerOperation(
+            Summary = "Thiết lập role cho user", 
+            Description = @"Api dùng để user tự thiết lập role cho chính mình. User có thể chọn một trong các role: Parent, Student, Teacher, Manager, Admin.
+
+**Request:**
+- Body:
+```json
+{
+  ""userId"": ""user-id-123"",
+  ""role"": ""Student""
+}
+```
+  - `userId` (string, required) - ID của user cần thiết lập role
+  - `role` (string, required) - Role cần thiết lập: `Parent`, `Student`, `Teacher`, `Manager`, hoặc `Admin`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Role set successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""userId"": ""user-id-123"",
+    ""role"": ""Student"",
+    ""message"": ""Role đã được thiết lập thành công""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""data"": ""Role phải là Parent, Student, Teacher, Manager hoặc Admin""
+}
+```
+
+2. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không tìm thấy thông tin người dùng hiện tại"",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+3. **User không tồn tại:**
+```json
+{
+  ""message"": ""User not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **User ID không khớp:**
+```json
+{
+  ""message"": ""You can only set role for yourself"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- User ID được lấy tự động từ JWT token
+- Admin chỉ có thể thiết lập role
+- Role phải là một trong các giá trị hợp lệ: Parent, Student, Teacher, Manager, Admin")]
         public async Task<ActionResult<BaseResponse<SetRoleResponse>>> SetUserRole([FromBody] SetRoleRequest request)
         {
             if (!ModelState.IsValid)
@@ -103,14 +423,426 @@ namespace IGCSE.Controller
         }
 
         [HttpPost("change-password")]
+        [SwaggerOperation(
+            Summary = "Đổi mật khẩu", 
+            Description = @"Api dùng để user đổi mật khẩu của mình. User cần cung cấp mật khẩu hiện tại và mật khẩu mới.
+
+**Request:**
+- Body:
+```json
+{
+  ""userName"": ""username"",
+  ""currentPassword"": ""OldPassword123!@#"",
+  ""newPassword"": ""NewPassword123!@#"",
+  ""confirmNewPassword"": ""NewPassword123!@#""
+}
+```
+  - `userName` (string, required) - Tên đăng nhập
+  - `currentPassword` (string, required) - Mật khẩu hiện tại
+  - `newPassword` (string, required) - Mật khẩu mới (phải đáp ứng yêu cầu về độ mạnh)
+  - `confirmNewPassword` (string, required) - Xác nhận mật khẩu mới (phải khớp với newPassword)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Password changed successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""message"": ""Mật khẩu đã được thay đổi thành công"",
+    ""userName"": ""username""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Mật khẩu hiện tại không đúng:**
+```json
+{
+  ""message"": ""Current password is incorrect"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Mật khẩu mới không khớp:**
+```json
+{
+  ""message"": ""New password and confirm password do not match"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Mật khẩu mới không đáp ứng yêu cầu:**
+```json
+{
+  ""message"": ""New password must meet security requirements"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **User không tồn tại:**
+```json
+{
+  ""message"": ""User not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Mật khẩu mới phải đáp ứng các yêu cầu về độ mạnh (chữ hoa, chữ thường, số, ký tự đặc biệt)
+- Mật khẩu mới và xác nhận mật khẩu phải khớp nhau")]
         public async Task<BaseResponse<AccountChangePasswordResponse>> ChangePassword([FromBody] ChangePasswordModel changePassword)
         {
             return await _accountService.ChangePassword(changePassword);
         }
 
+        [HttpPost("forgot-password")]
+        [SwaggerOperation(
+            Summary = "Quên mật khẩu", 
+            Description = @"Api dùng để yêu cầu đặt lại mật khẩu khi người dùng quên mật khẩu. Hệ thống sẽ gửi email chứa link đặt lại mật khẩu đến email đã đăng ký.
+
+**Request:**
+- Body:
+```json
+{
+  ""email"": ""user@example.com""
+}
+```
+  - `email` (string, required) - Email của tài khoản cần đặt lại mật khẩu
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Gửi email thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""email"": ""user@example.com"",
+    ""message"": ""Chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư.""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Email không tồn tại (vì lý do bảo mật, không tiết lộ email có tồn tại hay không):**
+```json
+{
+  ""message"": ""Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Tài khoản này đã bị khóa"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""errors"": [""Email không hợp lệ""]
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Link đặt lại mật khẩu sẽ hết hạn sau 1 giờ
+- Vì lý do bảo mật, hệ thống sẽ luôn trả về thông báo thành công ngay cả khi email không tồn tại")]
+        public async Task<ActionResult<BaseResponse<ForgotPasswordResponse>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ", Errors = errors });
+            }
+            return Ok(await _accountService.ForgotPassword(request));
+        }
+
+        [HttpPost("reset-password")]
+        [SwaggerOperation(
+            Summary = "Đặt lại mật khẩu", 
+            Description = @"Api dùng để đặt lại mật khẩu mới sau khi người dùng click vào link trong email từ chức năng quên mật khẩu.
+
+**Request:**
+- Body:
+```json
+{
+  ""email"": ""user@example.com"",
+  ""token"": ""reset-token-from-email"",
+  ""newPassword"": ""NewPassword123!@#"",
+  ""confirmPassword"": ""NewPassword123!@#""
+}
+```
+  - `email` (string, required) - Email của tài khoản cần đặt lại mật khẩu
+  - `token` (string, required) - Token reset password từ email
+  - `newPassword` (string, required, 8-20 ký tự) - Mật khẩu mới (phải có chữ hoa, chữ thường, số và ký tự đặc biệt)
+  - `confirmPassword` (string, required) - Xác nhận mật khẩu mới (phải khớp với newPassword)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Đặt lại mật khẩu thành công"",
+  ""statusCode"": 200,
+  ""data"": ""Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.""
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Email không tồn tại:**
+```json
+{
+  ""message"": ""Email không tồn tại"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Token không hợp lệ hoặc đã hết hạn:**
+```json
+{
+  ""message"": ""Đặt lại mật khẩu thất bại: Invalid token"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Mật khẩu không đáp ứng yêu cầu:**
+```json
+{
+  ""message"": ""Đặt lại mật khẩu thất bại: Password must have at least one uppercase letter"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Tài khoản này đã bị khóa"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+5. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""errors"": [
+    ""Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt"",
+    ""Mật khẩu và xác nhận mật khẩu không khớp""
+  ]
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Token reset password có thời hạn 1 giờ
+- Sau khi đặt lại mật khẩu thành công, người dùng cần đăng nhập lại với mật khẩu mới")]
+        public async Task<ActionResult<BaseResponse<string>>> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ", Errors = errors });
+            }
+            return Ok(await _accountService.ResetPassword(request));
+        }
+
+        [HttpPost("verify-email")]
+        [SwaggerOperation(
+            Summary = "Xác thực email", 
+            Description = @"Api dùng để xác thực email sau khi đăng ký tài khoản. User sẽ nhận được mã xác thực qua email và cần nhập mã này để hoàn tất đăng ký.
+
+**Request:**
+- Body:
+```json
+{
+  ""email"": ""user@example.com"",
+  ""verificationCode"": ""CfDJ8...""
+}
+```
+  - `email` (string, required) - Email của tài khoản cần xác thực
+  - `verificationCode` (string, required) - Mã xác thực nhận được từ email
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Xác thực email thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""email"": ""user@example.com"",
+    ""message"": ""Email đã được xác thực thành công. Bạn có thể đăng nhập ngay."",
+    ""token"": ""eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."",
+    ""refreshToken"": ""refresh-token-here""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Email không tồn tại:**
+```json
+{
+  ""message"": ""Email không tồn tại"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Mã xác thực không hợp lệ hoặc đã hết hạn:**
+```json
+{
+  ""message"": ""Xác thực email thất bại: Invalid token"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Email đã được xác thực trước đó:**
+```json
+{
+  ""message"": ""Email đã được xác thực trước đó"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Tài khoản bị khóa:**
+```json
+{
+  ""message"": ""Tài khoản này đã bị khóa"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+5. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""errors"": [
+    ""Email không hợp lệ"",
+    ""Mã xác thực là bắt buộc""
+  ]
+}
+```
+
+**Lưu ý:**
+- API có thể truy cập công khai (không cần đăng nhập)
+- Mã xác thực được gửi qua email sau khi đăng ký
+- Sau khi xác thực thành công, user sẽ nhận được token và có thể đăng nhập ngay
+- Mỗi mã xác thực chỉ có thể sử dụng một lần")]
+        public async Task<ActionResult<BaseResponse<VerifyEmailResponse>>> VerifyEmail([FromBody] VerifyEmailRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage)
+                                              .ToList();
+                return BadRequest(new { Message = "Dữ liệu không hợp lệ", Errors = errors });
+            }
+            return Ok(await _accountService.VerifyEmail(request));
+        }
+
         [HttpPost("link-student-to-parent")]
         [Authorize(Roles = "Parent")]
-        [SwaggerOperation(Summary = "Liên kết tài khoản học sinh với phụ huynh", Description = "Truyền vào `email` của tài khoản học sinh cần liên kết khi cần liên kết tài khoản học sinh với phụ huynh, kết quả trả về sẽ là `id` của `parent` và `student`")]
+        [SwaggerOperation(
+            Summary = "Liên kết tài khoản học sinh với phụ huynh (Parent)", 
+            Description = @"Api dùng để phụ huynh liên kết tài khoản học sinh với tài khoản của mình thông qua email của học sinh.
+
+**Request:**
+- Body: `studentEmail` (string) - Email của tài khoản học sinh cần liên kết
+```json
+""student@example.com""
+```
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Student linked successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""parentId"": ""parent-id-123"",
+    ""studentId"": ""student-id-456"",
+    ""parentName"": ""Nguyễn Văn B"",
+    ""studentName"": ""Nguyễn Văn A"",
+    ""linkedAt"": ""2024-01-15T10:30:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không xác định được tài khoản."",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+2. **Email học sinh không tồn tại:**
+```json
+{
+  ""message"": ""Student email not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+3. **Học sinh không có role Student:**
+```json
+{
+  ""message"": ""User is not a student"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+4. **Đã liên kết trước đó:**
+```json
+{
+  ""message"": ""Student is already linked to this parent"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+5. **Dữ liệu không hợp lệ:**
+```json
+{
+  ""message"": ""Dữ liệu không hợp lệ"",
+  ""statusCode"": 400,
+  ""data"": ""Error details""
+}
+```
+
+**Lưu ý:**
+- Chỉ Parent role mới có quyền sử dụng API này
+- Parent ID được lấy tự động từ JWT token
+- Học sinh phải có role Student mới có thể được liên kết
+- Một học sinh có thể được liên kết với nhiều phụ huynh")]
         public async Task<ActionResult<BaseResponse<ParentStudentLinkResponse>>> LinkStudentToParent([FromBody] string studentEmail)
         {
             var user = HttpContext.User;
@@ -145,6 +877,70 @@ namespace IGCSE.Controller
 
         [HttpGet("get-all-students-belong-to-parent")]
         [Authorize(Roles = "Parent")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách tất cả học sinh đã liên kết với Parent (Parent)", 
+            Description = @"Api dùng để phụ huynh xem danh sách tất cả các học sinh đã được liên kết với tài khoản của mình.
+
+**Request:**
+- Không có query parameters
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Students retrieved successfully"",
+  ""statusCode"": 200,
+  ""data"": [
+    {
+      ""userID"": ""student-id-123"",
+      ""userName"": ""student1"",
+      ""email"": ""student1@example.com"",
+      ""name"": ""Nguyễn Văn A"",
+      ""address"": ""123 Đường ABC"",
+      ""phone"": ""0123456789"",
+      ""dateOfBirth"": ""2010-01-01"",
+      ""isActive"": true,
+      ""roles"": [""Student""]
+    },
+    {
+      ""userID"": ""student-id-456"",
+      ""userName"": ""student2"",
+      ""email"": ""student2@example.com"",
+      ""name"": ""Nguyễn Thị B"",
+      ""address"": ""456 Đường XYZ"",
+      ""phone"": ""0987654321"",
+      ""dateOfBirth"": ""2011-05-15"",
+      ""isActive"": true,
+      ""roles"": [""Student""]
+    }
+  ]
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không xác định được tài khoản:**
+```json
+{
+  ""message"": ""Không xác định được tài khoản."",
+  ""statusCode"": 401,
+  ""data"": null
+}
+```
+
+2. **Không có học sinh nào được liên kết:**
+```json
+{
+  ""message"": ""No students linked"",
+  ""statusCode"": 200,
+  ""data"": []
+}
+```
+
+**Lưu ý:**
+- Chỉ Parent role mới có quyền sử dụng API này
+- Parent ID được lấy tự động từ JWT token
+- Chỉ trả về các học sinh đã được liên kết với parent này
+- Nếu chưa có học sinh nào được liên kết, trả về mảng rỗng")]
         public async Task<ActionResult<BaseResponse<IEnumerable<AccountResponse>>>> GetListStudentsBelongToParent()
         {
             var user = HttpContext.User;

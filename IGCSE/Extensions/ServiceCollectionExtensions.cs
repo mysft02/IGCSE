@@ -48,7 +48,11 @@ namespace IGCSE.Extensions
             services.AddScoped<ICreateSlotRepository, CreateSlotRepository>();
             services.AddScoped<ITeacherProfileRepository, TeacherProfileRepository>();
             services.AddScoped<ICertificateRepository, CertificateRepository>();
+            services.AddScoped<IPayoutHistoryRepository, PayoutHistoryRepository>();
+            services.AddScoped<IPaymentInformationRepository, PaymentInformationRepository>();
             services.AddScoped<ICourseFeedbackRepository, CourseFeedbackRepository>();
+            services.AddScoped<ICourseFeedbackReactionRepository, CourseFeedbackReactionRepository>();
+            services.AddScoped<ICourseCertificateRepository, CourseCertificateRepository>();
 
             return services;
         }

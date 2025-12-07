@@ -5,7 +5,7 @@ namespace BusinessObject.DTOs.Response.Courses
 {
     public class CourseDetailWithoutProgressResponse
     {
-        public long CourseId { get; set; }
+        public int CourseId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -14,12 +14,13 @@ namespace BusinessObject.DTOs.Response.Courses
         public bool IsEnrolled { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public string CreatedBy { get; set; }
         public List<CourseSectionDetailWithoutProgressResponse> Sections { get; set; } = new();
     }
 
     public class CourseSectionDetailWithoutProgressResponse
     {
-        public long CourseSectionId { get; set; }
+        public int CourseSectionId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -29,7 +30,7 @@ namespace BusinessObject.DTOs.Response.Courses
 
     public class LessonDetailWithoutProgressResponse
     {
-        public long LessonId { get; set; }
+        public int LessonId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Order { get; set; }
@@ -41,8 +42,11 @@ namespace BusinessObject.DTOs.Response.Courses
 
     public class LessonItemDetailWithoutProgressResponse
     {
-        public long LessonItemId { get; set; }
+        public int LessonItemId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Content { get; set; }
+        public string ItemType { get; set; } = string.Empty;
         public int Order { get; set; }
     }
 }

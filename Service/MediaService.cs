@@ -1,5 +1,6 @@
 ﻿using BusinessObject.DTOs.Response;
 using Common.Constants;
+using Common.Utils;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -72,6 +73,17 @@ namespace Service
             var encodedPath = Uri.EscapeDataString(cleanRelativePath);
 
             var result = $"{request.Scheme}://{request.Host.Value}/api/media/get-media?imagePath={encodedPath}";
+
+            return result;
+        }
+
+        public async Task<string> GenerateCertificate(string userName, string courseName)
+        {
+            var result = await FileUploadHelper.GenerateCertificateAsync(userName, courseName, _env.WebRootPath);
+            if(result == null)
+            {
+                return "";
+            }
 
             return result;
         }

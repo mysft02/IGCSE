@@ -8,9 +8,9 @@ public class Processitem
 
     public int LessonItemId { get; set; }
 
-    public DateTime? CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public virtual Lessonitem LessonItem { get; set; } = null!;
 

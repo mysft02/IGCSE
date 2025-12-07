@@ -26,9 +26,9 @@ namespace Service.OpenAI
             _context = context;
         }
 
-        public async Task<List<float>> EmbedData(Course course)
+        public async Task<List<float>> EmbedData(object data)
         {
-            var inputObject = CommonUtils.ObjectToString(course);
+            var inputObject = CommonUtils.ObjectToString(data);
 
             if (inputObject.Length > 8000)
             {

@@ -2,16 +2,15 @@ using BusinessObject;
 using BusinessObject.Enums;
 using BusinessObject.Model;
 using Microsoft.EntityFrameworkCore;
+using Repository.BaseRepository;
 using Repository.IRepositories;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Repository.Repositories
 {
-    public class ModuleRepository : IModuleRepository
+    public class ModuleRepository : BaseRepository<Module>, IModuleRepository
     {
         private readonly IGCSEContext _context;
-        public ModuleRepository(IGCSEContext context)
+        public ModuleRepository(IGCSEContext context) : base(context)
         {
             _context = context;
         }
