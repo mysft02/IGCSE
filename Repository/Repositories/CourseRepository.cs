@@ -133,7 +133,7 @@ namespace Repository.Repositories
                     CourseDescription = x.Description,
                     Status = x.Status,
                     Price = x.Price,
-                    ImageUrl = x.ImageUrl,
+                    ImageUrl = string.IsNullOrEmpty(x.ImageUrl) ? "" : CommonUtils.GetMediaUrl(x.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                     CreatedAt = (DateTime)x.CreatedAt,
                     UpdatedAt = (DateTime)x.UpdatedAt,
                     CustomerCount = _context.Processes.Where(xc => xc.CourseId == x.CourseId).Count(),
@@ -167,7 +167,7 @@ namespace Repository.Repositories
                     Description = c.Description,
                     Status = c.Status,
                     Price = c.Price,
-                    ImageUrl = CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                    ImageUrl = string.IsNullOrEmpty(c.ImageUrl) ? "" : CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                     IsEnrolled = true,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
@@ -196,12 +196,12 @@ namespace Repository.Repositories
                                 Order = p.Order,
                             })
                             .ToList(),
-                            Quiz = new LessonQuizResponse
+                            Quiz = s.Quiz != null ? new LessonQuizResponse
                             {
                                 QuizId = s.Quiz.QuizId,
                                 QuizTitle = s.Quiz.QuizTitle,
                                 QuizDescription = s.Quiz.QuizDescription,
-                            }
+                            } : null
                         })
                         .ToList()
                     })

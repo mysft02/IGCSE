@@ -32,11 +32,15 @@ RUN dotnet build "IGCSE.sln" -c ${BUILD_CONFIGURATION} --no-restore && \
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 WORKDIR "/src/IGCSE"
+# .NET SDK Web automatically includes wwwroot when publishing
 RUN dotnet publish "IGCSE.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false --no-restore
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Ensure wwwroot directory exists and has proper structure
+RUN mkdir -p /app/wwwroot/avatar /app/wwwroot/certificates /app/wwwroot/courses/images /app/wwwroot/lessons/docs /app/wwwroot/lessons/videos || true
 
 # Install Java for Liquibase
 RUN apt-get update && \

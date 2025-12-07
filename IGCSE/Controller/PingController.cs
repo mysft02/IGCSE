@@ -8,6 +8,7 @@ using Service.OpenAI;
 using Service.Trello;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Principal;
+using Microsoft.Extensions.Configuration;
 
 namespace IGCSE.Controller;
 
@@ -17,10 +18,12 @@ public class PingController : ControllerBase
 {
     private readonly TrelloApiService _trelloApiService;
     private readonly OpenAIApiService _openApiService;
-    public PingController(TrelloApiService trelloApiService, OpenAIApiService openApiService)
+    private readonly IConfiguration _configuration;
+    public PingController(TrelloApiService trelloApiService, OpenAIApiService openApiService, IConfiguration configuration)
     {
         _trelloApiService = trelloApiService;
         _openApiService = openApiService;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -59,7 +62,7 @@ public class PingController : ControllerBase
     [SwaggerOperation(Summary = "Gọi api bên trello")]
     public async Task<IActionResult> PingOpenAI()
     {
-        var apiKey = CommonUtils.GetApiKey("OPEN_API_KEY");
+        var apiKey = CommonUtils.GetApiKey("OPEN_API_KEY", _configuration);
 
         var request = OpenApiRequest.Builder()
             .CallUrl("/models")

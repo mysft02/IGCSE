@@ -7,7 +7,7 @@ namespace BusinessObject.DTOs.Response.Courses
     {
         public long CourseId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
@@ -36,7 +36,7 @@ namespace BusinessObject.DTOs.Response.Courses
         public bool IsActive { get; set; }
         public bool IsUnlocked {  get; set; } 
         public List<LessonItemDetailWithoutProgressResponse> LessonItems { get; set; } = new();
-        public LessonQuizResponse Quiz { get; set; }
+        public LessonQuizResponse? Quiz { get; set; }
     }
 
     public class LessonItemDetailWithoutProgressResponse

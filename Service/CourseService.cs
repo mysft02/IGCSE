@@ -500,7 +500,7 @@ namespace Service
                         foreach (var c in section.Lessons)
                         {
                             var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
-                            c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
+                            c.Quiz = lesson.Quiz != null ? _mapper.Map<LessonQuizResponse>(lesson.Quiz) : null;
                         }
 
                         foreach (var lesson in section.Lessons)
@@ -676,7 +676,10 @@ namespace Service
                     if (!CommonUtils.isEmtyList(attachments))
                     {
                         var imageAttachment = attachments.FirstOrDefault();
-                        imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                        if (imageAttachment != null && !string.IsNullOrEmpty(imageAttachment.Url))
+                        {
+                            imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                        }
                     }
 
                     course.ImageUrl = imageUrl;
@@ -697,6 +700,7 @@ namespace Service
             {
                 // Lấy từ process table như cũ
                 var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId, c => c.Course);
+                if (processes == null) processes = new List<Studentenrollment>();
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
                 
@@ -704,7 +708,7 @@ namespace Service
                 {
                     var course = await _courseRepository.GetByCourseIdWithCategoryAsync(g.Key);
                     if (course == null) continue;
-                    var first = g.MinBy(p => p.Course.CreatedAt ?? DateTime.UtcNow);
+                    var first = g.MinBy(p => p.Course?.CreatedAt ?? DateTime.UtcNow);
                     var result = new CourseRegistrationResponse
                     {
                         CourseId = (int)g.Key,

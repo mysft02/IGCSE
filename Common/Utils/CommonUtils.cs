@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Collections;
+using Microsoft.Extensions.Configuration;
 
 namespace Common.Utils
 {
@@ -159,30 +160,55 @@ namespace Common.Utils
             return "127.0.0.1";
         }
 
-        public static string GetApiKey(string ApiName)
+        public static string GetApiKey(string ApiName, IConfiguration? configuration = null)
         {
             try
             {
-                // Đường dẫn đến file ApiKey.env trong thư mục IGCSE
-                var envFilePath = Path.Combine(Directory.GetCurrentDirectory(), "ApiKey.env");
-
-                // Kiểm tra file có tồn tại không
-                if (!File.Exists(envFilePath))
+                // Nếu có IConfiguration, ưu tiên đọc từ appsettings.json
+                if (configuration != null)
                 {
-                    return "Api Key file not found: " + envFilePath;
+                    // Map các key cũ sang key mới trong appsettings.json
+                    var configKey = ApiName switch
+                    {
+                        "OPEN_API_KEY" => "ApiKeys:OpenAI:ApiKey",
+                        "VNP_TMNCODE" => "ApiKeys:VnPay:TmnCode",
+                        "VNP_HASHSECRET" => "ApiKeys:VnPay:HashSecret",
+                        "TRELLO_API_KEY" => "ApiKeys:Trello:ApiKey",
+                        "PAYOS_CLIENT_ID" => "ApiKeys:PayOS:ClientId",
+                        "PAYOS_API_KEY" => "ApiKeys:PayOS:ApiKey",
+                        "PAYOS_CHECKSUMKEY" => "ApiKeys:PayOS:ChecksumKey",
+                        "PAYOS_PAYOUT_CLIENT_ID" => "ApiKeys:PayOS:Payout:ClientId",
+                        "PAYOS_PAYOUT_API_KEY" => "ApiKeys:PayOS:Payout:ApiKey",
+                        "PAYOS_PAYOUT_CHECKSUMKEY" => "ApiKeys:PayOS:Payout:ChecksumKey",
+                        _ => null
+                    };
+
+                    if (configKey != null)
+                    {
+                        var value = configuration[configKey];
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            return value;
+                        }
+                    }
                 }
 
-                // Đọc file và tìm key tương ứng
-                var lines = File.ReadAllLines(envFilePath);
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
-                        continue;
+                // Fallback: Đọc từ file ApiKey.env (backward compatibility)
+                var envFilePath = Path.Combine(Directory.GetCurrentDirectory(), "ApiKey.env");
 
-                    var parts = line.Split('=', 2);
-                    if (parts.Length == 2 && parts[0].Trim().Equals(ApiName, StringComparison.OrdinalIgnoreCase))
+                if (File.Exists(envFilePath))
+                {
+                    var lines = File.ReadAllLines(envFilePath);
+                    foreach (var line in lines)
                     {
-                        return parts[1].Trim();
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                            continue;
+
+                        var parts = line.Split('=', 2);
+                        if (parts.Length == 2 && parts[0].Trim().Equals(ApiName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return parts[1].Trim();
+                        }
                     }
                 }
 

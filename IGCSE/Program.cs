@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using IGCSE.Middleware;
-using DotNetEnv;
 using BusinessObject;
 using BusinessObject.Model;
 using IGCSE.Extensions;
@@ -20,7 +19,10 @@ if (!Directory.Exists(preBuildWebRoot))
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load("ApiKey.env");
+// Set configuration for static API request classes
+BusinessObject.Payload.Request.TrelloApiRequest.SetConfiguration(builder.Configuration);
+BusinessObject.Payload.Request.PayOS.PayOSApiRequest.SetConfiguration(builder.Configuration);
+BusinessObject.Payload.Request.OpenAI.OpenApiRequest.SetConfiguration(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -212,18 +214,19 @@ app.UseGlobalExceptionHandling();
 
 //app.UseCustomJwtBearer();
 
-
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-//// Ensure wwwroot exists to avoid DirectoryNotFoundException when serving static files
-//var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-//if (!Directory.Exists(webRootPath))
-//{
-//    Directory.CreateDirectory(webRootPath);
-//}
-//app.UseStaticFiles();
+
+// Ensure wwwroot exists to avoid DirectoryNotFoundException when serving static files
+var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+if (!Directory.Exists(webRootPath))
+{
+    Directory.CreateDirectory(webRootPath);
+}
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

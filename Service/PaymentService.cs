@@ -10,9 +10,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using BusinessObject.DTOs.Request.Payments;
 using BusinessObject.DTOs.Response.Payment;
-using Org.BouncyCastle.Asn1.Ocsp;
-using BusinessObject.DTOs.Response.MockTest;
-using Repository.Repositories;
+using Microsoft.Extensions.Configuration;
 
 namespace Service
 {
@@ -30,6 +28,7 @@ namespace Service
         private readonly IProcessRepository _processRepository;
         private readonly IUserPackageRepository _userPackageRepository;
         private readonly ICreateSlotRepository _createSlotRepository;
+        private readonly IConfiguration _configuration;
 
         public PaymentService(
             IAccountRepository accountRepository,
@@ -43,7 +42,8 @@ namespace Service
             IStudentEnrollmentRepository studentEnrollmentRepository,
             IProcessRepository processRepository,
             IUserPackageRepository userPackageRepository,
-            ICreateSlotRepository createSlotRepository)
+            ICreateSlotRepository createSlotRepository,
+            IConfiguration configuration)
         {
             _accountRepository = accountRepository;
             _userManager = userManager;
@@ -57,6 +57,7 @@ namespace Service
             _processRepository = processRepository;
             _userPackageRepository = userPackageRepository;
             _createSlotRepository = createSlotRepository;
+            _configuration = configuration;
         }
 
         public async Task<BaseResponse<PayOSPaymentReturnResponse>> HandlePaymentAsync(PaymentCallBackRequest request, string userId, string userRole)
@@ -74,8 +75,8 @@ namespace Service
 
             var apiRequest = PayOSApiRequest.Builder()
                 .CallUrl("/v2/payment-requests/{id}")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID", _configuration))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY", _configuration))
                 .AddPathVariable("id", paymentId)
                 .Build();
 
@@ -311,9 +312,9 @@ namespace Service
                 body.Description = $"Thanh toán gói {request.PackageId}.";
             }
             // Kiểm tra API keys trước khi tạo signature
-            var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY");
-            var clientId = CommonUtils.GetApiKey("PAYOS_CLIENT_ID");
-            var apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY");
+            var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY", _configuration);
+            var clientId = CommonUtils.GetApiKey("PAYOS_CLIENT_ID", _configuration);
+            var apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY", _configuration);
 
             var signature = CommonUtils.GeneratePayOSSignature(body, checksumKey);
 
@@ -347,12 +348,12 @@ namespace Service
                 Category = new List<string> { "payout" }
             };
 
-            var signature = CommonUtils.CreatePayoutSignature(CommonUtils.GetApiKey("PAYOS_PAYOUT_CHECKSUMKEY"), body.ProcessBody());
+            var signature = CommonUtils.CreatePayoutSignature(CommonUtils.GetApiKey("PAYOS_PAYOUT_CHECKSUMKEY", _configuration), body.ProcessBody());
 
             var request = PayOSApiRequest.Builder()
                 .CallUrl("/v1/payouts")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_PAYOUT_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_PAYOUT_API_KEY"))
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_PAYOUT_CLIENT_ID", _configuration))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_PAYOUT_API_KEY", _configuration))
                 .AddHeader("x-idempotency-key", DateTime.Now.Ticks.ToString())
                 .AddHeader("x-signature", signature)
                 .Body(body)
@@ -376,8 +377,8 @@ namespace Service
 
             var request = PayOSApiRequest.Builder()
                 .CallUrl("/confirm-webhook")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID", _configuration))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY", _configuration))
                 .Body(body)
                 .Build();
 

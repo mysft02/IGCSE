@@ -42,7 +42,7 @@ namespace Repository.Repositories
                     {
                         QuestionId = c.Question.QuestionId,
                         QuestionContent = c.Question.QuestionContent,
-                        ImageUrl = CommonUtils.GetMediaUrl(c.Question.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        ImageUrl = string.IsNullOrEmpty(c.Question.PictureUrl) ? "" : CommonUtils.GetMediaUrl(c.Question.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                         CorrectAnswer = c.Question.CorrectAnswer,
                         UserAnswer = new QuizQuestionUserAnswerResponse
                         {

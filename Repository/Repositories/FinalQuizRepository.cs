@@ -36,7 +36,7 @@ namespace Repository.Repositories
                     Description = x.Description,
                     Questions = _context.Questions
                     .Include(c => c.Quiz)
-                    .Where(xc => xc.Quiz.CourseId == x.CourseId)
+                    .Where(xc => xc.Quiz != null && xc.Quiz.CourseId == x.CourseId)
                     .Select(c => new FinalQuizQuestionResponse
                     {
                         QuestionId = c.QuestionId,
