@@ -206,10 +206,12 @@ var app = builder.Build();
 //     }
 // }
 
+app.UseRouting();
+app.UseCors("AllowAllOrigins");
 app.UseGlobalExceptionHandling();
 
 //app.UseCustomJwtBearer();
-app.UseCors("AllowAllOrigins");
+
 
 app.UseSwagger();
 app.UseSwaggerUI();
