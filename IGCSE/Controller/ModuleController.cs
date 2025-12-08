@@ -199,7 +199,7 @@ namespace IGCSE.Controller
 **Lưu ý:**
 - API có thể truy cập công khai (không cần đăng nhập)
 - Tất cả các trường đều được validate trước khi tạo")]
-        public async Task<IActionResult> CreateModule([FromBody] ModuleRequest request)
+        public async Task<IActionResult> CreateModule([FromQuery] ModuleRequest request)
         {
             try
             {
