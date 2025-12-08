@@ -1,0 +1,43 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 64
+      author: dungnt
+      changes:
+        - createTable:
+            tableName: learningpath
+            columns:
+              - column:
+                  name: LearningPathID
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: Title
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ModulePath
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: datetime
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: learningpath
