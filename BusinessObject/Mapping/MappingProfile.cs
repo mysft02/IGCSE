@@ -18,6 +18,7 @@ using TrelloTokenResponse = BusinessObject.DTOs.Response.TrelloTokenResponse;
 using BusinessObject.DTOs.Request.Packages;
 using BusinessObject.DTOs.Response.FinalQuizzes;
 using BusinessObject.DTOs.Response.TeacherProfile;
+using BusinessObject.DTOs.Response.LearningPaths;
 
 namespace BusinessObject.Mapping
 {
@@ -51,6 +52,8 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.ImageUrl))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
+            CreateMap<Course, CourseModuleResponse>().ReverseMap();
+
             CreateMap<CourseRequest, Course>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
@@ -237,6 +240,10 @@ namespace BusinessObject.Mapping
             CreateMap<Paymentinformation, PaymentInformationResponse>().ReverseMap();
 
             CreateMap<Coursecertificate, CourseCertificateResponse>().ReverseMap();
+
+            CreateMap<Learningpath, LearningPathResponse>().ReverseMap();
+
+            CreateMap<Module, ModuleWithCourseResponse>().ReverseMap();
         }
     }
 }

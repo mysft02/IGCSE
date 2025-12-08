@@ -132,7 +132,7 @@ namespace Service
                 var response = _mapper.Map<ModuleResponse>(createdModule);
                 
                 return new BaseResponse<ModuleResponse>(
-                    "Module created successfully",
+                    "Tạo module thành công",
                     StatusCodeEnum.Created_201,
                     response
                 );

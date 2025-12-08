@@ -53,6 +53,7 @@ namespace IGCSE.Extensions
             services.AddScoped<ICourseFeedbackRepository, CourseFeedbackRepository>();
             services.AddScoped<ICourseFeedbackReactionRepository, CourseFeedbackReactionRepository>();
             services.AddScoped<ICourseCertificateRepository, CourseCertificateRepository>();
+            services.AddScoped<ILearningPathRepository, LearningPathRepository>();
 
             return services;
         }
@@ -87,6 +88,7 @@ namespace IGCSE.Extensions
             services.AddScoped<PayOSApiService>();
             services.AddScoped<TeacherProfileService>();
             services.AddScoped<CourseFeedbackService>();
+            services.AddScoped<LearningPathService>();
 
             return services;
         }
