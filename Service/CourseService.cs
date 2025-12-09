@@ -13,18 +13,8 @@ using BusinessObject.Payload.Response.Trello;
 using BusinessObject.DTOs.Response.CourseRegistration;
 using BusinessObject.DTOs.Response.ParentStudentLink;
 using Microsoft.AspNetCore.Identity;
-using Repository.Repositories;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Service.Trello;
-using BusinessObject.DTOs.Response.FinalQuizzes;
-using MimeKit.Tnef;
-using Org.BouncyCastle.Tls;
-using Org.BouncyCastle.Ocsp;
-using Org.BouncyCastle.Bcpg;
-using BusinessObject.DTOs.Response.TeacherProfile;
-using BusinessObject.DTOs.Response.MockTest;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Service
 {

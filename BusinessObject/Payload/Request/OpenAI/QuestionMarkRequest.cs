@@ -7,7 +7,5 @@
         public string Answer { get; set; }
 
         public string RightAnswer { get; set; }
-
-        public string ImageBase64 { get; set; }
     }
 }

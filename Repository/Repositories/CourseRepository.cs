@@ -48,6 +48,7 @@ namespace Repository.Repositories
         public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query)
         {
             var courseQuery = _context.Set<Course>()
+                .Include(c => c.Module)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(query.SearchByName))

@@ -5,5 +5,6 @@ namespace Repository.IRepositories
 {
     public interface ILearningPathRepository : IBaseRepository<Learningpath>
     {
+        Task<Learningpath> GetMatchLearningPath(List<int> moduleList);
     }
 }
