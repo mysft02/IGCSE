@@ -1,0 +1,33 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: 65
+      author: dungnt
+      changes:
+        - createTable:
+            tableName: aptitudetestquestion
+            columns:
+              - column:
+                  name: AptitudeTestQuestionID
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: QuestionContent
+                  type: varchar(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: Answer
+                  type: varchar(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: ModuleID
+                  type: int
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: aptitudetestquestion
