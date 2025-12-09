@@ -82,6 +82,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Learningpath> LearningPaths { get; set; }
 
+    public virtual DbSet<Aptitudetestquestion> AptitudeTestQuestions { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (optionsBuilder.IsConfigured)
@@ -717,6 +719,18 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.ModulePath).HasMaxLength(500);
             entity.Property(e => e.Title).HasMaxLength(500);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Aptitudetestquestion>(entity =>
+        {
+            entity.HasKey(e => e.AptitudeTestQuestionId).HasName("PRIMARY");
+
+            entity.ToTable("aptitudetestquestion");
+
+            entity.Property(e => e.AptitudeTestQuestionId).HasColumnName("AptitudeTestQuestionID");
+            entity.Property(e => e.Answer).HasMaxLength(500);
+            entity.Property(e => e.ModuleId).HasColumnName("ModuleID");
+            entity.Property(e => e.QuestionContent).HasMaxLength(500);
         });
 
         OnModelCreatingPartial(modelBuilder);

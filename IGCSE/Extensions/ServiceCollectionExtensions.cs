@@ -54,6 +54,7 @@ namespace IGCSE.Extensions
             services.AddScoped<ICourseFeedbackReactionRepository, CourseFeedbackReactionRepository>();
             services.AddScoped<ICourseCertificateRepository, CourseCertificateRepository>();
             services.AddScoped<ILearningPathRepository, LearningPathRepository>();
+            services.AddScoped<IAptitudeTestQuestionRepository, AptitudeTestQuestionRepository>();
 
             return services;
         }
