@@ -82,7 +82,7 @@ namespace Service
             {
                 var module = await _moduleRepository.FindOneWithIncludeAsync(x => x.ModuleID == moduleId, c => c.Courses);
                 var moduleMapper = _mapper.Map<ModuleWithCourseResponse>(module);
-                moduleMapper.Course = _mapper.Map<List<CourseModuleResponse>>(module?.Courses);
+                moduleMapper.Course = _mapper.Map<List<CourseModuleResponse>>(module?.Courses.Where(x => x.Status == "Open"));
                 moduleMapper.Course = moduleMapper.Course.Take(3);
                 foreach (var course in moduleMapper.Course)
                 {
