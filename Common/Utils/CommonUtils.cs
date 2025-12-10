@@ -180,6 +180,11 @@ namespace Common.Utils
                         "PAYOS_PAYOUT_CLIENT_ID" => "ApiKeys:PayOS:Payout:ClientId",
                         "PAYOS_PAYOUT_API_KEY" => "ApiKeys:PayOS:Payout:ApiKey",
                         "PAYOS_PAYOUT_CHECKSUMKEY" => "ApiKeys:PayOS:Payout:ChecksumKey",
+                        "EMAIL_SMTP_SERVER" => "ApiKeys:EmailSMTP:EMAIL_SMTP_SERVER",
+                        "EMAIL_SMTP_PORT" => "ApiKeys:EmailSMTP:EMAIL_SMTP_PORT",
+                        "EMAIL_SENDER_EMAIL" => "ApiKeys:EmailSMTP:EMAIL_SENDER_EMAIL",
+                        "EMAIL_SENDER_PASSWORD" => "ApiKeys:EmailSMTP:EMAIL_SENDER_PASSWORD",
+                        "EMAIL_SENDER_NAME" => "ApiKeys:EmailSMTP:EMAIL_SENDER_NAME",
                         _ => null
                     };
 

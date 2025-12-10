@@ -7,6 +7,7 @@ using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using MimeKit;
 using MySqlConnector;
 using Repository.BaseRepository;
@@ -20,12 +21,14 @@ namespace Repository.Repositories
         private readonly IGCSEContext _context;
         private readonly UserManager<Account> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IConfiguration _configuration;
 
-        public AccountRepository(IGCSEContext context, UserManager<Account> userManager, RoleManager<IdentityRole> roleManager) : base(context)
+        public AccountRepository(IGCSEContext context, UserManager<Account> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration) : base(context)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
+            _configuration = configuration;
         }
 
         public async Task<(int totalAccount, int studentsAccount, int parentsAccount, int teachersAccount, int adminAccount)> GetTotalAccount()
@@ -58,11 +61,11 @@ namespace Repository.Repositories
 
         private (string smtpServer, int smtpPort, string senderEmail, string senderPassword, string senderName) GetEmailSettings()
         {
-            var smtpServer = CommonUtils.GetApiKey("EMAIL_SMTP_SERVER");
-            var smtpPortStr = CommonUtils.GetApiKey("EMAIL_SMTP_PORT");
-            var senderEmail = CommonUtils.GetApiKey("EMAIL_SENDER_EMAIL");
-            var senderPassword = CommonUtils.GetApiKey("EMAIL_SENDER_PASSWORD");
-            var senderName = CommonUtils.GetApiKey("EMAIL_SENDER_NAME");
+            var smtpServer = CommonUtils.GetApiKey("EMAIL_SMTP_SERVER", _configuration);
+            var smtpPortStr = CommonUtils.GetApiKey("EMAIL_SMTP_PORT", _configuration);
+            var senderEmail = CommonUtils.GetApiKey("EMAIL_SENDER_EMAIL", _configuration);
+            var senderPassword = CommonUtils.GetApiKey("EMAIL_SENDER_PASSWORD", _configuration);
+            var senderName = CommonUtils.GetApiKey("EMAIL_SENDER_NAME", _configuration);
 
             // Kiểm tra và throw exception nếu không tìm thấy trong file
             if (smtpServer.StartsWith("Api Key not found") || smtpServer.StartsWith("Api Key file not found"))

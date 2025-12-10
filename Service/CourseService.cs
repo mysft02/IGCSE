@@ -666,61 +666,6 @@ namespace Service
                 throw new Exception("Course not found");
             }
 
-            // Kiểm tra IsEnrolled: chỉ true khi user là Student và đã enroll khóa học
-            if (string.IsNullOrEmpty(userId) || userRole != "Student")
-            {
-                courseDetail.IsEnrolled = false;
-            }
-            else
-            {
-                // Kiểm tra xem Student có enroll khóa học này không
-                courseDetail.IsEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(userId, courseId);
-            }
-
-            // Convert ImageUrl to full URL
-            if (!string.IsNullOrEmpty(courseDetail.ImageUrl))
-            {
-                try
-                {
-                    courseDetail.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetail.ImageUrl);
-                }
-                catch
-                {
-                    courseDetail.ImageUrl = string.Empty;
-                }
-            }
-
-            // Convert Content URL to full URL for all lesson items
-            if (courseDetail.Sections != null)
-            {
-                foreach (var section in courseDetail.Sections)
-                {
-                    if (section.Lessons != null)
-                    {
-                        foreach (var lesson in section.Lessons)
-                        {
-                            if (lesson.LessonItems != null)
-                            {
-                                foreach (var lessonItem in lesson.LessonItems)
-                                {
-                                    if (!string.IsNullOrEmpty(lessonItem.Content))
-                                    {
-                                        try
-                                        {
-                                            lessonItem.Content = await _mediaService.GetMediaUrlAsync(lessonItem.Content);
-                                        }
-                                        catch
-                                        {
-                                            // Keep original content if conversion fails
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             return new BaseResponse<CourseDetailWithoutProgressResponse>(
                 "Lấy khoá học thành công",
                 StatusCodeEnum.OK_200,

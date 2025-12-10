@@ -122,26 +122,22 @@ namespace Service
                     throw new Exception("Số điện thoại đã tồn tại");
                 }
 
-                // Ensure Student role exists
-                if (!await _roleManager.RoleExistsAsync("Student"))
+                var existUserByUserName = await _accountRepository.FindOneAsync(x => x.UserName == request.Username);
+                if (existUserByPhone != null)
                 {
-                    var roleResult = await _roleManager.CreateAsync(new IdentityRole("Student"));
-                    if (!roleResult.Succeeded)
-                    {
-                        throw new Exception($"Tạo vai trò học sinh thất bại: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-                    }
+                    throw new Exception("Tên người dùng đã tồn tại");
                 }
 
                 var createdUser = await _userManager.CreateAsync(accountApp, request.Password);
                 if (createdUser.Succeeded)
                 {
                     // Automatically assign Student role to new users
-                    var roleResult = await _userManager.AddToRoleAsync(accountApp, "Student");
-                    if (!roleResult.Succeeded)
+                    var userRole = new SetRoleRequest
                     {
-                        await _userManager.DeleteAsync(accountApp); // Clean up the user if role assignment fails
-                        throw new Exception($"Gán vai trò học sinh thất bại: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-                    }
+                        UserId = await _userManager.GetUserIdAsync(accountApp),
+                        Role = request.Role,
+                    };
+                    var roleResult = await SetUserRoleAsync(userRole);
 
                     // Generate email confirmation token
                     var _user = await GetUser(request.Email);
@@ -410,82 +406,45 @@ namespace Service
             return userProfile;
         }
 
-        public async Task<BaseResponse<SetRoleResponse>> SetUserRoleAsync(string currentUserId, SetRoleRequest request)
+        public async Task<string> SetUserRoleAsync(SetRoleRequest request)
         {
-            try
+            // Tìm user cần thay đổi role
+            var targetUser = await _userManager.FindByIdAsync(request.UserId);
+            if (targetUser == null)
             {
-                // Kiểm tra người dùng hiện tại có được xác thực không
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    throw new Exception("Người dùng chưa đăng nhập");
-                }
-
-                // Kiểm tra quyền Admin
-                var currentUser = await _userManager.FindByIdAsync(currentUserId);
-                if (currentUser == null)
-                {
-                    throw new Exception("Không tìm thấy thông tin người dùng hiện tại");
-                }
-
-                var currentUserRoles = await _userManager.GetRolesAsync(currentUser);
-                if (!currentUserRoles.Contains("Admin"))
-                {
-                    throw new Exception("Chỉ Admin mới có quyền thay đổi role của người dùng");
-                }
-
-                // Tìm user cần thay đổi role
-                var targetUser = await _userManager.FindByIdAsync(request.UserId);
-                if (targetUser == null)
-                {
-                    throw new Exception("Không tìm thấy người dùng cần thay đổi role");
-                }
-
-                // Lấy role hiện tại
-                var currentRoles = await _userManager.GetRolesAsync(targetUser);
-                var oldRole = currentRoles.FirstOrDefault() ?? "Student";
-
-                // Xóa tất cả role hiện tại
-                if (currentRoles.Any())
-                {
-                    await _userManager.RemoveFromRolesAsync(targetUser, currentRoles);
-                }
-
-                // Thêm role mới
-                var result = await _userManager.AddToRoleAsync(targetUser, request.Role);
-                if (!result.Succeeded)
-                {
-                    throw new Exception($"Không thể thay đổi role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-                }
-
-                // Nếu role mới là Admin, tự động xác thực email
-                if (request.Role == "Admin" && !await _userManager.IsEmailConfirmedAsync(targetUser))
-                {
-                    var emailConfirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(targetUser);
-                    await _userManager.ConfirmEmailAsync(targetUser, emailConfirmationToken);
-                }
-
-                // Tạo response
-                var response = new SetRoleResponse
-                {
-                    UserId = targetUser.Id,
-                    UserName = targetUser.UserName,
-                    Email = targetUser.Email,
-                    Name = targetUser.Name,
-                    OldRole = oldRole,
-                    NewRole = request.Role,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                return new BaseResponse<SetRoleResponse>(
-                    $"Đã thay đổi role của {targetUser.Name} từ {oldRole} thành {request.Role}",
-                    StatusCodeEnum.OK_200,
-                    response
-                );
+                throw new Exception("Không tìm thấy người dùng cần thay đổi role");
             }
-            catch (Exception ex)
+
+            // Lấy role hiện tại
+            var currentRoles = await _userManager.GetRolesAsync(targetUser);
+            var oldRole = currentRoles.FirstOrDefault() ?? "Student";
+
+            // Xóa tất cả role hiện tại
+            if (currentRoles.Any())
             {
-                throw new Exception($"Thay đổi vai trò thất bại: {ex.Message}");
+                await _userManager.RemoveFromRolesAsync(targetUser, currentRoles);
             }
+
+            // Thêm role mới
+            var result = await _userManager.AddToRoleAsync(targetUser, request.Role.ToString());
+            if (!result.Succeeded)
+            {
+                throw new Exception($"Không thể thay đổi role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+
+            // Tạo response
+            var response = new SetRoleResponse
+            {
+                UserId = targetUser.Id,
+                UserName = targetUser.UserName,
+                Email = targetUser.Email,
+                Name = targetUser.Name,
+                OldRole = oldRole,
+                NewRole = request.Role.ToString(),
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            return request.Role.ToString();
         }
 
         public async Task<List<NewUserDto>> GetAllAccountsAsync()

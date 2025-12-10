@@ -196,7 +196,7 @@ namespace Repository.Repositories
                                 LessonItemId = p.LessonItemId,
                                 Name = p.Name,
                                 Description = p.Description,
-                                Content = p.Content,
+                                Content = string.IsNullOrEmpty(p.Content) ? "" : CommonUtils.GetMediaUrl(p.Content, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                                 ItemType = p.ItemType,
                                 Order = p.Order,
                             })

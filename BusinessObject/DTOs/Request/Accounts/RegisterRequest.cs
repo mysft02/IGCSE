@@ -1,3 +1,5 @@
+using Common.Constants;
+using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 
 namespace BusinessObject.DTOs.Request.Accounts
@@ -16,7 +18,6 @@ namespace BusinessObject.DTOs.Request.Accounts
 
         [Required(ErrorMessage = "Email là bắt buộc")]
         [EmailAddress(ErrorMessage = "Email không hợp lệ, vui lòng thêm @ vào địa chỉ email")]
-        [StringLength(40, ErrorMessage = "Email tối đa 40 ký tự")]
         public string Email { get; set; }
 
         [Required(ErrorMessage = "Địa chỉ là bắt buộc")]
@@ -34,5 +35,8 @@ namespace BusinessObject.DTOs.Request.Accounts
 
         [Required(ErrorMessage = "Ngày sinh là bắt buộc")]
         public DateTime DateOfBirth { get; set; }
+
+        [Required(ErrorMessage = "Role là bắt buộc")]
+        public UserRoleEnum Role { get; set; }
     }
 }

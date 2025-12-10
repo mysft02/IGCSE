@@ -456,8 +456,8 @@ namespace Service
                         MockTestId = mockTestCreate.MockTestId,
                         QuestionContent = row.Cell(1).GetString(),
                         CorrectAnswer = row.Cell(2).GetString(),
-                        PartialMark = row.Cell(3).GetString(),
-                        Mark = Convert.ToDecimal(row.Cell(4).GetString()),
+                        PartialMark = string.IsNullOrWhiteSpace(row.Cell(3).GetString()) ? null : row.Cell(3).GetString(),
+                        Mark = decimal.TryParse(row.Cell(4).GetString(), out var markValue) ? markValue : 0m,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
                     };
