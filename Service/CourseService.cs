@@ -102,6 +102,12 @@ namespace Service
             course.Status = "Open";
             course.UpdatedAt = DateTime.UtcNow;
 
+            // Load module for mapping to response
+            if (course.ModuleId.HasValue)
+            {
+                course.Module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
+            }
+
             var updated = await _courseRepository.UpdateAsync(course);
             var response = _mapper.Map<CourseResponse>(updated);
             return new BaseResponse<CourseResponse>(
@@ -137,6 +143,12 @@ namespace Service
                     createSlot.AvailableSlot += 1;
                     await _createSlotRepository.UpdateAsync(createSlot);
                 }
+            }
+
+            // Load module for mapping
+            if (course.ModuleId.HasValue)
+            {
+                course.Module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
             }
 
             var updated = await _courseRepository.UpdateAsync(course);
@@ -783,18 +795,6 @@ namespace Service
 
         public async Task<BaseResponse<CourseResponse>> CreateCourseAsync(CourseRequest request, string userId)
         {
-            // Kiểm tra available slot
-            var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
-            if (createSlot == null)
-            {
-                throw new Exception("Bạn chưa mua gói để tạo mới khoá học. Vui lòng mua gói trước.");
-            }
-
-            if (createSlot.AvailableSlot <= 0)
-            {
-                throw new Exception("Bạn không còn suất tạo mới khoá học. Vui lòng mua thêm gói.");
-            }
-
             // Kiểm tra module tồn tại
             var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
             if (module == null)
@@ -818,30 +818,29 @@ namespace Service
             // Tạo course
             var course = _mapper.Map<Course>(request);
             course.ImageUrl = imageUrl;
-            course.Status = "Pending"; // Mặc định là Pending để manager duyệt
+            course.Status = "Draft"; // Tạo ở trạng thái nháp, chưa gửi duyệt
             course.CreatedAt = DateTime.UtcNow;
             course.UpdatedAt = DateTime.UtcNow;
             course.CreatedBy = userId;
             course.UpdatedBy = userId;
+            course.Module = module;
 
-            // Tạo embedding data
-            var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
-            course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+            // Tạo embedding data (không chặn tạo course nếu embedding lỗi)
+            try
+            {
+                var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
+                course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+            }
+            catch
+            {
+                course.EmbeddingData = course.EmbeddingData ?? string.Empty;
+            }
 
             // Lưu course
             var createdCourse = await _courseRepository.AddAsync(course);
 
             try
             {
-                // Trừ available slot NGAY SAU KHI tạo course thành công
-                // Reload createSlot để tránh stale data
-                createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
-                if (createSlot != null)
-                {
-                    createSlot.AvailableSlot -= 1;
-                    await _createSlotRepository.UpdateAsync(createSlot);
-                }
-
                 // Tạo FinalQuiz cho course
                 var finalQuiz = new Finalquiz
                 {
@@ -875,6 +874,178 @@ namespace Service
                 "Course created successfully",
                 StatusCodeEnum.Created_201,
                 response
+            );
+        }
+
+        public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(int courseId, CourseRequest request, string userId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa.");
+            }
+
+            if (course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật khóa học này.");
+            }
+
+            var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
+            if (module == null)
+            {
+                throw new Exception("Module not found");
+            }
+
+            string imageUrl = course.ImageUrl ?? string.Empty;
+            if (request.ImageFile != null)
+            {
+                var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                imageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, webRootPath);
+            }
+            else if (!string.IsNullOrWhiteSpace(request.ImageUrl))
+            {
+                imageUrl = request.ImageUrl;
+            }
+
+            course.Name = request.Name;
+            course.Description = request.Description;
+            course.Price = request.Price;
+            course.ModuleId = request.ModuleId;
+            course.Module = module;
+            course.ImageUrl = imageUrl;
+            course.UpdatedAt = DateTime.UtcNow;
+            course.UpdatedBy = userId;
+
+            try
+            {
+                var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
+                course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+            }
+            catch
+            {
+                // Giữ nguyên embedding cũ nếu gọi AI thất bại
+            }
+
+            var updatedCourse = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updatedCourse);
+            response.ImageUrl = string.IsNullOrEmpty(response.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(response.ImageUrl);
+
+            return new BaseResponse<CourseResponse>(
+                "Course updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<CourseResponse>> SubmitCourseForApprovalAsync(int courseId, string userId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền gửi duyệt khóa học này.");
+            }
+
+            if (course.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được gửi duyệt.");
+            }
+
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể gửi lại.");
+            }
+
+            // Chỉ cho phép gửi từ Draft hoặc Rejected
+            if (!course.Status.Equals("Draft", StringComparison.OrdinalIgnoreCase)
+                && !course.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Trạng thái khóa học không hợp lệ để gửi duyệt.");
+            }
+
+            // Kiểm tra slot khi gửi duyệt
+            var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+            if (createSlot == null)
+            {
+                throw new Exception("Bạn chưa mua gói để gửi duyệt khoá học. Vui lòng mua gói trước.");
+            }
+
+            if (createSlot.AvailableSlot <= 0)
+            {
+                throw new Exception("Bạn không còn suất gửi duyệt khoá học. Vui lòng mua thêm gói.");
+            }
+
+            // Load module for response
+            if (course.ModuleId.HasValue)
+            {
+                var module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
+                course.Module = module;
+            }
+
+            course.Status = "Pending";
+            course.UpdatedAt = DateTime.UtcNow;
+            course.UpdatedBy = userId;
+
+            var updatedCourse = await _courseRepository.UpdateAsync(course);
+
+            // Trừ slot sau khi gửi duyệt
+            createSlot.AvailableSlot -= 1;
+            await _createSlotRepository.UpdateAsync(createSlot);
+
+            var response = _mapper.Map<CourseResponse>(updatedCourse);
+            response.ImageUrl = string.IsNullOrEmpty(response.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(response.ImageUrl);
+
+            return new BaseResponse<CourseResponse>(
+                "Gửi duyệt khóa học thành công",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteCourseAsync(int courseId, string userId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa khóa học này.");
+            }
+
+            var enrollments = await _studentEnrollmentRepository.FindAsync(x => x.CourseId == courseId);
+            if (enrollments != null && enrollments.Any())
+            {
+                throw new Exception("Không thể xóa khóa học khi đã có học viên đăng ký.");
+            }
+
+            await _courseRepository.DeleteAsync(course);
+
+            if (!string.IsNullOrEmpty(course.CreatedBy))
+            {
+                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == course.CreatedBy);
+                if (createSlot != null)
+                {
+                    createSlot.AvailableSlot += 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+            }
+
+            return new BaseResponse<string>(
+                "Course deleted successfully",
+                StatusCodeEnum.OK_200,
+                null
             );
         }
 

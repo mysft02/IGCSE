@@ -59,7 +59,6 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.Price))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ModuleId, opt => opt.MapFrom(src => src.ModuleId))
                 .ForMember(dest => dest.ImageUrl, opt => opt.Ignore()) // Sẽ được set trong service
                 .ForMember(dest => dest.EmbeddingData, opt => opt.Ignore()) // Sẽ được set trong service
