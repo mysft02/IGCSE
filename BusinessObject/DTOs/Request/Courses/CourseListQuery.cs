@@ -15,7 +15,7 @@ namespace BusinessObject.DTOs.Request.Courses
         [SwaggerSchema("Id khóa học để tìm kiếm (nếu có)")]
         public int? CouseId { get; set; } = null;
 
-        [SwaggerSchema("Trạng thái khóa học để tìm kiếm (trạng thái: 1 là Pending(chưa duyệt); 2 là Open(Đã duyệt); 3 là rejected(bị từ chối) )")]
+        [SwaggerSchema("Trạng thái khóa học để tìm kiếm (0 Draft; 1 Pending; 2 Open; 3 Rejected)")]
         public CourseStatusEnum? Status { get; set; } = null;
     }
 }

@@ -317,6 +317,35 @@ namespace IGCSE.Controller
             }
         }
 
+        [HttpPost("{courseId}/submit")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Gửi khóa học sang Manager duyệt (Teacher)",
+            Description = "Chỉ gửi được khi khóa học ở trạng thái Draft hoặc Rejected. Khi gửi duyệt sẽ trừ slot của giáo viên."
+        )]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> SubmitCourseForApproval(int courseId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.SubmitCourseForApprovalAsync(courseId, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi gửi duyệt khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpDelete("{courseId}")]
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(
