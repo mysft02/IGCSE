@@ -102,6 +102,12 @@ namespace Service
             course.Status = "Open";
             course.UpdatedAt = DateTime.UtcNow;
 
+            // Load module for mapping to response
+            if (course.ModuleId.HasValue)
+            {
+                course.Module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
+            }
+
             var updated = await _courseRepository.UpdateAsync(course);
             var response = _mapper.Map<CourseResponse>(updated);
             return new BaseResponse<CourseResponse>(
@@ -137,6 +143,12 @@ namespace Service
                     createSlot.AvailableSlot += 1;
                     await _createSlotRepository.UpdateAsync(createSlot);
                 }
+            }
+
+            // Load module for mapping
+            if (course.ModuleId.HasValue)
+            {
+                course.Module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
             }
 
             var updated = await _courseRepository.UpdateAsync(course);

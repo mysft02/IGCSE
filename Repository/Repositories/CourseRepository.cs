@@ -27,7 +27,16 @@ namespace Repository.Repositories
         public async Task<Course?> GetByCourseIdAsync(int courseId)
         {
             return await _context.Set<Course>()
+                .Include(c => c.Module)
                 .FirstOrDefaultAsync(c => c.CourseId == courseId);
+        }
+
+        // Override to always include Module when fetching all
+        public new async Task<IEnumerable<Course>> GetAllAsync()
+        {
+            return await _context.Set<Course>()
+                .Include(c => c.Module)
+                .ToListAsync();
         }
 
         public async Task<Course?> GetByCourseIdWithCategoryAsync(int courseId)
