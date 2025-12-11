@@ -878,6 +878,102 @@ namespace Service
             );
         }
 
+        public async Task<BaseResponse<CourseResponse>> UpdateCourseAsync(int courseId, CourseRequest request, string userId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa.");
+            }
+
+            if (course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật khóa học này.");
+            }
+
+            var module = await _moduleRepository.GetByIdAsync(request.ModuleId);
+            if (module == null)
+            {
+                throw new Exception("Module not found");
+            }
+
+            string imageUrl = course.ImageUrl ?? string.Empty;
+            if (request.ImageFile != null)
+            {
+                var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                imageUrl = await FileUploadHelper.UploadCourseImageAsync(request.ImageFile, webRootPath);
+            }
+            else if (!string.IsNullOrWhiteSpace(request.ImageUrl))
+            {
+                imageUrl = request.ImageUrl;
+            }
+
+            course.Name = request.Name;
+            course.Description = request.Description;
+            course.Price = request.Price;
+            course.ModuleId = request.ModuleId;
+            course.Status = request.Status;
+            course.ImageUrl = imageUrl;
+            course.UpdatedAt = DateTime.UtcNow;
+            course.UpdatedBy = userId;
+
+            var embeddingData = await _openAIEmbeddingsApiService.EmbedData(course);
+            course.EmbeddingData = CommonUtils.ObjectToString(embeddingData);
+
+            var updatedCourse = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updatedCourse);
+            response.ImageUrl = string.IsNullOrEmpty(response.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(response.ImageUrl);
+
+            return new BaseResponse<CourseResponse>(
+                "Course updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteCourseAsync(int courseId, string userId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa khóa học này.");
+            }
+
+            var enrollments = await _studentEnrollmentRepository.FindAsync(x => x.CourseId == courseId);
+            if (enrollments != null && enrollments.Any())
+            {
+                throw new Exception("Không thể xóa khóa học khi đã có học viên đăng ký.");
+            }
+
+            await _courseRepository.DeleteAsync(course);
+
+            if (!string.IsNullOrEmpty(course.CreatedBy))
+            {
+                var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == course.CreatedBy);
+                if (createSlot != null)
+                {
+                    createSlot.AvailableSlot += 1;
+                    await _createSlotRepository.UpdateAsync(createSlot);
+                }
+            }
+
+            return new BaseResponse<string>(
+                "Course deleted successfully",
+                StatusCodeEnum.OK_200,
+                null
+            );
+        }
+
         public async Task<Course> CreateCourseForTrelloAsync(string courseName, List<TrelloCardResponse> trelloCardResponses, string userId, TrelloToken trelloToken)
         {
             courseName = courseName.Replace("[course]", "").Trim();

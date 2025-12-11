@@ -279,6 +279,73 @@ namespace IGCSE.Controller
             }
         }
 
+        [HttpPut("{courseId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Cập nhật khóa học (Teacher)",
+            Description = "Giáo viên cập nhật thông tin khóa học của mình. Hỗ trợ upload ảnh hoặc dùng link."
+        )]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> UpdateCourse(int courseId, [FromForm] CourseRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new BaseResponse<object>(
+                        "Dữ liệu không hợp lệ",
+                        StatusCodeEnum.BadRequest_400,
+                        ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                    ));
+                }
+
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.UpdateCourseAsync(courseId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi cập nhật khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpDelete("{courseId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Xóa khóa học (Teacher)",
+            Description = "Giáo viên có thể xóa khóa học do mình tạo khi chưa có học viên đăng ký."
+        )]
+        public async Task<ActionResult<BaseResponse<string>>> DeleteCourse(int courseId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.DeleteCourseAsync(courseId, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi xóa khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpPost("{courseId}/sections")]
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(
