@@ -88,16 +88,5 @@ namespace Service
 
             return result;
         }
-
-        public async Task<string> AddImageToServer(AddMediaRequest request)
-        {
-            var result = await FileUploadHelper.AddImageAsync(request.File, request.Path, request.Name, _env.WebRootPath);
-            if (result == null)
-            {
-                return "";
-            }
-
-            return result;
-        }
     }
 }
