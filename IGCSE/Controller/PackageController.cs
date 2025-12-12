@@ -226,5 +226,60 @@ namespace IGCSE.Controller
             var result = await _packageService.UpdatePackageAsync(request);
             return Ok(result);
         }
+
+        [HttpGet("get-create-slot")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Lấy số slot tạo khoá học của teacher",
+            Description = @"Api dùng để lấy tổng số slot tạo khoá học và số slot còn lại của teacher.
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy số slot tạo khoá học thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""totalSlot"": 30,
+    ""availableSlot"": 99
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không tìm thấy thông tin người dùng:**
+```json
+{
+  ""message"": ""Không tìm thấy thông tin người dùng"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+2. **Người dùng chưa mua gói:**
+```json
+{
+  ""message"": ""Bạn chưa mua gói đăng kí khoá học"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API yêu cầu đăng nhập (Authorize)
+- User ID được lấy tự động từ JWT token")]
+        public async Task<ActionResult<BaseResponse<CreateSlotResponse>>> GetCreateSlot()
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _packageService.GetCreateSlotAsync(userId);
+            return Ok(result);
+        }
     }
 }

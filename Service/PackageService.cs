@@ -12,13 +12,15 @@ namespace Service
     {
         private readonly IPackageRepository _packageRepository;
         private readonly IUserPackageRepository _userPackageRepository;
+        private readonly ICreateSlotRepository _createSlotRepository;
         private readonly IMapper _mapper;
 
-        public PackageService(IPackageRepository packageRepository, IMapper mapper, IUserPackageRepository userPackageRepository)
+        public PackageService(IPackageRepository packageRepository, IMapper mapper, IUserPackageRepository userPackageRepository, ICreateSlotRepository createSlotRepository)
         {
             _packageRepository = packageRepository;
             _mapper = mapper;
             _userPackageRepository = userPackageRepository;
+            _createSlotRepository = createSlotRepository;
         }
 
         public async Task<BaseResponse<Package>> CreatePackageAsync(PackageCreateRequest request)
@@ -177,6 +179,26 @@ namespace Service
             var result = await _packageRepository.UpdateAsync(package);
 
             return new BaseResponse<Package>("Cập nhật package thành công", StatusCodeEnum.OK_200, result);
+        }
+
+        public async Task<BaseResponse<CreateSlotResponse>> GetCreateSlotAsync(string userId)
+        {
+            var createSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
+            if (createSlot == null)
+            {
+                throw new Exception("Bạn chưa mua gói đăng kí khoá học");
+            }
+
+            var result = new CreateSlotResponse
+            {
+                TotalSlot = createSlot.Slot,
+                AvailableSlot = createSlot.AvailableSlot,
+            };
+
+            return new BaseResponse<CreateSlotResponse>(
+                "Lấy số slot tạo khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
         }
     }
 }
