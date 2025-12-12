@@ -170,7 +170,7 @@ namespace Common.Utils
                     // Map các key cũ sang key mới trong appsettings.json
                     var configKey = ApiName switch
                     {
-                        "OPEN_API_KEY" => "ApiKeys:OpenAI:ApiKey",
+                        "OPEN_API_KEY" => "ApiKeys:OpenAIApi:ApiKey",
                         "VNP_TMNCODE" => "ApiKeys:VnPay:TmnCode",
                         "VNP_HASHSECRET" => "ApiKeys:VnPay:HashSecret",
                         "TRELLO_API_KEY" => "ApiKeys:Trello:ApiKey",

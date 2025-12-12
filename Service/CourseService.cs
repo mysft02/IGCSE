@@ -15,6 +15,8 @@ using BusinessObject.DTOs.Response.ParentStudentLink;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Service.Trello;
+using BusinessObject.DTOs.Response.Dashboards;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Service
 {
@@ -210,12 +212,12 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query, string userRole)
         {
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query);
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query, userRole);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
@@ -1751,6 +1753,26 @@ namespace Service
                 Message = "Lấy toàn bộ chứng chỉ khoá học thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
+        }
+
+        public async Task<BaseResponse<TeacherAnalyticsResponse>> GetTeacherAnalytics(string userId)
+        {
+            var result = await _courseRepository.GetAnalytics(userId);
+
+            return new BaseResponse<TeacherAnalyticsResponse>(
+                "Lấy thống kê cho giáo viên thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<AdminAnalyticsResponse>> GetAdminAnalytics()
+        {
+            var result = await _courseRepository.GetAdminAnalytics();
+
+            return new BaseResponse<AdminAnalyticsResponse>(
+                "Lấy thống kê cho admin thành công.",
+                StatusCodeEnum.OK_200,
+                result);
         }
     }
 }

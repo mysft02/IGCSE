@@ -3,6 +3,7 @@ using BusinessObject.Model;
 using BusinessObject.DTOs.Response.Courses;
 using Common.Constants;
 using BusinessObject.DTOs.Request.Courses;
+using BusinessObject.DTOs.Response.Dashboards;
 
 namespace Repository.IRepositories
 {
@@ -12,7 +13,7 @@ namespace Repository.IRepositories
         Task<Course?> GetByCourseIdAsync(int courseId);
         Task<Course?> GetByCourseIdWithCategoryAsync(int courseId);
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId);
-        Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query);
+        Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query, string userRole);
         Task<Dictionary<string, int>> GetCoursesSortedByStatus();
         Task<IEnumerable<Course>> GetCoursesByCreatorAsync(string creatorAccountId);
         Task<CourseAnalyticsResponse> GetCourseAnalyticsAsync(int courseId);
@@ -21,5 +22,7 @@ namespace Repository.IRepositories
         Task<SimilarCourseForStudentRequest> GetCourseAndFinalQuizResult(string userId);
         Task<IEnumerable<Course>> GetAllSimilarCoursesForStudentAsync(List<float> embeddingData);
         Task<List<ActivityCountResponse>> GetActivityForYear(string userId, int year);
+        Task<TeacherAnalyticsResponse> GetAnalytics(string userId);
+        Task<AdminAnalyticsResponse> GetAdminAnalytics();
     }
 }

@@ -291,8 +291,15 @@ namespace Service
                 }
                 else
                 {
-                    existed.ParentId = userId + "_" + body.OrderCode;
-                    await _studentEnrollmentRepository.UpdateAsync(existed);
+                    if (existed.ParentId.Contains("_"))
+                    {
+                        existed.ParentId = userId + "_" + body.OrderCode;
+                        await _studentEnrollmentRepository.UpdateAsync(existed);
+                    }
+                    else
+                    {
+                        throw new Exception("Học sinh đã được đăng kí vô khoá học này rồi.");
+                    }
                 }
 
                 body.Description = $"Thanh toán khoá học {request.CourseId}.";
@@ -450,13 +457,13 @@ namespace Service
                 Amount = 10000,
                 BuyerName = userId,
                 Description = "Liên kết tài khoản.",
-                CancelUrl = "http://localhost:5173/my-courses",
-                ReturnUrl = "http://localhost:5173/my-courses"
+                CancelUrl = "http://160.250.132.11:5173/my-courses",
+                ReturnUrl = "http://160.250.132.11:5173/my-courses"
             };
 
-            var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY");
-            var clientId = CommonUtils.GetApiKey("PAYOS_CLIENT_ID");
-            var apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY");
+            var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY", _configuration);
+            var clientId = CommonUtils.GetApiKey("PAYOS_CLIENT_ID", _configuration);
+            var apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY", _configuration);
 
             var signature = CommonUtils.GeneratePayOSSignature(body, checksumKey);
 
@@ -493,8 +500,8 @@ namespace Service
 
             var apiRequest = PayOSApiRequest.Builder()
                 .CallUrl("/v2/payment-requests/{id}")
-                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID"))
-                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY"))
+                .AddHeader("x-client-id", CommonUtils.GetApiKey("PAYOS_CLIENT_ID", _configuration))
+                .AddHeader("x-api-key", CommonUtils.GetApiKey("PAYOS_API_KEY", _configuration))
                 .AddPathVariable("id", paymentId)
                 .Build();
 
