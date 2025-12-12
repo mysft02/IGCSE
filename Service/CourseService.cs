@@ -1755,9 +1755,11 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<TeacherAnalyticsResponse>> GetTeacherAnalytics(string userId)
+        public async Task<BaseResponse<TeacherAnalyticsResponse>> GetTeacherAnalytics(
+            string userId, 
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
         {
-            var result = await _courseRepository.GetAnalytics(userId);
+            var result = await _courseRepository.GetAnalytics(userId, dateRange);
 
             return new BaseResponse<TeacherAnalyticsResponse>(
                 "Lấy thống kê cho giáo viên thành công.",
@@ -1771,6 +1773,171 @@ namespace Service
 
             return new BaseResponse<AdminAnalyticsResponse>(
                 "Lấy thống kê cho admin thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningAbilityResponse>> GetStudentLearningAbilityAsync(
+            BusinessObject.Payload.Request.Filter.StudentLearningAbilityQueryRequest query)
+        {
+            var result = await _courseRepository.GetStudentLearningAbilityAsync(query);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningAbilityResponse>(
+                "Lấy thống kê khả năng học của học viên thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.LessonCompletionResponse>> GetLessonCompletionAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest query,
+            string teacherId)
+        {
+            var result = await _courseRepository.GetLessonCompletionAsync(query, teacherId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.LessonCompletionResponse>(
+                "Lấy thống kê hoàn thành lesson thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.TopAnalyticsResponse>> GetTopAnalyticsAsync(
+            string? teacherId = null, 
+            int limit = 10)
+        {
+            var result = await _courseRepository.GetTopAnalyticsAsync(teacherId, limit);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.TopAnalyticsResponse>(
+                "Lấy danh sách top học viên và khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningProgressResponse>> GetStudentLearningProgressAsync(
+            string studentId,
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetStudentLearningProgressAsync(studentId, dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningProgressResponse>(
+                "Lấy thống kê tiến độ học tập thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentCourseStatisticsResponse>> GetStudentCourseStatisticsAsync(string studentId)
+        {
+            var result = await _courseRepository.GetStudentCourseStatisticsAsync(studentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentCourseStatisticsResponse>(
+                "Lấy thống kê khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.CourseRecommendationResponse>> GetCourseRecommendationsAsync(
+            string studentId,
+            int limit = 10)
+        {
+            var result = await _courseRepository.GetCourseRecommendationsAsync(studentId, limit);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.CourseRecommendationResponse>(
+                "Lấy danh sách khoá học gợi ý thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildLearningProgressResponse>> GetParentChildLearningProgressAsync(
+            string parentId,
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetParentChildLearningProgressAsync(parentId, dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildLearningProgressResponse>(
+                "Lấy tiến độ học tập thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCourseStatisticsResponse>> GetParentChildCourseStatisticsAsync(string parentId)
+        {
+            var result = await _courseRepository.GetParentChildCourseStatisticsAsync(parentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCourseStatisticsResponse>(
+                "Lấy thống kê khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildPerformanceResponse>> GetParentChildPerformanceAsync(string parentId)
+        {
+            var result = await _courseRepository.GetParentChildPerformanceAsync(parentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildPerformanceResponse>(
+                "Lấy thành tích học tập thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCertificateResponse>> GetParentChildCertificatesAsync(string parentId)
+        {
+            var result = await _courseRepository.GetParentChildCertificatesAsync(parentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCertificateResponse>(
+                "Lấy danh sách chứng chỉ thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminOverviewResponse>> GetAdminOverviewAsync()
+        {
+            var result = await _courseRepository.GetAdminOverviewAsync();
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminOverviewResponse>(
+                "Lấy tổng quan dashboard thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminUserStatisticsResponse>> GetAdminUserStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminUserStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminUserStatisticsResponse>(
+                "Lấy thống kê tài khoản thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminCourseStatisticsResponse>> GetAdminCourseStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminCourseStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminCourseStatisticsResponse>(
+                "Lấy thống kê khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminRevenueStatisticsResponse>> GetAdminRevenueStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminRevenueStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminRevenueStatisticsResponse>(
+                "Lấy thống kê doanh thu thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminEnrollmentStatisticsResponse>> GetAdminEnrollmentStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminEnrollmentStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminEnrollmentStatisticsResponse>(
+                "Lấy thống kê đăng ký thành công.",
                 StatusCodeEnum.OK_200,
                 result);
         }

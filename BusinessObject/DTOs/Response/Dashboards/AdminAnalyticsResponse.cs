@@ -1,14 +1,14 @@
 ﻿namespace BusinessObject.DTOs.Response.Dashboards
 {
-    public class AdminAnalyticsResponse
+    /// <summary>
+    /// Response cho Admin Analytics (sử dụng pattern chung)
+    /// </summary>
+    public class AdminAnalyticsResponse : BaseAnalyticsResponse<AdminAnalyticsMetadata, IncomeChartDataPoint>
     {
-        public CourseCountResponse Course { get; set; }
-
-        public IncomeAnalyticsResponse Income { get; set; }
-
-        public AccountAnalyticsResponse Accounts { get; set; }
     }
 
+    // Keep old class for backward compatibility (deprecated)
+    [Obsolete("Use AccountCountMetadata instead")]
     public class AccountAnalyticsResponse
     {
         public int TotalAccounts { get; set; }

@@ -10,9 +10,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/AdminAnalyticsResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/AdminAnalyticsResponse.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/TeacherAnalyticsResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/TeacherAnalyticsResponse.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Properties/launchSettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/Properties/launchSettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/AdminDashboardController.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/StudentDashboardController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/StudentDashboardController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/TeacherDashboardController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/TeacherDashboardController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/TeacherProfileController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/TeacherProfileController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IGCSE.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/IGCSE.sln.DotSettings.user" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Repository/IRepositories/ICourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/IRepositories/ICourseRepository.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Service/CourseService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/CourseService.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -31,6 +39,7 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/10821a7c6456595b62433c59889dfe462fca7a3fa6fa981c1dcd3204ff3c210/UriBuilder.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/1d872bc46057829e348ade299703f677f13aaa7d76c6e8792dc97bf195968/HttpContext.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/20f65e79ceaad992a4c25241d6bf3582951761f90e6c362e79667f19afc/Queryable.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/357b04bb21cfefd40d8bcb16cce0bb2492aed1a2394295a550514389f89688/MySqlConnection.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/3ccd5471bcfa956aa7e0c547d6795895a1919119dc282d9d4fec3766fd8df/AuthorizeAttribute.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/60038225224a9318597b3232280390933d3c3fe85d9ed859a7e4825915eb1c/HttpClient.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/661861d2f496c2dbfec4ea5554546fc42e67528c7f93c28d0c05b814a7991/PhysicalFileProvider.cs" root0="FORCE_HIGHLIGHTING" />
@@ -48,20 +57,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Launch Settings Profile.IGCSE: http.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;XThreadsFramesViewSplitterKey&quot;: &quot;0.6433022&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Launch Settings Profile.IGCSE: http.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "XThreadsFramesViewSplitterKey": "0.6433022",
+    "git-widget-placeholder": "deploy",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected=".NET Launch Settings Profile.IGCSE: http">
     <configuration name="IGCSE: http" type="LaunchSettings" factoryName=".NET Launch Settings Profile" temporary="true">
       <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/IGCSE.csproj" />
@@ -90,7 +99,10 @@
       <method v="2" />
     </configuration>
     <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
-      <deployment type="dockerfile" />
+      <deployment type="dockerfile">
+        <settings />
+      </deployment>
+      <EXTENSION ID="com.jetbrains.rider.docker.debug" isFastModeEnabled="true" isSslEnabled="false" />
       <method v="2" />
     </configuration>
     <recent_temporary>
