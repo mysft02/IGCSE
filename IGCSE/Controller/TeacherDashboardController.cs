@@ -1,5 +1,6 @@
 ﻿using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Response.Dashboards;
 using Common.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -96,6 +97,106 @@ namespace IGCSE.Controller
             }
 
             var result = await _courseService.GetCourseAnalyticsAsync(courseId);
+            return Ok(result);
+        }
+
+        [HttpGet("get-teacher-analytics")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Lấy thống kê tài khoản cho giáo viên (Teacher)",
+            Description = @"Api lấy thống kê khoá học và thu nhập của giáo viên:
+
+**Response trả về `TeacherAnalyticsResponse`:**
+```json
+{
+  ""message"": ""Lấy thống kê cho giáo viên thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""course"": {
+      ""totalCourses"": 40,
+      ""pending"": 9,
+      ""open"": 21,
+      ""rejected"": 9,
+      ""draft"": 1
+    },
+    ""income"": {
+      ""incomeCount"": [
+        {
+          ""month"": 1,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 2,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 3,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 4,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 5,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 6,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 7,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 8,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 9,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 10,
+          ""totalIncome"": 0,
+          ""receivedIncome"": 0
+        },
+        {
+          ""month"": 11,
+          ""totalIncome"": 177000,
+          ""receivedIncome"": 53100
+        },
+        {
+          ""month"": 12,
+          ""totalIncome"": 196000,
+          ""receivedIncome"": 58800
+        }
+      ]
+    }
+  }
+}
+```
+            ")]
+        public async Task<ActionResult<BaseResponse<TeacherAnalyticsResponse>>> GetTotalAnalytics()
+        {
+            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+
+            var result = await _courseService.GetTeacherAnalytics(userId);
             return Ok(result);
         }
     }

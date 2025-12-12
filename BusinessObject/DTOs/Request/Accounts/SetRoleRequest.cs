@@ -1,3 +1,4 @@
+using Common.Constants;
 using System.ComponentModel.DataAnnotations;
 
 namespace BusinessObject.DTOs.Request.Accounts
@@ -8,7 +9,6 @@ namespace BusinessObject.DTOs.Request.Accounts
         public string UserId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Role là bắt buộc")]
-        [RegularExpression("^(Parent|Student|Teacher|Admin|Manager)$", ErrorMessage = "Role phải là Parent, Student, Teacher, Manager hoặc Admin")]
-        public string Role { get; set; } = string.Empty;
+        public UserRoleEnum Role { get; set; } 
     }
 }

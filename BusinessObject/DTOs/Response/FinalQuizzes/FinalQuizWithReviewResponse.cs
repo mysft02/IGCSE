@@ -10,6 +10,10 @@ namespace BusinessObject.DTOs.Response.FinalQuizzes
 
         public string Description { get; set; }
 
+        public bool IsPassed { get; set; }
+
+        public DateTime DateTaken { get; set; }
+
         public List<QuizResultQuestionResponse> Questions { get; set; }
     }
 }

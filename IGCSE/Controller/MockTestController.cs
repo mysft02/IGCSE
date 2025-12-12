@@ -337,7 +337,7 @@ Lấy danh sách mock test với các trạng thái:
         }
 
         [HttpPost("create-mocktest")]
-        [Authorize(Roles = "Manager")]
+        [Authorize]
         [SwaggerOperation(
             Summary = "Tạo bài mocktest",
             Description = @"Api dùng để tạo bài mocktest cho teacher.
@@ -372,7 +372,7 @@ Lấy danh sách mock test với các trạng thái:
   }
 }
 ```")]
-        public async Task<ActionResult<BaseResponse<MockTestCreateResponse>>> CreateQuiz([FromQuery] MockTestCreateRequest request)
+        public async Task<ActionResult<BaseResponse<MockTestCreateResponse>>> CreateMockTest([FromQuery] MockTestCreateRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 

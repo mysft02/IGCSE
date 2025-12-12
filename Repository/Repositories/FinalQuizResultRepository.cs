@@ -35,6 +35,8 @@ namespace Repository.Repositories
                     Id = x.FinalQuizId,
                     Title = x.FinalQuiz.Title,
                     Description = x.FinalQuiz.Description,
+                    IsPassed = x.IsPassed,
+                    DateTaken = x.CreatedAt,
                     Questions = _context.Finalquizuseranswers
                     .Include(cx => cx.Question)
                     .Where(c => c.FinalQuizResultId == x.FinalQuizResultId)
@@ -42,7 +44,7 @@ namespace Repository.Repositories
                     {
                         QuestionId = c.Question.QuestionId,
                         QuestionContent = c.Question.QuestionContent,
-                        ImageUrl = CommonUtils.GetMediaUrl(c.Question.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        ImageUrl = string.IsNullOrEmpty(c.Question.PictureUrl) ? "" : CommonUtils.GetMediaUrl(c.Question.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                         CorrectAnswer = c.Question.CorrectAnswer,
                         UserAnswer = new QuizQuestionUserAnswerResponse
                         {

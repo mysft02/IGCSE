@@ -15,6 +15,8 @@ using BusinessObject.DTOs.Response.ParentStudentLink;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Service.Trello;
+using BusinessObject.DTOs.Response.Dashboards;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Service
 {
@@ -210,12 +212,12 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query, string userRole)
         {
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query);
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query, userRole);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
@@ -577,21 +579,7 @@ namespace Service
                         foreach (var c in section.Lessons)
                         {
                             var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
-                            // Kiểm tra Quiz có tồn tại không
-                            if (lesson != null && lesson.Quiz != null)
-                            {
-                                c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
-                            }
-                            else
-                            {
-                                // Tạo Quiz mặc định nếu chưa có
-                                c.Quiz = new LessonQuizResponse
-                                {
-                                    QuizId = 0,
-                                    QuizTitle = string.Empty,
-                                    QuizDescription = string.Empty
-                                };
-                            }
+                            c.Quiz = lesson.Quiz != null ? _mapper.Map<LessonQuizResponse>(lesson.Quiz) : null;
                         }
 
                         foreach (var lesson in section.Lessons)
@@ -690,61 +678,6 @@ namespace Service
             if (courseDetail == null)
             {
                 throw new Exception("Course not found");
-            }
-
-            // Kiểm tra IsEnrolled: chỉ true khi user là Student và đã enroll khóa học
-            if (string.IsNullOrEmpty(userId) || userRole != "Student")
-            {
-                courseDetail.IsEnrolled = false;
-            }
-            else
-            {
-                // Kiểm tra xem Student có enroll khóa học này không
-                courseDetail.IsEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(userId, courseId);
-            }
-
-            // Convert ImageUrl to full URL
-            if (!string.IsNullOrEmpty(courseDetail.ImageUrl))
-            {
-                try
-                {
-                    courseDetail.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetail.ImageUrl);
-                }
-                catch
-                {
-                    courseDetail.ImageUrl = string.Empty;
-                }
-            }
-
-            // Convert Content URL to full URL for all lesson items
-            if (courseDetail.Sections != null)
-            {
-                foreach (var section in courseDetail.Sections)
-                {
-                    if (section.Lessons != null)
-                    {
-                        foreach (var lesson in section.Lessons)
-                        {
-                            if (lesson.LessonItems != null)
-                            {
-                                foreach (var lessonItem in lesson.LessonItems)
-                                {
-                                    if (!string.IsNullOrEmpty(lessonItem.Content))
-                                    {
-                                        try
-                                        {
-                                            lessonItem.Content = await _mediaService.GetMediaUrlAsync(lessonItem.Content);
-                                        }
-                                        catch
-                                        {
-                                            // Keep original content if conversion fails
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             return new BaseResponse<CourseDetailWithoutProgressResponse>(
@@ -1083,7 +1016,10 @@ namespace Service
                     if (!CommonUtils.isEmtyList(attachments))
                     {
                         var imageAttachment = attachments.FirstOrDefault();
-                        imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                        if (imageAttachment != null && !string.IsNullOrEmpty(imageAttachment.Url))
+                        {
+                            imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                        }
                     }
 
                     course.ImageUrl = imageUrl;
@@ -1102,7 +1038,8 @@ namespace Service
         {
             try
             {
-                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId, c => c.Course);
+                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId && !x.ParentId.Contains("_"), c => c.Course);
+                if (processes == null) processes = new List<Studentenrollment>();
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
                 
@@ -1816,6 +1753,26 @@ namespace Service
                 Message = "Lấy toàn bộ chứng chỉ khoá học thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
+        }
+
+        public async Task<BaseResponse<TeacherAnalyticsResponse>> GetTeacherAnalytics(string userId)
+        {
+            var result = await _courseRepository.GetAnalytics(userId);
+
+            return new BaseResponse<TeacherAnalyticsResponse>(
+                "Lấy thống kê cho giáo viên thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<AdminAnalyticsResponse>> GetAdminAnalytics()
+        {
+            var result = await _courseRepository.GetAdminAnalytics();
+
+            return new BaseResponse<AdminAnalyticsResponse>(
+                "Lấy thống kê cho admin thành công.",
+                StatusCodeEnum.OK_200,
+                result);
         }
     }
 }

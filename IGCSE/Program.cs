@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using IGCSE.Middleware;
-using DotNetEnv;
 using BusinessObject;
 using BusinessObject.Model;
 using IGCSE.Extensions;
@@ -20,7 +19,10 @@ if (!Directory.Exists(preBuildWebRoot))
 
 var builder = WebApplication.CreateBuilder(args);
 
-Env.Load("ApiKey.env");
+// Set configuration for static API request classes
+BusinessObject.Payload.Request.TrelloApiRequest.SetConfiguration(builder.Configuration);
+BusinessObject.Payload.Request.PayOS.PayOSApiRequest.SetConfiguration(builder.Configuration);
+BusinessObject.Payload.Request.OpenAI.OpenApiRequest.SetConfiguration(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -152,85 +154,79 @@ builder.Services.AddControllersWithViews()
 var app = builder.Build();
 
 // Khởi tạo các role khi ứng dụng chạy
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+// using (var scope = app.Services.CreateScope())
+// {
+//     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+//     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
+//
+//     // Danh sách các role cần tạo
+//     string[] roleNames = { "Admin", "Parent", "Student", "Teacher", "Manager" };
+//
+//     foreach (var roleName in roleNames)
+//     {
+//         if (!await roleManager.RoleExistsAsync(roleName))
+//         {
+//             await roleManager.CreateAsync(new IdentityRole(roleName));
+//         }
+//     }
+//
+//     // Tạo tài khoản Admin mặc định nếu chưa có, hoặc cập nhật role nếu đã có
+//     var adminUser = await userManager.FindByNameAsync("admin");
+//     if (adminUser == null)
+//     {
+//         adminUser = new Account
+//         {
+//             UserName = "admin",
+//             Email = "admin@example.com",
+//             Name = "System Administrator",
+//             Address = "Admin Address",
+//             Phone = "0123456789",
+//             Status = true,
+//             DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddYears(-30))
+//         };
+//
+//         var result = await userManager.CreateAsync(adminUser, "A123456789a!");
+//         if (result.Succeeded)
+//         {
+//             await userManager.AddToRoleAsync(adminUser, "Admin");
+//         }
+//     }
+//     else
+//     {
+//         // Tài khoản admin đã tồn tại, kiểm tra và cập nhật role
+//         var currentRoles = await userManager.GetRolesAsync(adminUser);
+//         if (!currentRoles.Contains("Admin"))
+//         {
+//             // Xóa tất cả role cũ
+//             if (currentRoles.Any())
+//             {
+//                 await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
+//             }
+//             // Thêm role Admin
+//             await userManager.AddToRoleAsync(adminUser, "Admin");
+//         }
+//     }
+// }
 
-    // Danh sách các role cần tạo
-    string[] roleNames = { "Admin", "Parent", "Student", "Teacher", "Manager" };
-
-    foreach (var roleName in roleNames)
-    {
-        if (!await roleManager.RoleExistsAsync(roleName))
-        {
-            await roleManager.CreateAsync(new IdentityRole(roleName));
-        }
-    }
-
-    // Tạo tài khoản Admin mặc định nếu chưa có, hoặc cập nhật role nếu đã có
-    var adminUser = await userManager.FindByNameAsync("admin");
-    if (adminUser == null)
-    {
-        adminUser = new Account
-        {
-            UserName = "admin",
-            Email = "admin@example.com",
-            Name = "System Administrator",
-            Address = "Admin Address",
-            Phone = "0123456789",
-            Status = true,
-            DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddYears(-30))
-        };
-
-        var result = await userManager.CreateAsync(adminUser, "A123456789a!");
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(adminUser, "Admin");
-            // Tự động xác thực email cho Admin
-            var emailConfirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(adminUser);
-            await userManager.ConfirmEmailAsync(adminUser, emailConfirmationToken);
-        }
-    }
-    else
-    {
-        // Tài khoản admin đã tồn tại, kiểm tra và cập nhật role
-        var currentRoles = await userManager.GetRolesAsync(adminUser);
-        if (!currentRoles.Contains("Admin"))
-        {
-            // Xóa tất cả role cũ
-            if (currentRoles.Any())
-            {
-                await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
-            }
-            // Thêm role Admin
-            await userManager.AddToRoleAsync(adminUser, "Admin");
-        }
-        // Đảm bảo email của Admin đã được xác thực
-        if (!await userManager.IsEmailConfirmedAsync(adminUser))
-        {
-            var emailConfirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(adminUser);
-            await userManager.ConfirmEmailAsync(adminUser, emailConfirmationToken);
-        }
-    }
-}
-
+app.UseRouting();
+app.UseCors("AllowAllOrigins");
 app.UseGlobalExceptionHandling();
 
 //app.UseCustomJwtBearer();
-app.UseCors("AllowAllOrigins");
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-//// Ensure wwwroot exists to avoid DirectoryNotFoundException when serving static files
-//var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-//if (!Directory.Exists(webRootPath))
-//{
-//    Directory.CreateDirectory(webRootPath);
-//}
-//app.UseStaticFiles();
+
+// Ensure wwwroot exists to avoid DirectoryNotFoundException when serving static files
+var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+if (!Directory.Exists(webRootPath))
+{
+    Directory.CreateDirectory(webRootPath);
+}
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

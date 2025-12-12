@@ -1,0 +1,16 @@
+{
+  "name": "igcse-cicd",
+  "version": "1.0.0",
+  "description": "CI/CD deployment scripts for IGCSE project",
+  "scripts": {
+    "ci": "node scripts/cicd-menu.js"
+  },
+  "dependencies": {
+    "inquirer": "^9.2.12",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

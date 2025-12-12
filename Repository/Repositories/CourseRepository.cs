@@ -8,6 +8,9 @@ using BusinessObject.DTOs.Response.Courses;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using BusinessObject.DTOs.Request.Courses;
+using Common.Constants;
+using BusinessObject.DTOs.Response.Dashboards;
+using System.Text.RegularExpressions;
 
 namespace Repository.Repositories
 {
@@ -54,11 +57,23 @@ namespace Repository.Repositories
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query)
+        public async Task<(IEnumerable<Course> items, int total)> SearchAsync(int page, int pageSize, CourseListQuery query, string userRole)
         {
             var courseQuery = _context.Set<Course>()
                 .Include(c => c.Module)
                 .AsQueryable();
+
+            if (userRole == null)
+            {
+                courseQuery = courseQuery.Where(x => x.Status == "Open");
+            }
+            else
+            {
+                if(userRole == "Parent" || userRole == "Student")
+                {
+                    courseQuery = courseQuery.Where(x => x.Status == "Open");
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(query.SearchByName))
             {
@@ -143,7 +158,7 @@ namespace Repository.Repositories
                     CourseDescription = x.Description,
                     Status = x.Status,
                     Price = x.Price,
-                    ImageUrl = x.ImageUrl,
+                    ImageUrl = string.IsNullOrEmpty(x.ImageUrl) ? "" : CommonUtils.GetMediaUrl(x.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                     CreatedAt = (DateTime)x.CreatedAt,
                     UpdatedAt = (DateTime)x.UpdatedAt,
                     CustomerCount = _context.Processes.Where(xc => xc.CourseId == x.CourseId).Count(),
@@ -177,8 +192,8 @@ namespace Repository.Repositories
                     Description = c.Description,
                     Status = c.Status,
                     Price = c.Price,
-                    ImageUrl = CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
-                    IsEnrolled = false, // Sẽ được set trong service dựa trên enrollment status
+                    ImageUrl = string.IsNullOrEmpty(c.ImageUrl) ? "" : CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                    IsEnrolled = true,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt,
                     CreatedBy = c.CreatedBy,
@@ -205,7 +220,7 @@ namespace Repository.Repositories
                                 LessonItemId = p.LessonItemId,
                                 Name = p.Name,
                                 Description = p.Description,
-                                Content = p.Content,
+                                Content = string.IsNullOrEmpty(p.Content) ? "" : CommonUtils.GetMediaUrl(p.Content, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                                 ItemType = p.ItemType,
                                 Order = p.Order,
                             })
@@ -401,6 +416,133 @@ namespace Repository.Repositories
                 .ToList();
 
             return days;
+        }
+
+        public async Task<TeacherAnalyticsResponse> GetAnalytics(string userId)
+        {
+            var grouped = await _context.Courses
+                .Where(x => x.CreatedBy == userId)
+                .GroupBy(x => x.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count(),
+                })
+                .ToListAsync();
+
+            var courseCount = new CourseCountResponse
+            {
+                TotalCourses = grouped.Sum(x => x.Count),
+                Pending = grouped.FirstOrDefault(x => x.Status == "Pending")?.Count ?? 0,
+                Open = grouped.FirstOrDefault(x => x.Status == "Open")?.Count ?? 0,
+                Rejected = grouped.FirstOrDefault(x => x.Status == "Rejected")?.Count ?? 0,
+                Draft = grouped.FirstOrDefault(x => x.Status == "Draft")?.Count ?? 0
+            };
+
+            var incomeRaw = await _context.Transactionhistories
+                .Where(x => x.Course.CreatedBy == userId && x.TransactionDate.HasValue)
+                .GroupBy(x => x.TransactionDate.Value.Month)
+                .Select(g => new
+                {
+                    Month = g.Key,
+                    TotalIncome = g.Sum(c => c.Amount),
+                })
+                .ToListAsync();
+
+            var income = Enumerable.Range(1, 12)
+                .Select(month =>
+                {
+                    var data = incomeRaw.FirstOrDefault(x => x.Month == month);
+
+                    return new MonthlyIncomeCount
+                    {
+                        Month = month,
+                        TotalIncome = data?.TotalIncome ?? 0,
+                        ReceivedIncome = (data?.TotalIncome ?? 0) * 0.7m
+                    };
+                })
+                .ToList();
+
+
+            var result = new TeacherAnalyticsResponse
+            {
+                Course = courseCount,
+                Income = new IncomeAnalyticsResponse { IncomeCount = income}
+            };
+
+            return result;
+        }
+
+        public async Task<AdminAnalyticsResponse> GetAdminAnalytics()
+        {
+            var courseGrouped = await _context.Courses
+                .GroupBy(x => x.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count(),
+                })
+                .ToListAsync();
+
+            var courseCount = new CourseCountResponse
+            {
+                TotalCourses = courseGrouped.Sum(x => x.Count),
+                Pending = courseGrouped.FirstOrDefault(x => x.Status == "Pending")?.Count ?? 0,
+                Open = courseGrouped.FirstOrDefault(x => x.Status == "Open")?.Count ?? 0,
+                Rejected = courseGrouped.FirstOrDefault(x => x.Status == "Rejected")?.Count ?? 0,
+                Draft = courseGrouped.FirstOrDefault(x => x.Status == "Draft")?.Count ?? 0
+            };
+
+            var incomeRaw = await _context.Transactionhistories
+                .GroupBy(x => x.TransactionDate.Value.Month)
+                .Select(g => new
+                {
+                    Month = g.Key,
+                    TotalIncome = g.Sum(c => c.Amount),
+                })
+                .ToListAsync();
+
+            var income = Enumerable.Range(1, 12)
+                .Select(month =>
+                {
+                    var data = incomeRaw.FirstOrDefault(x => x.Month == month);
+
+                    return new MonthlyIncomeCount
+                    {
+                        Month = month,
+                        TotalIncome = data?.TotalIncome ?? 0,
+                        ReceivedIncome = (data?.TotalIncome ?? 0) * 0.3m
+                    };
+                })
+                .ToList();
+
+            var roleCounts = await (
+                from role in _context.Roles
+                join userRole in _context.UserRoles
+                on role.Id equals userRole.RoleId into roleGroup
+                select new
+                {
+                    RoleName = role.Name,
+                    Count = roleGroup.Count()
+                })
+                .ToListAsync();
+
+            var accountCount = new AccountAnalyticsResponse
+            {
+                TotalAccounts = await _context.Users.CountAsync(),
+                Teacher = roleCounts.FirstOrDefault(x => x.RoleName == "Teacher")?.Count ?? 0,
+                Parent = roleCounts.FirstOrDefault(x => x.RoleName == "Parent")?.Count ?? 0,
+                Student = roleCounts.FirstOrDefault(x => x.RoleName == "Student")?.Count ?? 0
+            };
+
+            var result = new AdminAnalyticsResponse
+            {
+                Course = courseCount,
+                Income = new IncomeAnalyticsResponse { IncomeCount = income },
+                Accounts = accountCount
+            };
+
+            return result;
         }
     }
 }

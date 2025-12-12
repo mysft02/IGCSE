@@ -102,8 +102,9 @@ namespace IGCSE.Controller
         public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseResponse>>>> GetAllCourses([FromQuery] CourseListQuery query)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+            var userRole = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            var result = await _courseService.GetCoursesPagedAsync(query);
+            var result = await _courseService.GetCoursesPagedAsync(query, userRole);
             return Ok(result);
         }
 
