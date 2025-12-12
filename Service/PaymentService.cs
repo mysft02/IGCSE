@@ -249,8 +249,8 @@ namespace Service
                 OrderCode = CommonUtils.GenerateUniqueOrderCode(),
                 Amount = request.Amount,
                 BuyerName = userId,
-                CancelUrl = "http://localhost:5173/my-courses",
-                ReturnUrl = "http://localhost:5173/my-courses"
+                CancelUrl = "http://160.250.132.11:5173/my-courses",
+                ReturnUrl = "http://160.250.132.11:5173/my-courses"
             };
 
             if (string.IsNullOrEmpty(request.CourseId.ToString())

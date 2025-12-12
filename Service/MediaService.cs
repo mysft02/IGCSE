@@ -1,4 +1,5 @@
-﻿using BusinessObject.DTOs.Response;
+﻿using BusinessObject.DTOs.Request.Media;
+using BusinessObject.DTOs.Response;
 using Common.Constants;
 using Common.Utils;
 using Microsoft.AspNetCore.Hosting;
@@ -81,6 +82,17 @@ namespace Service
         {
             var result = await FileUploadHelper.GenerateCertificateAsync(userName, courseName, _env.WebRootPath);
             if(result == null)
+            {
+                return "";
+            }
+
+            return result;
+        }
+
+        public async Task<string> AddImageToServer(AddMediaRequest request)
+        {
+            var result = await FileUploadHelper.AddImageAsync(request.File, request.Path, request.Name, _env.WebRootPath);
+            if (result == null)
             {
                 return "";
             }

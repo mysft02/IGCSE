@@ -865,7 +865,7 @@ namespace Service
         {
             try
             {
-                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId, c => c.Course);
+                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId && !x.ParentId.Contains("_"), c => c.Course);
                 if (processes == null) processes = new List<Studentenrollment>();
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();

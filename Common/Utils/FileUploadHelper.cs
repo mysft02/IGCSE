@@ -305,61 +305,131 @@ namespace Common.Utils
 
         public static async Task<string> GenerateCertificateAsync(string userName, string courseName, string webRootPath)
         {
-            var templatePath = Path.Combine(webRootPath, CourseCertificatesFolder, "course-template.png");
-
-            if (!File.Exists(templatePath))
-                throw new FileNotFoundException("Certificate template file not found", templatePath);
-
-            // Tạo thư mục nếu chưa có
-            var outputFolder = Path.Combine(webRootPath, CourseCertificatesFolder);
-            if (!Directory.Exists(outputFolder))
+            try
             {
-                Directory.CreateDirectory(outputFolder);
+                var templatePath = Path.Combine(webRootPath, CourseCertificatesFolder, "course-template.png");
+
+                if (!File.Exists(templatePath))
+                    throw new FileNotFoundException("Certificate template file not found", templatePath);
+
+                // Tạo thư mục nếu chưa có
+                var outputFolder = Path.Combine(webRootPath, CourseCertificatesFolder);
+                if (!Directory.Exists(outputFolder))
+                {
+                    Directory.CreateDirectory(outputFolder);
+                }
+
+                var fileName = $"{Guid.NewGuid()}.png";
+                var outputPath = Path.Combine(outputFolder, fileName);
+
+                File.Copy(templatePath, outputPath, overwrite: true);
+
+                // Khởi tạo SkiaSharp với error handling
+                using var bitmap = SKBitmap.Decode(outputPath);
+                if (bitmap == null)
+                    throw new Exception("Failed to decode certificate template image");
+
+                using var surface = SKSurface.Create(new SKImageInfo(bitmap.Width, bitmap.Height));
+                if (surface == null)
+                    throw new Exception("Failed to create SkiaSharp surface");
+
+                var canvas = surface.Canvas;
+                canvas.DrawBitmap(bitmap, 0, 0);
+
+                var userPaint = new SKPaint
+                {
+                    Color = SKColors.Black,
+                    TextSize = 54,
+                    IsAntialias = true,
+                    Typeface = SKTypeface.FromFamilyName("Georgia"),
+                    TextAlign = SKTextAlign.Center
+                };
+
+                var coursePaint = new SKPaint
+                {
+                    Color = SKColors.Black,
+                    TextSize = 48,
+                    IsAntialias = true,
+                    Typeface = SKTypeface.FromFamilyName("Georgia"),
+                    TextAlign = SKTextAlign.Center
+                };
+
+                float centerX = bitmap.Width / 2f;
+
+                canvas.DrawText(courseName.ToUpper(), centerX, 835, coursePaint);
+                canvas.DrawText(userName.ToUpper(), centerX, 600, userPaint);
+
+                // Export lại PNG
+                using var image = surface.Snapshot();
+                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+
+                await File.WriteAllBytesAsync(outputPath, data.ToArray());
+
+                // Trả về URL cho client
+                return $"courses/certificates/{fileName}";
+            }
+            catch (TypeInitializationException ex) when (ex.TypeName?.Contains("SkiaSharp") == true)
+            {
+                // Log error và trả về empty string thay vì throw exception
+                // Điều này cho phép quiz vẫn được chấm thành công dù không tạo được certificate
+                Console.WriteLine($"SkiaSharp initialization error: {ex.Message}");
+                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                // Log error và trả về empty string
+                Console.WriteLine($"Error generating certificate: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        public static async Task<string> AddImageAsync(IFormFile file, string path, string fileName, string webRootPath)
+        {
+            if (file == null || file.Length == 0)
+            {
+                throw new ArgumentException("No file provided");
             }
 
-            var fileName = $"{Guid.NewGuid()}.png";
-            var outputPath = Path.Combine(outputFolder, fileName);
-
-            File.Copy(templatePath, outputPath, overwrite: true);
-
-            using var bitmap = SKBitmap.Decode(outputPath);
-            using var surface = SKSurface.Create(new SKImageInfo(bitmap.Width, bitmap.Height));
-            var canvas = surface.Canvas;
-
-            canvas.DrawBitmap(bitmap, 0, 0);
-
-            var userPaint = new SKPaint
+            // Validate file extension
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!AllowedImageExtensions.Contains(fileExtension))
             {
-                Color = SKColors.Black,
-                TextSize = 54,
-                IsAntialias = true,
-                Typeface = SKTypeface.FromFamilyName("Georgia"),
-                TextAlign = SKTextAlign.Center
-            };
+                throw new ArgumentException($"File type not allowed. Allowed types: {string.Join(", ", AllowedImageExtensions)}");
+            }
 
-            var coursePaint = new SKPaint
+            // Validate file size
+            if (file.Length > MaxFileSize)
             {
-                Color = SKColors.Black,
-                TextSize = 48,
-                IsAntialias = true,
-                Typeface = SKTypeface.FromFamilyName("Georgia"),
-                TextAlign = SKTextAlign.Center
-            };
+                throw new ArgumentException($"File size exceeds maximum allowed size of {MaxFileSize / (1024 * 1024)}MB");
+            }
 
-            float centerX = bitmap.Width / 2f;
+            // Create directory if it doesn't exist
+            var uploadPath = Path.Combine(webRootPath, path);
+            if (!Directory.Exists(uploadPath))
+            {
+                Directory.CreateDirectory(uploadPath);
+            }
 
-            canvas.DrawText(courseName.ToUpper(), centerX, 835, coursePaint);
+            // Generate unique filename
+            if (fileName == null)
+            {
+                fileName = $"{Guid.NewGuid()}{fileExtension}";
+            }
+            else
+            {
+                fileName = $"{fileName}{fileExtension}";
+            }
+            var filePath = Path.Combine(uploadPath, fileName);
 
-            canvas.DrawText(userName.ToUpper(), centerX, 600, userPaint);
+            // Save file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
 
-            // Export lại PNG
-            using var image = surface.Snapshot();
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-
-            await File.WriteAllBytesAsync(outputPath, data.ToArray());
-
-            // Trả về URL cho client
-            return $"courses/certificates/{fileName}";
+            // Return relative URL path
+            return $"/{path}/{fileName}";
         }
     }
 }

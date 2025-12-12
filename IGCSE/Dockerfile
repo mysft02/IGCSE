@@ -42,6 +42,22 @@ COPY --from=publish /app/publish .
 # Ensure wwwroot directory exists and has proper structure
 RUN mkdir -p /app/wwwroot/avatar /app/wwwroot/certificates /app/wwwroot/courses/images /app/wwwroot/lessons/docs /app/wwwroot/lessons/videos || true
 
+# Fix SkiaSharp Linux crash - Install all required dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6 \
+    libgcc1 \
+    libfreetype6 \
+    libfontconfig1 \
+    libharfbuzz0b \
+    libharfbuzz-subset0 \
+    libpng16-16 \
+    libexpat1 \
+    libicu-dev \
+    libssl3 \
+    libstdc++6 \
+    zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Java for Liquibase
 RUN apt-get update && \
     apt-get install -y openjdk-17-jre-headless && \
