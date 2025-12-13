@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Hosting;
 using OfficeOpenXml.ConditionalFormatting.Contracts;
 using System.Collections.Generic;
 using ClosedXML.Excel;
+using Microsoft.AspNetCore.Http;
 
 namespace Service
 {
@@ -85,10 +86,6 @@ namespace Service
             if(userRole != "Parent" && userRole != "Student")
             {
                 var quizReview = await _quizRepository.GetQuizWithAnswerAsync(quizId);
-                foreach(var item in quizReview.Questions)
-                {
-                    item.ImageUrl = string.IsNullOrEmpty(item.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(item.ImageUrl);
-                }
                 return new BaseResponse<object>
                 {
                     Message = "Lấy kết quả quiz thành công.",
@@ -454,14 +451,56 @@ namespace Service
                 var worksheet = workbook.Worksheet(1);
                 var rows = worksheet?.RangeUsed().RowsUsed().Skip(1); // bỏ header
 
+                // Lấy tất cả hình ảnh với thông tin row và column
+                var pictures = worksheet.Pictures
+                    .Select(p => new
+                    {
+                        Picture = p,
+                        Row = p.TopLeftCell.Address.RowNumber,
+                        Column = p.TopLeftCell.Address.ColumnNumber
+                    })
+                    .ToList();
+
                 foreach (var row in rows)
                 {
+                    string pictureUrl = "";
+                    
+                    // Tìm hình ảnh ở cột 5 của row hiện tại
+                    var picture = pictures.FirstOrDefault(p => 
+                        p.Row == row.RowNumber() && 
+                        p.Column == 3);
+                    
+                    if(picture != null)
+                    {
+                        var imageBytes = picture.Picture.ImageStream.ToArray();
+                        
+                        // Tạo MemoryStream từ imageBytes (không dispose để FormFile có thể đọc)
+                        var imageStream = new MemoryStream(imageBytes);
+                        
+                        IFormFile imageFile = new FormFile(
+                            imageStream,
+                            0,
+                            imageBytes.Length,
+                            "file",
+                            $"{Guid.NewGuid()}.png"
+                        )
+                        {
+                            Headers = new HeaderDictionary(),
+                            ContentType = "image/png"
+                        };
+
+                        pictureUrl = await FileUploadHelper.UploadQuestionImageAsync(imageFile, _env.WebRootPath);
+                        
+                        // Dispose stream sau khi upload xong
+                        imageStream.Dispose();
+                    }
+
                     var question = new Question
                     {
                         QuizId = quizCreate.QuizId,
                         QuestionContent = row.Cell(1).GetString(),
                         CorrectAnswer = row.Cell(2).GetString(),
-                        PictureUrl = "",
+                        PictureUrl = pictureUrl,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
                     };
@@ -472,6 +511,12 @@ namespace Service
 
             var result = _mapper.Map<QuizCreateResponse>(quizCreate);
             result.Questions = _mapper.Map<List<QuestionCreateResponse>>(questions);
+
+            // Convert PictureUrl từ relative path sang full URL
+            foreach (var question in result.Questions)
+            {
+                question.PictureUrl = string.IsNullOrEmpty(question.PictureUrl) ? "" : await _mediaService.GetMediaUrlAsync(question.PictureUrl);
+            }
 
             return new BaseResponse<QuizCreateResponse>(
                 "Tạo bài quiz thành công",
