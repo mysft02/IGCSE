@@ -600,7 +600,7 @@ namespace Repository.Repositories
                 chart.Add(new IncomeChartDataPoint
                 {
                     Label = label,
-                    Month = month,
+                        Month = month,
                     TotalIncome = totalIncome,
                     ReceivedIncome = totalIncome * 0.7m
                 });
