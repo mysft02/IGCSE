@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Hosting;
 using Service.Trello;
 using BusinessObject.DTOs.Response.Dashboards;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.IO;
 
 namespace Service
 {
@@ -271,6 +272,71 @@ namespace Service
             );
         }
 
+        public async Task<BaseResponse<CourseSectionResponse>> UpdateCourseSectionAsync(int sectionId, CourseSectionRequest request, string userId)
+        {
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(sectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật section này.");
+            }
+
+            // Chỉ cho phép update khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa section.");
+            }
+
+            section.Name = request.Name;
+            section.Description = request.Description;
+            section.Order = request.Order;
+            section.IsActive = request.IsActive;
+            section.UpdatedAt = DateTime.UtcNow;
+
+            var updatedSection = await _coursesectionRepository.UpdateAsync(section);
+            var response = _mapper.Map<CourseSectionResponse>(updatedSection);
+
+            return new BaseResponse<CourseSectionResponse>(
+                "Course section updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteCourseSectionAsync(int sectionId, string userId)
+        {
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(sectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa section này.");
+            }
+
+            // Chỉ cho phép delete khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể xóa section.");
+            }
+
+            await _coursesectionRepository.DeleteAsync(section);
+
+            return new BaseResponse<string>(
+                "Course section deleted successfully",
+                StatusCodeEnum.OK_200,
+                "Section đã được xóa thành công."
+            );
+        }
+
         public async Task<BaseResponse<LessonResponse>> CreateLessonAsync(int sectionId, LessonRequest request, string userId)
         {
             // Kiểm tra section tồn tại và thuộc về teacher
@@ -304,6 +370,83 @@ namespace Service
                 "Lesson created successfully",
                 StatusCodeEnum.Created_201,
                 response
+            );
+        }
+
+        public async Task<BaseResponse<LessonResponse>> UpdateLessonAsync(int lessonId, LessonRequest request, string userId)
+        {
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật lesson này.");
+            }
+
+            // Chỉ cho phép update khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa lesson.");
+            }
+
+            lesson.Name = request.Name;
+            lesson.Description = request.Description;
+            lesson.Order = request.Order;
+            lesson.IsActive = request.IsActive;
+            lesson.UpdatedAt = DateTime.UtcNow;
+
+            var updatedLesson = await _lessonRepository.UpdateAsync(lesson);
+            var response = _mapper.Map<LessonResponse>(updatedLesson);
+
+            return new BaseResponse<LessonResponse>(
+                "Lesson updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteLessonAsync(int lessonId, string userId)
+        {
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa lesson này.");
+            }
+
+            // Chỉ cho phép delete khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể xóa lesson.");
+            }
+
+            await _lessonRepository.DeleteAsync(lesson);
+
+            return new BaseResponse<string>(
+                "Lesson deleted successfully",
+                StatusCodeEnum.OK_200,
+                "Lesson đã được xóa thành công."
             );
         }
 
@@ -382,6 +525,175 @@ namespace Service
                 "Lesson item created successfully",
                 StatusCodeEnum.Created_201,
                 response
+            );
+        }
+
+        public async Task<BaseResponse<LessonItemResponse>> UpdateLessonItemAsync(int lessonItemId, LessonItemRequest request, string userId)
+        {
+            var lessonItem = await _lessonitemRepository.GetByLessonItemIdAsync(lessonItemId);
+            if (lessonItem == null)
+            {
+                throw new Exception("Lesson item not found");
+            }
+
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật lesson item này.");
+            }
+
+            // Chỉ cho phép update khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa lesson item.");
+            }
+
+            // Xử lý upload file nếu có
+            string content = lessonItem.Content ?? string.Empty;
+            string itemType = lessonItem.ItemType ?? "text";
+
+            if (request.File != null)
+            {
+                var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                
+                // Xóa file cũ nếu có
+                if (!string.IsNullOrEmpty(lessonItem.Content))
+                {
+                    try
+                    {
+                        var oldFilePath = Path.Combine(webRootPath, lessonItem.Content.TrimStart('/'));
+                        if (File.Exists(oldFilePath))
+                        {
+                            File.Delete(oldFilePath);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore file deletion errors
+                    }
+                }
+                
+                if (FileUploadHelper.IsValidLessonVideo(request.File))
+                {
+                    content = await FileUploadHelper.UploadLessonVideoAsync(request.File, webRootPath);
+                    itemType = "video";
+                }
+                else if (FileUploadHelper.IsValidLessonDocument(request.File))
+                {
+                    content = await FileUploadHelper.UploadLessonDocumentAsync(request.File, webRootPath);
+                    itemType = "pdf";
+                }
+                else if (FileUploadHelper.IsValidImageFile(request.File))
+                {
+                    content = await FileUploadHelper.UploadCourseImageAsync(request.File, webRootPath);
+                    itemType = "image";
+                }
+                else
+                {
+                    throw new Exception("File type not supported. Only video, PDF, and image files are allowed.");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Content))
+            {
+                content = request.Content;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ItemType))
+            {
+                itemType = request.ItemType;
+            }
+
+            lessonItem.Name = request.Name;
+            lessonItem.Description = request.Description;
+            lessonItem.Content = content;
+            lessonItem.ItemType = itemType;
+            lessonItem.Order = request.Order;
+            lessonItem.UpdatedAt = DateTime.UtcNow;
+
+            var updatedLessonItem = await _lessonitemRepository.UpdateAsync(lessonItem);
+            var response = _mapper.Map<LessonItemResponse>(updatedLessonItem);
+            
+            // Convert content to full URL
+            if (!string.IsNullOrEmpty(response.Content))
+            {
+                response.Content = await _mediaService.GetMediaUrlAsync(response.Content);
+            }
+
+            return new BaseResponse<LessonItemResponse>(
+                "Lesson item updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteLessonItemAsync(int lessonItemId, string userId)
+        {
+            var lessonItem = await _lessonitemRepository.GetByLessonItemIdAsync(lessonItemId);
+            if (lessonItem == null)
+            {
+                throw new Exception("Lesson item not found");
+            }
+
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa lesson item này.");
+            }
+
+            // Chỉ cho phép delete khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể xóa lesson item.");
+            }
+
+            // Xóa file nếu có
+            if (!string.IsNullOrEmpty(lessonItem.Content))
+            {
+                try
+                {
+                    var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                    var filePath = Path.Combine(webRootPath, lessonItem.Content.TrimStart('/'));
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                    }
+                }
+                catch
+                {
+                    // Ignore file deletion errors
+                }
+            }
+
+            await _lessonitemRepository.DeleteAsync(lessonItem);
+
+            return new BaseResponse<string>(
+                "Lesson item deleted successfully",
+                StatusCodeEnum.OK_200,
+                "Lesson item đã được xóa thành công."
             );
         }
 
@@ -1940,6 +2252,14 @@ namespace Service
                 "Lấy thống kê đăng ký thành công.",
                 StatusCodeEnum.OK_200,
                 result);
+        }
+
+        /// <summary>
+        /// Validate rằng Parent có quyền truy cập thông tin của Student
+        /// </summary>
+        public async Task<bool> ValidateParentStudentAccessAsync(string parentId, string studentId)
+        {
+            return await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(parentId, studentId);
         }
     }
 }

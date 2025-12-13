@@ -10,16 +10,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/AdminAnalyticsResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/AdminAnalyticsResponse.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/TeacherAnalyticsResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Dashboards/TeacherAnalyticsResponse.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/AdminDashboardController.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/CourseController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/CourseController.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Controller/StudentDashboardController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/StudentDashboardController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/TeacherDashboardController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/TeacherDashboardController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/TeacherProfileController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/TeacherProfileController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IGCSE.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/IGCSE.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/IRepositories/ICourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/IRepositories/ICourseRepository.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Service/CourseService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/CourseService.cs" afterDir="false" />
     </list>
@@ -63,7 +56,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "XThreadsFramesViewSplitterKey": "0.6433022",
-    "git-widget-placeholder": "deploy",
+    "git-widget-placeholder": "feature/#73__refactorUI",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
