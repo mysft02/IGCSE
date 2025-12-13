@@ -10,6 +10,7 @@ namespace Common.Utils
         private static readonly string[] AllowedDocumentExtensions = { ".pdf" };
         private static readonly string[] AllowedVideoExtensions = { ".mp4", ".webm", ".ogg" };
         private const string ImagesFolder = "courses/images";
+        private const string QuestionImagesFolder = "questions/images";
         private const string AvatarsFolder = "avatar";
         private const string CertificatesFolder = "certificates";
         private const string LessonDocsFolder = "lessons/docs";
@@ -384,7 +385,7 @@ namespace Common.Utils
             }
         }
 
-        public static async Task<string> AddImageAsync(IFormFile file, string path, string fileName, string webRootPath)
+        public static async Task<string> UploadQuestionImageAsync(IFormFile file, string webRootPath)
         {
             if (file == null || file.Length == 0)
             {
@@ -405,21 +406,14 @@ namespace Common.Utils
             }
 
             // Create directory if it doesn't exist
-            var uploadPath = Path.Combine(webRootPath, path);
+            var uploadPath = Path.Combine(webRootPath, QuestionImagesFolder);
             if (!Directory.Exists(uploadPath))
             {
                 Directory.CreateDirectory(uploadPath);
             }
 
             // Generate unique filename
-            if (fileName == null)
-            {
-                fileName = $"{Guid.NewGuid()}{fileExtension}";
-            }
-            else
-            {
-                fileName = $"{fileName}{fileExtension}";
-            }
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
             var filePath = Path.Combine(uploadPath, fileName);
 
             // Save file
@@ -429,7 +423,7 @@ namespace Common.Utils
             }
 
             // Return relative URL path
-            return $"/{path}/{fileName}";
+            return $"/questions/images/{fileName}";
         }
     }
 }
