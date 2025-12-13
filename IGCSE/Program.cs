@@ -64,7 +64,11 @@ builder.Services
 builder.Services.AddControllers();
 
 // Add SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -164,7 +168,11 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 
 var app = builder.Build();

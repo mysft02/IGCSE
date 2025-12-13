@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Assistant;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
 
 namespace IGCSE.Controller;
 
@@ -172,7 +173,10 @@ public class AssistantController : ControllerBase
             return Unauthorized(BaseResponse<AssistantResponse>.Error("Unauthorized"));
         }
 
-        var response = await _assistantService.ProcessMessageAsync(userId, message, conversationId.ToString());
+        // Get user role from JWT token
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        var response = await _assistantService.ProcessMessageAsync(userId, message, conversationId.ToString(), userRole);
         return Ok(BaseResponse<AssistantResponse>.Success(response));
     }
 }

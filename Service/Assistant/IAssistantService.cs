@@ -8,12 +8,14 @@ public interface IAssistantService
     Task<AssistantResponse> ProcessMessageAsync(
         string userId,
         string message,
-        string? conversationId = null);
+        string? conversationId = null,
+        string? userRole = null);
 
     IAsyncEnumerable<string> ProcessMessageStreamAsync(
         string userId,
         string message,
-        string? conversationId = null);
+        string? conversationId = null,
+        string? userRole = null);
 
     Task<string> CreateConversationAsync(
         string userId,

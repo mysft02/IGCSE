@@ -11,34 +11,48 @@ public class ContextManager : IContextManager
     private readonly IProcessRepository _processRepository;
     private readonly IChatMessageRepository _messageRepository;
     private readonly UserManager<Account> _userManager;
+    private readonly ISystemDataService _systemDataService;
 
     public ContextManager(
         IAccountRepository accountRepository,
         ICourseRepository courseRepository,
         IProcessRepository processRepository,
         IChatMessageRepository messageRepository,
-        UserManager<Account> userManager)
+        UserManager<Account> userManager,
+        ISystemDataService systemDataService)
     {
         _accountRepository = accountRepository;
         _courseRepository = courseRepository;
         _processRepository = processRepository;
         _messageRepository = messageRepository;
         _userManager = userManager;
+        _systemDataService = systemDataService;
     }
 
-    public async Task<ChatContext> BuildContextAsync(string userId)
+    public async Task<ChatContext> BuildContextAsync(string userId, string? userRole = null, string? userQuery = null)
     {
         var context = new ChatContext
         {
             UserId = userId
         };
 
-        // Get user role
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user != null)
+        // Get user role - ưu tiên từ parameter (JWT token), nếu không có thì query database
+        if (!string.IsNullOrEmpty(userRole))
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            context.UserRole = roles.FirstOrDefault() ?? "Student";
+            context.UserRole = userRole;
+        }
+        else
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                context.UserRole = roles.FirstOrDefault() ?? "Student";
+            }
+            else
+            {
+                context.UserRole = "Student"; // Default fallback
+            }
         }
 
         // Get current course (most recent enrollment)
@@ -59,6 +73,23 @@ public class ContextManager : IContextManager
             .OrderBy(m => m.CreatedAt)
             .Select(m => m.Content)
             .ToList();
+
+        // Get system data context if userQuery is provided
+        if (!string.IsNullOrEmpty(userQuery) && !string.IsNullOrEmpty(context.UserRole))
+        {
+            try
+            {
+                context.SystemDataContext = await _systemDataService.GetSystemDataContextAsync(
+                    userId,
+                    context.UserRole,
+                    userQuery);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting system data context: {ex.Message}");
+                // Continue without system data if error
+            }
+        }
 
         return context;
     }

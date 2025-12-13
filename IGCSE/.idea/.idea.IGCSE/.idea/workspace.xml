@@ -10,11 +10,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../Common/Utils/CommonUtils.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Common/Utils/CommonUtils.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Assistant/AssistantResponse.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/DTOs/Response/Assistant/AssistantResponse.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Service/FinalQuizService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/FinalQuizService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Service/QuizService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/QuizService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Controller/AssistantController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/AssistantController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Extensions/ServiceCollectionExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Extensions/ServiceCollectionExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Hubs/ChatHub.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Hubs/ChatHub.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Migration/ChangeLog/ticket-76.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../Migration/ChangeLog/ticket-76.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/AssistantKnowledgeRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/AssistantKnowledgeRepository.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/Assistant/AssistantService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/Assistant/AssistantService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/Assistant/ContextManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/Assistant/ContextManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/Assistant/IAssistantService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/Assistant/IAssistantService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/Assistant/IContextManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/Assistant/IContextManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/Assistant/PersonaService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/Assistant/PersonaService.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
