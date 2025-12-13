@@ -135,10 +135,7 @@ namespace Service
                 var teacherPaymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == course.CreatedBy);
 
                 var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
-                studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
-
-                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
-                await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
+                
                 var teacherIncome = (paymentResponse.Data.AmountPaid * 70) / 100;
                 var payoutData = new PayoutRequest
                 {
@@ -156,6 +153,10 @@ namespace Service
                 };
                 await _payoutHistoryRepository.AddAsync(payoutHistory);
                 var payout = await PayOSPayoutAsync(payoutData);
+                studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
+
+                await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
+                await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
             }
             else if (packageId.HasValue)
             {
