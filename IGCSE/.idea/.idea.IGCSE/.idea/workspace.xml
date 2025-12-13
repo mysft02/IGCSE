@@ -10,12 +10,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../BusinessObject/IGCSEContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/IGCSEContext.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Extensions/ServiceCollectionExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Extensions/ServiceCollectionExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/appsettings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Migration/changelog-master.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../Migration/changelog-master.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,7 +56,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "XThreadsFramesViewSplitterKey": "0.6433022",
-    "git-widget-placeholder": "fix/#74__payOs",
+    "git-widget-placeholder": "feature/#77__chatAi",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",

@@ -1877,50 +1877,105 @@ namespace Repository.Repositories
                 }
             }
 
-            // 3. Lấy tất cả courses chưa đăng ký và tính recommendation score
+            // 3. Lấy thông tin popularity và recency cho tất cả courses
+            var courseStats = await _context.Studentenrollments
+                .GroupBy(se => se.CourseId)
+                .Select(g => new
+                {
+                    CourseId = g.Key,
+                    EnrollmentCount = g.Count(),
+                    LatestEnrollment = g.Max(se => se.EnrolledAt)
+                })
+                .ToListAsync();
+
+            var maxEnrollments = courseStats.Any() ? courseStats.Max(cs => cs.EnrollmentCount) : 1;
+            var now = DateTime.UtcNow;
+
+            // 4. Lấy tất cả courses chưa đăng ký và tính recommendation score
             var allCourses = await _context.Courses
                 .Where(c => c.Status == "Open" && !string.IsNullOrEmpty(c.EmbeddingData))
                 .Where(c => !_context.Studentenrollments.Any(se => se.StudentId == studentId && se.CourseId == c.CourseId))
                 .ToListAsync();
 
+            // Cold start handling: Nếu không có courses đã học, sử dụng popular courses
+            bool isColdStart = !enrolledCourses.Any() || averageEmbedding == null;
+
             var recommendations = allCourses
                 .AsEnumerable()
                 .Select(c =>
                 {
-                    // Tính embedding similarity (40%)
+                    var courseStat = courseStats.FirstOrDefault(cs => cs.CourseId == c.CourseId);
+                    var enrollmentCount = courseStat?.EnrollmentCount ?? 0;
+                    var latestEnrollment = courseStat?.LatestEnrollment ?? c.CreatedAt;
+                    var daysSinceCreation = (now - c.CreatedAt).TotalDays;
+                    var daysSinceLastEnrollment = (now - latestEnrollment).TotalDays;
+
+                    // 1. Embedding Similarity (40%) - Content-Based Filtering (Netflix/Spotify Pattern)
                     decimal embeddingScore = 0;
-                    if (averageEmbedding != null && averageEmbedding.Any())
+                    if (!isColdStart && averageEmbedding != null && averageEmbedding.Any())
                     {
                         var courseEmbedding = CommonUtils.StringToObject<List<float>>(c.EmbeddingData);
                         if (courseEmbedding != null && courseEmbedding.Any())
                         {
-                            embeddingScore = (decimal)CommonUtils.CosineSimilarity(averageEmbedding, courseEmbedding);
+                            var similarity = CommonUtils.CosineSimilarity(averageEmbedding, courseEmbedding);
+                            // Normalize: đảm bảo similarity trong khoảng [0, 1]
+                            embeddingScore = Math.Max(0, Math.Min(1, (decimal)similarity)) * 0.4m;
                         }
                     }
+                    else if (isColdStart)
+                    {
+                        // Cold start: Sử dụng popularity thay vì similarity
+                        embeddingScore = 0.2m; // Base score cho cold start
+                    }
 
-                    // Tính score dựa trên certificates (20%) - courses có nhiều certificates được học viên có certificates sẽ được ưu tiên
-                    decimal certificateScore = totalCertificates > 0 ? 0.2m : 0;
+                    // 2. Certificate Score (15%) - Skill-Based Matching (LinkedIn Pattern)
+                    // Gradient: nhiều certificates = điểm cao hơn
+                    decimal certificateScore = Math.Min(totalCertificates / 5.0m, 1.0m) * 0.15m;
 
-                    // Tính score dựa trên số lesson items đã hoàn thành (20%)
-                    decimal lessonItemsScore = Math.Min(totalCompletedLessonItems / 100.0m, 0.2m);
+                    // 3. Lesson Items Score (15%) - Engagement Signal (YouTube Pattern)
+                    // Linear scaling: 0 items = 0, 500 items = 0.15 (tối đa)
+                    decimal lessonItemsScore = Math.Min(totalCompletedLessonItems / 500.0m, 1.0m) * 0.15m;
 
-                    // Tính score dựa trên điểm trung bình (20%)
-                    decimal averageScoreWeight = Math.Min(averageScore / 10.0m, 0.2m);
+                    // 4. Average Score Weight (15%) - Performance Signal (Netflix Pattern)
+                    // Linear scaling: 0 điểm = 0, 10 điểm = 0.15 (tối đa)
+                    decimal averageScoreWeight = Math.Min(averageScore / 10.0m, 1.0m) * 0.15m;
 
-                    // Recommendation score tổng hợp
-                    decimal recommendationScore = (embeddingScore * 0.4m) + certificateScore + lessonItemsScore + averageScoreWeight;
+                    // 5. Popularity Score (10%) - Item Popularity (Amazon Pattern)
+                    // Normalize enrollment count: 0 enrollments = 0, max enrollments = 0.1
+                    decimal popularityScore = maxEnrollments > 0
+                        ? (enrollmentCount / (decimal)maxEnrollments) * 0.1m
+                        : 0;
 
-                    // Lý do được gợi ý
+                    // 6. Recency Score (5%) - Freshness Boost (YouTube/Netflix Pattern)
+                    // Courses mới hoặc có enrollment gần đây được ưu tiên
+                    decimal recencyScore = 0;
+                    if (daysSinceCreation < 30)
+                    {
+                        recencyScore = 0.05m; // Course mới (< 30 ngày)
+                    }
+                    else if (daysSinceLastEnrollment < 7)
+                    {
+                        recencyScore = 0.03m; // Có enrollment gần đây (< 7 ngày)
+                    }
+
+                    // Recommendation score tổng hợp (Netflix Hybrid Pattern)
+                    decimal recommendationScore = embeddingScore + certificateScore + lessonItemsScore + 
+                                                  averageScoreWeight + popularityScore + recencyScore;
+
+                    // Lý do được gợi ý (Explainable AI - LinkedIn Pattern)
                     var reasons = new List<string>();
-                    if (embeddingScore > 0.7m) reasons.Add("Tương đồng với các khoá học bạn đã học");
-                    if (totalCertificates > 0) reasons.Add("Phù hợp với trình độ của bạn");
-                    if (totalCompletedLessonItems > 50) reasons.Add("Dựa trên tiến độ học tập của bạn");
-                    if (averageScore > 8) reasons.Add("Phù hợp với năng lực học tập của bạn");
+                    if (embeddingScore > 0.28m) reasons.Add("Tương đồng với các khoá học bạn đã học");
+                    if (certificateScore > 0.1m) reasons.Add("Phù hợp với trình độ của bạn");
+                    if (lessonItemsScore > 0.1m) reasons.Add("Dựa trên tiến độ học tập của bạn");
+                    if (averageScoreWeight > 0.1m) reasons.Add("Phù hợp với năng lực học tập của bạn");
+                    if (popularityScore > 0.05m) reasons.Add("Được nhiều học viên quan tâm");
+                    if (recencyScore > 0) reasons.Add("Khóa học mới hoặc đang hot");
+                    if (isColdStart) reasons.Add("Khóa học phổ biến cho người mới bắt đầu");
 
                     return new
                     {
                         Course = c,
-                        SimilarityScore = embeddingScore,
+                        SimilarityScore = embeddingScore / 0.4m, // Normalize về [0, 1]
                         RecommendationScore = recommendationScore,
                         Reason = reasons.Any() ? string.Join(", ", reasons) : "Được gợi ý dựa trên sở thích học tập"
                     };
