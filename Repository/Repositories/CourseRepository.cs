@@ -1962,22 +1962,111 @@ namespace Repository.Repositories
                     decimal recommendationScore = embeddingScore + certificateScore + lessonItemsScore + 
                                                   averageScoreWeight + popularityScore + recencyScore;
 
-                    // Lý do được gợi ý (Explainable AI - LinkedIn Pattern)
-                    var reasons = new List<string>();
-                    if (embeddingScore > 0.28m) reasons.Add("Tương đồng với các khoá học bạn đã học");
-                    if (certificateScore > 0.1m) reasons.Add("Phù hợp với trình độ của bạn");
-                    if (lessonItemsScore > 0.1m) reasons.Add("Dựa trên tiến độ học tập của bạn");
-                    if (averageScoreWeight > 0.1m) reasons.Add("Phù hợp với năng lực học tập của bạn");
-                    if (popularityScore > 0.05m) reasons.Add("Được nhiều học viên quan tâm");
-                    if (recencyScore > 0) reasons.Add("Khóa học mới hoặc đang hot");
-                    if (isColdStart) reasons.Add("Khóa học phổ biến cho người mới bắt đầu");
+                    // Lý do được gợi ý (Explainable AI - LinkedIn Pattern) - Cải thiện để tự nhiên hơn
+                    var reasonParts = new List<string>();
+                    var primaryReason = "";
+                    var secondaryReasons = new List<string>();
+
+                    // Xác định lý do chính (primary reason) dựa trên điểm số cao nhất
+                    if (embeddingScore > 0.28m)
+                    {
+                        var similarityValue = embeddingScore / 0.4m;
+                        if (similarityValue > 0.8m)
+                        {
+                            primaryReason = "Khóa học này có nội dung rất tương đồng với các khóa học bạn đã hoàn thành";
+                        }
+                        else if (similarityValue > 0.6m)
+                        {
+                            primaryReason = "Khóa học này có nội dung tương đồng với lộ trình học tập hiện tại của bạn";
+                        }
+                        else
+                        {
+                            primaryReason = "Khóa học này liên quan đến các chủ đề bạn đã quan tâm";
+                        }
+                    }
+                    else if (certificateScore > 0.1m)
+                    {
+                        primaryReason = "Dựa trên các chứng chỉ bạn đã đạt được, khóa học này phù hợp với trình độ của bạn";
+                    }
+                    else if (averageScoreWeight > 0.1m)
+                    {
+                        primaryReason = "Với điểm số trung bình hiện tại, khóa học này sẽ phù hợp với năng lực học tập của bạn";
+                    }
+                    else if (lessonItemsScore > 0.1m)
+                    {
+                        primaryReason = "Dựa trên tiến độ học tập của bạn, đây là khóa học tiếp theo phù hợp";
+                    }
+                    else if (popularityScore > 0.05m)
+                    {
+                        primaryReason = "Khóa học này đang được nhiều học viên quan tâm và đánh giá cao";
+                    }
+                    else if (isColdStart)
+                    {
+                        primaryReason = "Đây là khóa học phổ biến, phù hợp cho người mới bắt đầu";
+                    }
+
+                    // Thêm các lý do phụ (secondary reasons) để làm phong phú hơn
+                    if (recencyScore > 0 && embeddingScore <= 0.28m)
+                    {
+                        if (recencyScore >= 0.05m)
+                        {
+                            secondaryReasons.Add("và là khóa học mới được ra mắt");
+                        }
+                        else
+                        {
+                            secondaryReasons.Add("và đang có nhiều học viên đăng ký gần đây");
+                        }
+                    }
+
+                    if (popularityScore > 0.05m && embeddingScore > 0.28m)
+                    {
+                        secondaryReasons.Add("đồng thời được nhiều học viên khác lựa chọn");
+                    }
+
+                    if (certificateScore > 0.1m && embeddingScore > 0.28m)
+                    {
+                        secondaryReasons.Add("phù hợp với trình độ bạn đã chứng minh qua các chứng chỉ");
+                    }
+
+                    if (averageScoreWeight > 0.1m && embeddingScore > 0.28m)
+                    {
+                        secondaryReasons.Add("phù hợp với năng lực học tập hiện tại của bạn");
+                    }
+
+                    // Tạo câu hoàn chỉnh
+                    string finalReason;
+                    if (!string.IsNullOrEmpty(primaryReason))
+                    {
+                        if (secondaryReasons.Any())
+                        {
+                            if (secondaryReasons.Count == 1)
+                            {
+                                finalReason = $"{primaryReason}, {secondaryReasons[0]}";
+                            }
+                            else
+                            {
+                                var lastReason = secondaryReasons.Last();
+                                var otherReasons = string.Join(", ", secondaryReasons.Take(secondaryReasons.Count - 1));
+                                finalReason = $"{primaryReason}, {otherReasons}, và {lastReason}";
+                            }
+                        }
+                        else
+                        {
+                            finalReason = primaryReason;
+                        }
+                    }
+                    else
+                    {
+                        // Fallback nếu không có lý do chính
+                        finalReason = "Được gợi ý dựa trên sở thích và hành vi học tập của bạn";
+                    }
 
                     return new
                     {
                         Course = c,
                         SimilarityScore = embeddingScore / 0.4m, // Normalize về [0, 1]
                         RecommendationScore = recommendationScore,
-                        Reason = reasons.Any() ? string.Join(", ", reasons) : "Được gợi ý dựa trên sở thích học tập"
+                        Reason = finalReason
                     };
                 })
                 .OrderByDescending(r => r.RecommendationScore)

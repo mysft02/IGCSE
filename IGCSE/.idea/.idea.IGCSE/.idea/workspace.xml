@@ -10,9 +10,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../Common/Utils/CommonUtils.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Common/Utils/CommonUtils.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/appsettings.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/FinalQuizService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/FinalQuizService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Service/QuizService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/QuizService.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,7 +54,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    ".NET Launch Settings Profile.IGCSE: http.executor": "Run",
+    ".NET Launch Settings Profile.IGCSE: http.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "XThreadsFramesViewSplitterKey": "0.6433022",
