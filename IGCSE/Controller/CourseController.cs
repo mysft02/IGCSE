@@ -284,7 +284,72 @@ namespace IGCSE.Controller
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(
             Summary = "Cập nhật khóa học (Teacher)",
-            Description = "Giáo viên cập nhật thông tin khóa học của mình. Hỗ trợ upload ảnh hoặc dùng link."
+            Description = @"Api cho phép giáo viên cập nhật thông tin khóa học do mình tạo.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần cập nhật
+- Body (multipart/form-data):
+```json
+{
+  ""name"": ""Tên khóa học đã cập nhật"",
+  ""description"": ""Mô tả khóa học đã cập nhật"",
+  ""price"": 1500000,
+  ""moduleId"": 1,
+  ""imageUrl"": ""https://example.com/image.jpg"",
+  ""imageFile"": null
+}
+```
+
+**Các trường có thể cập nhật:**
+- `name` (string, required) - Tên khóa học
+- `description` (string, optional) - Mô tả khóa học
+- `price` (decimal, required) - Giá khóa học
+- `moduleId` (int, required) - ID module
+- `imageUrl` (string, optional) - Link hình ảnh (nếu upload file thì để null)
+- `imageFile` (IFormFile, optional) - File hình ảnh (nếu dùng link thì để null)
+
+**Điều kiện:**
+- Chỉ có thể cập nhật khóa học do chính mình tạo
+- **Không thể cập nhật** khóa học đã được duyệt (status = `Open`)
+- Chỉ có thể cập nhật khi khóa học ở trạng thái: `Draft`, `Pending`, hoặc `Rejected`
+
+**Logic tự động:**
+- Tự động cập nhật `UpdatedAt` và `UpdatedBy`
+- Tự động tạo lại embedding data cho khóa học (nếu có thay đổi)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course updated successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 1,
+    ""name"": ""Tên khóa học đã cập nhật"",
+    ""description"": ""Mô tả khóa học đã cập nhật"",
+    ""status"": ""Pending"",
+    ""price"": 1500000,
+    ""imageUrl"": ""/uploads/courses/image.jpg"",
+    ""moduleId"": 1,
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-02T00:00:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+```json
+{
+  ""message"": ""Khóa học đã được duyệt, không thể chỉnh sửa."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Có thể upload image bằng file hoặc link URL (chỉ chọn 1 trong 2)
+- Nếu không cung cấp image mới, sẽ giữ nguyên image cũ"
         )]
         public async Task<ActionResult<BaseResponse<CourseResponse>>> UpdateCourse(int courseId, [FromForm] CourseRequest request)
         {
@@ -351,7 +416,48 @@ namespace IGCSE.Controller
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(
             Summary = "Xóa khóa học (Teacher)",
-            Description = "Giáo viên có thể xóa khóa học do mình tạo khi chưa có học viên đăng ký."
+            Description = @"Api cho phép giáo viên xóa khóa học do mình tạo.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần xóa
+
+**Điều kiện:**
+- Chỉ có thể xóa khóa học do chính mình tạo
+- **Không thể xóa** khóa học đã có học viên đăng ký (đã có enrollment)
+- Có thể xóa khóa học ở bất kỳ trạng thái nào (Draft, Pending, Rejected, Open)
+
+**Logic tự động:**
+- Tự động hoàn trả 1 slot cho giáo viên (tăng `AvailableSlot` lên 1)
+- Xóa tất cả dữ liệu liên quan đến khóa học (sections, lessons, lesson items, etc.)
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course deleted successfully"",
+  ""statusCode"": 200,
+  ""data"": ""Khóa học đã được xóa thành công.""
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+```json
+{
+  ""message"": ""Không thể xóa khóa học khi đã có học viên đăng ký."",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Các trường hợp lỗi có thể xảy ra:**
+- `Course not found` - Khóa học không tồn tại
+- `Bạn không có quyền xóa khóa học này.` - Không phải người tạo khóa học
+- `Không thể xóa khóa học khi đã có học viên đăng ký.` - Đã có học viên đăng ký
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Hành động xóa là **vĩnh viễn** và không thể hoàn tác
+- Slot sẽ được hoàn trả ngay sau khi xóa thành công"
         )]
         public async Task<ActionResult<BaseResponse<string>>> DeleteCourse(int courseId)
         {
@@ -437,6 +543,123 @@ namespace IGCSE.Controller
             }
         }
 
+        [HttpPut("sections/{sectionId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Cập nhật section (Teacher)",
+            Description = @"Api cho phép giáo viên cập nhật thông tin section của khóa học.
+
+**Request:**
+- Path parameter: `sectionId` (int) - ID của section cần cập nhật
+- Body:
+```json
+{
+  ""name"": ""Section 1 đã cập nhật"",
+  ""description"": ""Mô tả section đã cập nhật"",
+  ""order"": 1,
+  ""isActive"": 1
+}
+```
+
+**Điều kiện:**
+- Chỉ có thể cập nhật section thuộc khóa học do chính mình tạo
+- **Không thể cập nhật** khi khóa học đã được duyệt (status = `Open`)
+- Chỉ có thể cập nhật khi khóa học ở trạng thái: `Draft`, `Pending`, hoặc `Rejected`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course section updated successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 1,
+    ""courseSectionId"": 1,
+    ""name"": ""Section 1 đã cập nhật"",
+    ""description"": ""Mô tả section đã cập nhật"",
+    ""order"": 1,
+    ""isActive"": true
+  }
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token"
+        )]
+        public async Task<ActionResult<BaseResponse<CourseSectionResponse>>> UpdateCourseSection(int sectionId, [FromBody] CourseSectionRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.UpdateCourseSectionAsync(sectionId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpDelete("sections/{sectionId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Xóa section (Teacher)",
+            Description = @"Api cho phép giáo viên xóa section của khóa học.
+
+**Request:**
+- Path parameter: `sectionId` (int) - ID của section cần xóa
+
+**Điều kiện:**
+- Chỉ có thể xóa section thuộc khóa học do chính mình tạo
+- **Không thể xóa** khi khóa học đã được duyệt (status = `Open`)
+- Xóa section sẽ xóa tất cả lessons và lesson items bên trong
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Course section deleted successfully"",
+  ""statusCode"": 200,
+  ""data"": ""Section đã được xóa thành công.""
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Hành động xóa là **vĩnh viễn** và không thể hoàn tác"
+        )]
+        public async Task<ActionResult<BaseResponse<string>>> DeleteCourseSection(int sectionId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.DeleteCourseSectionAsync(sectionId, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpPost("sections/{sectionId}/lessons")]
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(
@@ -482,6 +705,123 @@ namespace IGCSE.Controller
             }
         }
 
+        [HttpPut("lessons/{lessonId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Cập nhật lesson (Teacher)",
+            Description = @"Api cho phép giáo viên cập nhật thông tin lesson của section.
+
+**Request:**
+- Path parameter: `lessonId` (int) - ID của lesson cần cập nhật
+- Body:
+```json
+{
+  ""name"": ""Lesson 1 đã cập nhật"",
+  ""description"": ""Mô tả lesson đã cập nhật"",
+  ""order"": 1,
+  ""isActive"": 1
+}
+```
+
+**Điều kiện:**
+- Chỉ có thể cập nhật lesson thuộc khóa học do chính mình tạo
+- **Không thể cập nhật** khi khóa học đã được duyệt (status = `Open`)
+- Chỉ có thể cập nhật khi khóa học ở trạng thái: `Draft`, `Pending`, hoặc `Rejected`
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lesson updated successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""lessonId"": 1,
+    ""courseSectionId"": 1,
+    ""name"": ""Lesson 1 đã cập nhật"",
+    ""description"": ""Mô tả lesson đã cập nhật"",
+    ""order"": 1,
+    ""isActive"": true
+  }
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token"
+        )]
+        public async Task<ActionResult<BaseResponse<LessonResponse>>> UpdateLesson(int lessonId, [FromBody] LessonRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.UpdateLessonAsync(lessonId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpDelete("lessons/{lessonId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Xóa lesson (Teacher)",
+            Description = @"Api cho phép giáo viên xóa lesson của section.
+
+**Request:**
+- Path parameter: `lessonId` (int) - ID của lesson cần xóa
+
+**Điều kiện:**
+- Chỉ có thể xóa lesson thuộc khóa học do chính mình tạo
+- **Không thể xóa** khi khóa học đã được duyệt (status = `Open`)
+- Xóa lesson sẽ xóa tất cả lesson items bên trong
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lesson deleted successfully"",
+  ""statusCode"": 200,
+  ""data"": ""Lesson đã được xóa thành công.""
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Hành động xóa là **vĩnh viễn** và không thể hoàn tác"
+        )]
+        public async Task<ActionResult<BaseResponse<string>>> DeleteLesson(int lessonId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.DeleteLessonAsync(lessonId, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpPost("lessons/{lessonId}/items")]
         [Authorize(Roles = "Teacher")]
         [SwaggerOperation(
@@ -514,6 +854,130 @@ namespace IGCSE.Controller
                 }
 
                 var result = await _courseService.CreateLessonItemAsync(lessonId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPut("lesson-items/{lessonItemId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Cập nhật lesson item (Teacher)",
+            Description = @"Api cho phép giáo viên cập nhật thông tin lesson item (video, pdf, image, text).
+
+**Request:**
+- Path parameter: `lessonItemId` (int) - ID của lesson item cần cập nhật
+- Body (multipart/form-data):
+  - `name` (string, required) - Tên lesson item
+  - `description` (string, optional) - Mô tả
+  - `content` (string, optional) - Nội dung/URL (nếu upload file mới thì để null)
+  - `itemType` (string, optional) - Loại: video, pdf, image, text
+  - `order` (int, required) - Thứ tự
+  - `file` (IFormFile, optional) - File mới để upload (video/pdf/image). Nếu upload file mới, file cũ sẽ bị xóa
+
+**Điều kiện:**
+- Chỉ có thể cập nhật lesson item thuộc khóa học do chính mình tạo
+- **Không thể cập nhật** khi khóa học đã được duyệt (status = `Open`)
+- Chỉ có thể cập nhật khi khóa học ở trạng thái: `Draft`, `Pending`, hoặc `Rejected`
+
+**Logic tự động:**
+- Nếu upload file mới, file cũ sẽ tự động bị xóa
+- Tự động detect loại file và set itemType
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lesson item updated successfully"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""lessonItemId"": 1,
+    ""lessonId"": 1,
+    ""name"": ""Lesson Item đã cập nhật"",
+    ""description"": ""Mô tả đã cập nhật"",
+    ""content"": ""/uploads/lessons/video.mp4"",
+    ""itemType"": ""video"",
+    ""order"": 1
+  }
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Hỗ trợ upload: video (mp4, webm, ogg), PDF, image (jpg, png, gif, webp)"
+        )]
+        public async Task<ActionResult<BaseResponse<LessonItemResponse>>> UpdateLessonItem(int lessonItemId, [FromForm] LessonItemRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.UpdateLessonItemAsync(lessonItemId, request, userId);
+                return StatusCode((int)result.StatusCode, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpDelete("lesson-items/{lessonItemId}")]
+        [Authorize(Roles = "Teacher")]
+        [SwaggerOperation(
+            Summary = "Xóa lesson item (Teacher)",
+            Description = @"Api cho phép giáo viên xóa lesson item.
+
+**Request:**
+- Path parameter: `lessonItemId` (int) - ID của lesson item cần xóa
+
+**Điều kiện:**
+- Chỉ có thể xóa lesson item thuộc khóa học do chính mình tạo
+- **Không thể xóa** khi khóa học đã được duyệt (status = `Open`)
+
+**Logic tự động:**
+- Tự động xóa file đính kèm (nếu có) khi xóa lesson item
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lesson item deleted successfully"",
+  ""statusCode"": 200,
+  ""data"": ""Lesson item đã được xóa thành công.""
+}
+```
+
+**Lưu ý:**
+- Chỉ Teacher role mới có quyền sử dụng API này
+- User ID được lấy tự động từ JWT token
+- Hành động xóa là **vĩnh viễn** và không thể hoàn tác
+- File đính kèm sẽ bị xóa khỏi server"
+        )]
+        public async Task<ActionResult<BaseResponse<string>>> DeleteLessonItem(int lessonItemId)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", StatusCodeEnum.Unauthorized_401, null));
+                }
+
+                var result = await _courseService.DeleteLessonItemAsync(lessonItemId, userId);
                 return StatusCode((int)result.StatusCode, result);
             }
             catch (Exception ex)

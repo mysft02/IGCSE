@@ -20,10 +20,11 @@ namespace IGCSE.Controller
             _courseService = courseService;
         }
 
-        private const string GetLearningProgressSummary = "Lấy thống kê tiến độ học tập cho học viên (Student)";
+        private const string GetLearningProgressSummary = "Lấy thống kê tiến độ học tập cho học viên";
         private const string GetLearningProgressDescription = @"Api lấy thống kê tiến độ học tập của học viên theo thời gian. Tự động phân tích khoảng thời gian và group theo Hour/Day/Month.
 
 **Request Parameters (Query):**
+- `studentId` (string, optional) - ID của học sinh. **Bắt buộc nếu là Parent**, không cần nếu là Student (sẽ tự động lấy từ token)
 - `startDate` (DateTime, optional) - Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu năm hiện tại
 - `endDate` (DateTime, optional) - Ngày kết thúc (YYYY-MM-DD). Mặc định: cuối năm hiện tại
 
@@ -60,8 +61,11 @@ namespace IGCSE.Controller
 }
 ```";
 
-        private const string GetCourseStatisticsSummary = "Lấy thống kê khoá học cho học viên (Student)";
+        private const string GetCourseStatisticsSummary = "Lấy thống kê khoá học cho học viên";
         private const string GetCourseStatisticsDescription = @"Api lấy thống kê tổng quan về các khoá học của học viên.
+
+**Request Parameters (Query):**
+- `studentId` (string, optional) - ID của học sinh. **Bắt buộc nếu là Parent**, không cần nếu là Student (sẽ tự động lấy từ token)
 
 **Response Schema (Pattern chung: Metadata + Chart):**
 ```json
@@ -101,32 +105,38 @@ namespace IGCSE.Controller
 ```";
 
         [HttpGet("get-learning-progress")]
-        [Authorize(Roles = "Student")]
+        [Authorize(Roles = "Student,Parent")]
         [SwaggerOperation(
             Summary = GetLearningProgressSummary,
             Description = GetLearningProgressDescription)]
         public async Task<ActionResult<BaseResponse<StudentLearningProgressResponse>>> GetLearningProgress(
+            [FromQuery] string? studentId = null,
             [FromQuery] AnalyticsDateRangeRequest? dateRange = null)
         {
-            var userId = ValidateUser();
-            var result = await _courseService.GetStudentLearningProgressAsync(userId, dateRange);
+            var currentUserId = ValidateUser();
+            var targetStudentId = await ResolveStudentIdAsync(currentUserId, studentId);
+            
+            var result = await _courseService.GetStudentLearningProgressAsync(targetStudentId, dateRange);
             return Ok(result);
         }
 
         [HttpGet("get-course-statistics")]
-        [Authorize(Roles = "Student")]
+        [Authorize(Roles = "Student,Parent")]
         [SwaggerOperation(
             Summary = GetCourseStatisticsSummary,
             Description = GetCourseStatisticsDescription)]
-        public async Task<ActionResult<BaseResponse<StudentCourseStatisticsResponse>>> GetCourseStatistics()
+        public async Task<ActionResult<BaseResponse<StudentCourseStatisticsResponse>>> GetCourseStatistics(
+            [FromQuery] string? studentId = null)
         {
-            var userId = ValidateUser();
-            var result = await _courseService.GetStudentCourseStatisticsAsync(userId);
+            var currentUserId = ValidateUser();
+            var targetStudentId = await ResolveStudentIdAsync(currentUserId, studentId);
+            
+            var result = await _courseService.GetStudentCourseStatisticsAsync(targetStudentId);
             return Ok(result);
         }
 
         [HttpGet("get-course-recommendations")]
-        [Authorize(Roles = "Student")]
+        [Authorize(Roles = "Student,Parent")]
         [SwaggerOperation(
             Summary = "Lấy danh sách khoá học gợi ý cho học viên",
             Description = @"Api gợi ý các khoá học phù hợp cho học viên dựa trên:
@@ -136,6 +146,7 @@ namespace IGCSE.Controller
 - Điểm trung bình các quiz/final quiz
 
 **Request Parameters (Query):**
+- `studentId` (string, optional) - ID của học sinh. **Bắt buộc nếu là Parent**, không cần nếu là Student (sẽ tự động lấy từ token)
 - `limit` (int, optional) - Số lượng khoá học gợi ý. Mặc định: 10
 
 **Response Schema:**
@@ -167,11 +178,52 @@ namespace IGCSE.Controller
 }
 ```")]
         public async Task<ActionResult<BaseResponse<BusinessObject.DTOs.Response.Dashboards.CourseRecommendationResponse>>> GetCourseRecommendations(
+            [FromQuery] string? studentId = null,
             [FromQuery] int limit = 10)
         {
-            var userId = ValidateUser();
-            var result = await _courseService.GetCourseRecommendationsAsync(userId, limit);
+            var currentUserId = ValidateUser();
+            var targetStudentId = await ResolveStudentIdAsync(currentUserId, studentId);
+            
+            var result = await _courseService.GetCourseRecommendationsAsync(targetStudentId, limit);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Resolve studentId dựa trên role và parameter
+        /// - Nếu là Student: sử dụng userId từ token (bỏ qua studentId parameter nếu có)
+        /// - Nếu là Parent: bắt buộc phải có studentId và validate quyền truy cập
+        /// </summary>
+        private async Task<string> ResolveStudentIdAsync(string currentUserId, string? studentId)
+        {
+            var isParent = HttpContext.User.IsInRole("Parent");
+            var isStudent = HttpContext.User.IsInRole("Student");
+
+            if (isParent)
+            {
+                // Parent bắt buộc phải có studentId
+                if (string.IsNullOrWhiteSpace(studentId))
+                {
+                    throw new BadHttpRequestException("studentId là bắt buộc khi sử dụng với quyền Parent.");
+                }
+
+                // Validate quyền truy cập
+                var hasAccess = await _courseService.ValidateParentStudentAccessAsync(currentUserId, studentId);
+                if (!hasAccess)
+                {
+                    throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin của học sinh này.");
+                }
+
+                return studentId;
+            }
+            else if (isStudent)
+            {
+                // Student sử dụng userId từ token, bỏ qua studentId parameter nếu có
+                return currentUserId;
+            }
+            else
+            {
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập endpoint này.");
+            }
         }
     }
 }
