@@ -26,6 +26,19 @@ BusinessObject.Payload.Request.OpenAI.OpenApiRequest.SetConfiguration(builder.Co
 
 builder.Services.AddCors(options =>
 {
+    // Policy for SignalR and APIs with credentials
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+    {
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://localhost:5174", "http://160.250.132.11:5173" };
+        
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for SignalR with access tokens
+    });
+    
+    // Fallback policy for APIs without credentials (if needed)
     options.AddPolicy("AllowAllOrigins", policy =>
     {
         policy.AllowAnyOrigin()
@@ -49,6 +62,9 @@ builder.Services
     .AddBackgroundTaskServices();
 
 builder.Services.AddControllers();
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -209,7 +225,7 @@ var app = builder.Build();
 // }
 
 app.UseRouting();
-app.UseCors("AllowAllOrigins");
+app.UseCors("AllowSpecificOrigins"); // Use policy with credentials support
 app.UseGlobalExceptionHandling();
 
 //app.UseCustomJwtBearer();
@@ -239,5 +255,8 @@ app.UseSwaggerUI(c =>
 
 
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<IGCSE.Hubs.ChatHub>("/chatHub");
 
 app.Run();

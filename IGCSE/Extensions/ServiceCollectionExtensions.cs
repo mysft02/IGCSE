@@ -55,6 +55,9 @@ namespace IGCSE.Extensions
             services.AddScoped<ICourseCertificateRepository, CourseCertificateRepository>();
             services.AddScoped<ILearningPathRepository, LearningPathRepository>();
             services.AddScoped<IAptitudeTestQuestionRepository, AptitudeTestQuestionRepository>();
+            services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
+            services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+            services.AddScoped<IAssistantKnowledgeRepository, AssistantKnowledgeRepository>();
 
             return services;
         }
@@ -90,6 +93,13 @@ namespace IGCSE.Extensions
             services.AddScoped<TeacherProfileService>();
             services.AddScoped<CourseFeedbackService>();
             services.AddScoped<LearningPathService>();
+            
+            // Assistant services
+            services.AddScoped<Service.Assistant.IContextManager, Service.Assistant.ContextManager>();
+            services.AddScoped<Service.Assistant.IPersonaService, Service.Assistant.PersonaService>();
+            services.AddScoped<Service.Assistant.IRAGService, Service.Assistant.RAGService>();
+            services.AddScoped<Service.Assistant.OpenAIChatService>();
+            services.AddScoped<Service.Assistant.IAssistantService, Service.Assistant.AssistantService>();
 
             return services;
         }

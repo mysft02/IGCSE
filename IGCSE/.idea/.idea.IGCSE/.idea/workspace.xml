@@ -10,11 +10,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5667990b-d700-4ae5-9bbe-c0cebb9dbaa9" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../BusinessObject/IGCSEContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../BusinessObject/IGCSEContext.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.IGCSE/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/CourseController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/CourseController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Controller/StudentDashboardController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Controller/StudentDashboardController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Repository/Repositories/CourseRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Service/CourseService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Service/CourseService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Extensions/ServiceCollectionExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Extensions/ServiceCollectionExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/appsettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Migration/changelog-master.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../Migration/changelog-master.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,6 +29,8 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///Users/hoangviet/Documents/Project/IGCSE/IGCSE/Controller/StudentDashboardController.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Users/hoangviet/Documents/Project/IGCSE/IGCSE/Controller/StudentDashboardController.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/3ec93589f9c64e22b96b232895e2861037000/95/1e449594/ServiceProvider.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/10821a7c6456595b62433c59889dfe462fca7a3fa6fa981c1dcd3204ff3c210/UriBuilder.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/1d872bc46057829e348ade299703f677f13aaa7d76c6e8792dc97bf195968/HttpContext.cs" root0="SKIP_HIGHLIGHTING" />
@@ -52,11 +55,11 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    ".NET Launch Settings Profile.IGCSE: http.executor": "Debug",
+    ".NET Launch Settings Profile.IGCSE: http.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "XThreadsFramesViewSplitterKey": "0.6433022",
-    "git-widget-placeholder": "feature/#73__refactorUI",
+    "git-widget-placeholder": "fix/#74__payOs",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
