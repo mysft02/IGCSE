@@ -1,0 +1,154 @@
+databaseChangeLog:
+  - changeSet:
+      id: 76
+      author: vudq
+      changes:
+        - createTable:
+            tableName: chatconversation
+            columns:
+              - column:
+                  name: ConversationId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: UserId
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Title
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: PersonaType
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsActive
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: chatconversation
+            baseColumnNames: UserId
+            referencedTableName: AspNetUsers
+            referencedColumnNames: Id
+            constraintName: FK_chatconversation_UserId
+        - createTable:
+            tableName: chatmessage
+            columns:
+              - column:
+                  name: MessageId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ConversationId
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Role
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Metadata
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: IsRelevant
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: chatmessage
+            baseColumnNames: ConversationId
+            referencedTableName: chatconversation
+            referencedColumnNames: ConversationId
+            constraintName: FK_chatmessage_ConversationId
+        - createTable:
+            tableName: assistantknowledge
+            columns:
+              - column:
+                  name: KnowledgeId
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: Content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: EmbeddingData
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: SourceType
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: SourceId
+                  type: INT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: Metadata
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_assistantknowledge_source
+            tableName: assistantknowledge
+            columns:
+              - column:
+                  name: SourceType
+              - column:
+                  name: SourceId
+      rollback:
+        - dropTable:
+            tableName: chatmessage
+        - dropTable:
+            tableName: assistantknowledge
+        - dropTable:
+            tableName: chatconversation
