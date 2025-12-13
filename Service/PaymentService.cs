@@ -456,7 +456,7 @@ namespace Service
                 OrderCode = CommonUtils.GenerateUniqueOrderCode(),
                 Amount = 10000,
                 BuyerName = userId,
-                Description = "Liên kết tài khoản.",
+                Description = "Lien ket tai khoan.",
                 CancelUrl = "http://160.250.132.11:5173/my-courses",
                 ReturnUrl = "http://160.250.132.11:5173/my-courses"
             };
