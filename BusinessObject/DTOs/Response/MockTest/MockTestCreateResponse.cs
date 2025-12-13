@@ -23,6 +23,8 @@
 
         public string QuestionContent { get; set; }
 
+        public string ImageUrl { get; set; }
+
         public string CorrectAnswer { get; set; }
 
         public string PartialMark { get; set; }
