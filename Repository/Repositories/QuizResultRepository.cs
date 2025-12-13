@@ -70,7 +70,7 @@ namespace Repository.Repositories
                     {
                         QuestionId = q.QuestionId,
                         QuestionContent = q.QuestionContent,
-                        ImageUrl = CommonUtils.GetMediaUrl(q.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        ImageUrl = string.IsNullOrEmpty(q.PictureUrl) ? "" : CommonUtils.GetMediaUrl(q.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                         CorrectAnswer = quizResult.IsPassed ? q.CorrectAnswer : null, // Chỉ trả về đáp án đúng nếu pass
                         UserAnswer = userAnswers
                             .Where(ua => ua.QuestionId == q.QuestionId)
