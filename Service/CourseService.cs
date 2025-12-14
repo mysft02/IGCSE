@@ -2390,5 +2390,28 @@ namespace Service
         {
             return await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(parentId, studentId);
         }
+
+        public async Task<BaseResponse<CourseResponse>> DisableCourseAsync(int courseId)
+        {
+            var course = await _courseRepository.FindOneAsync(x => x.CourseId == courseId);
+            if(course == null)
+            {
+                throw new Exception("Không tìm thấy khoá học.");
+            }
+
+            if(course.Status != "Open")
+            {
+                throw new Exception("Khoá học hiện chưa hiển thị trên hệ thống.");
+            }
+
+            course.Status = "Draft";
+            var courseResponse = await _courseRepository.UpdateAsync(course);
+            var courseMapped = _mapper.Map<CourseResponse>(courseResponse);
+
+            return new BaseResponse<CourseResponse>(
+                "Ẩn khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                courseMapped);
+        }
     }
 }

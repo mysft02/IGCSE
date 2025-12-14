@@ -205,6 +205,21 @@ namespace Service
 
         public async Task<BaseResponse<object>> GetMockTestByIdOrReviewAsync(int mockTestId, string userId, string userRole)
         {
+            if(userRole == "Manager")
+            {
+                var mocktest = await _mockTestRepository.FindOneWithIncludeAsync(x => x.MockTestId == mockTestId, c => c.MockTestQuestions);
+                var response = _mapper.Map<MockTestWithAnswerResponse>(mocktest);
+                response.Questions = _mapper.Map<List<MockTestQuestionWithAnswerResponse>>(mocktest.MockTestQuestions);
+                foreach(var question in response.Questions)
+                {
+                    question.ImageUrl = string.IsNullOrEmpty(question.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(question.ImageUrl);
+                }
+                return new BaseResponse<object>(
+                    "Lấy mocktest thành công.",
+                    StatusCodeEnum.OK_200,
+                    response);
+            }
+
             // Kiểm tra nếu mocktest đã done thì trả về review
             var status = _mockTestRepository.CheckMockTestDone(mockTestId, userId);
             if (status == MockTestStatusEnum.Completed)

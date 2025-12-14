@@ -83,16 +83,16 @@ Lấy danh sách mock test với các trạng thái:
             Summary = "Lấy mock test để học sinh thực hiện bài thi hoặc xem kết quả", 
             Description = @"Api tự động trả về response khác nhau dựa trên trạng thái của mock test:
 
-            **1. Trường hợp: Mock test chưa unlock (Locked - Status = 3)**
-            - Trả về lỗi: ""Bạn chưa đăng kí gói thi thử.""
-            - StatusCode: BadRequest_400
+**1. Trường hợp: Mock test chưa unlock (Locked - Status = 3)**
+- Trả về lỗi: ""Bạn chưa đăng kí gói thi thử.""
+- StatusCode: BadRequest_400
 
-            **2. Trường hợp: Mock test đã unlock nhưng chưa làm (Open - Status = 2)**
-            - Response type: `MockTestForStudentResponse`
-            - Schema:
-            ```json
-            {
-            ""message"": ""Lấy mock test thành công"",
+**2. Trường hợp: Mock test đã unlock nhưng chưa làm (Open - Status = 2)**
+- Response type: `MockTestForStudentResponse`
+- Schema:
+```json
+{
+    ""message"": ""Lấy mock test thành công"",
             ""statusCode"": 200,
             ""data"": {: ""2024-01-01T00:00:00Z"",
                 ""updatedAt"": ""2024-01-01T00:00:00Z"",
@@ -151,9 +151,144 @@ Lấy danh sách mock test với các trạng thái:
                 }
             }
             }
-            ```
+```         
+**3. Trường hợp: User có role manager**
+```json
+{
+  ""message"": ""Lấy mocktest thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""mockTestId"": 25,
+    ""mockTestTitle"": ""Mathematics 0580 Past Papers 2025 March"",
+    ""mockTestDescription"": ""Đề thi tháng 3 môn Toán 0580"",
+    ""createdAt"": ""2025-12-10T05:58:23"",
+    ""questions"": [
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Write the number twenty thousand in figures."",
+        ""correctAnswer"": ""20 000"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Write 0.07 as a percentage"",
+        ""correctAnswer"": ""7"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Write 0.07 as a fraction"",
+        ""correctAnswer"": ""7/100"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Write 0.07 in standard form"",
+        ""correctAnswer"": ""7x10-2"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Write down all the factors of 18."",
+        ""correctAnswer"": ""1, 2, 3, 6, 9, 18 "",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Find the value of 10^3"",
+        ""correctAnswer"": ""1000"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Find the value of squareroot of 9"",
+        ""correctAnswer"": ""3"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Find the value of 70"",
+        ""correctAnswer"": ""1"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Find the value of the reciprocal of 0.25 ."",
+        ""correctAnswer"": ""4"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Work out  -6 x -3 + 7 x 2."",
+        ""correctAnswer"": ""32"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Write these numbers in order, starting with the smallest: 34%, π, 1/3, 3, 3/10"",
+        ""correctAnswer"": ""3/10, 1/3, 34%, 3, π"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""A film starts at 19 35. The film lasts for 70 minutes. Work out the time the film finishes."",
+        ""correctAnswer"": ""20 45"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Work out: 1.95 x 2.04"",
+        ""correctAnswer"": ""3.978"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Work out: 3978 / 204"",
+        ""correctAnswer"": ""19.5"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Kat has a method for finding the difference between two square numbers.\r\nHer method is (the sum of a and b) x (the difference between a and b) .\r\nShe shows her method for 172 - 132 :  \r\n172 - 132 = (17 + 13) x (17 -13) = 30 x 4 = 120\r\nWork out 292 - 212 using Kat’s method."",
+        ""correctAnswer"": ""(29 + 21) x (29 - 21) = 50 x 8"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Convert 8 litres into cm3"",
+        ""correctAnswer"": ""8000"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""n is an odd number. Write down the values of n that satisfy 7 < n ≤ 5 ."",
+        ""correctAnswer"": ""9, 11, 13, 15"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""Pip thinks -1 8 1 1x is the inequality represented on the number line. Complete the statement:\nPip’s inequality is not correct because ______"",
+        ""correctAnswer"": ""Pip needed to use two ⩽ signs oe"",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""The height, h metres, of a building is 635m, correct to the nearest metre.\r\nComplete this statement about the value of h: _____ ≤ h < _____"",
+        ""correctAnswer"": ""634.5 635.5 "",
+        ""imageUrl"": """"
+      },
+      {
+        ""questionId"": 0,
+        ""questionContent"": ""A circle has radius 7cm. A square has side x cm. The circumference of the circle is the same length as the perimeter of the square. Find the value of x.\nGive your answer in terms of r."",
+        ""correctAnswer"": ""7π/2 or 3.5π"",
+        ""imageUrl"": """"
+      }
+    ]
+  }
+}
+```
             - **Lưu ý**: Response này BAO GỒM đầy đủ: đáp án đúng (`correctAnswer`), điểm (`mark`, `partialMark`), câu trả lời của user (`userAnswer`), và điểm user đạt được (`userMark`).")]
-        public async Task<ActionResult<BaseResponse<object>>> GetMockTestForStudent([FromQuery] int id)
+        public async Task<ActionResult<BaseResponse<object>>> GetMockTestDetail([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
             var userRole = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
