@@ -1794,5 +1794,142 @@ namespace IGCSE.Controller
                 ));
             }
         }
+
+        [HttpPut("{courseId}/change-to-draft")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(
+            Summary = "Chuyển khóa học sang Draft (Manager)", 
+            Description = @"Api dùng để manager chuyển khóa học từ trạng thái `Open` sang `Draft` (ẩn khóa học).
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần chuyển sang Draft
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Đã chuyển khóa học sang trạng thái Draft. Học sinh đã đăng ký vẫn có thể tiếp tục học."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 34,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Draft"",
+    ""price"": 1000000,
+    ""imageUrl"": ""/path/to/image.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Khóa học không ở trạng thái Open:**
+```json
+{
+  ""message"": ""Không thể chuyển khóa học sang Draft. Trạng thái hiện tại: Pending"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Manager role mới có quyền sử dụng API này
+- Chỉ có thể chuyển khóa học từ trạng thái `Open` sang `Draft`
+- Học sinh đã đăng ký khóa học sẽ không bị xóa khỏi khóa học, chỉ ẩn khóa học đi
+- Học sinh đã enroll vẫn có thể tiếp tục học khóa học này")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> ChangeCourseStatusToDraft(int courseId)
+        {
+            try
+            {
+                var result = await _courseService.ChangeCourseStatusToDraftAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPut("{courseId}/change-to-open")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(
+            Summary = "Chuyển khóa học sang Open (Manager)", 
+            Description = @"Api dùng để manager chuyển khóa học từ trạng thái `Draft` sang `Open` (công khai khóa học).
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần chuyển sang Open
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Đã chuyển khóa học sang trạng thái Open. Khóa học đã được công khai."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""courseId"": 34,
+    ""name"": ""Tên khóa học"",
+    ""description"": ""Mô tả khóa học"",
+    ""status"": ""Open"",
+    ""price"": 1000000,
+    ""imageUrl"": ""/path/to/image.jpg"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-15T10:30:00Z""
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Khóa học không tồn tại:**
+```json
+{
+  ""message"": ""Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+2. **Khóa học không ở trạng thái Draft:**
+```json
+{
+  ""message"": ""Không thể chuyển khóa học sang Open. Trạng thái hiện tại: Open"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Manager role mới có quyền sử dụng API này
+- Chỉ có thể chuyển khóa học từ trạng thái `Draft` sang `Open`
+- Học sinh đã enroll từ trước vẫn tiếp tục học được khi khóa học được chuyển sang Open")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> ChangeCourseStatusToOpen(int courseId)
+        {
+            try
+            {
+                var result = await _courseService.ChangeCourseStatusToOpenAsync(courseId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    ex.Message,
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
     }
 }
