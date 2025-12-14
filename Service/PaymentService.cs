@@ -457,8 +457,8 @@ namespace Service
                 Amount = 10000,
                 BuyerName = userId,
                 Description = "Lien ket tai khoan.",
-                CancelUrl = "http://160.250.132.11:5173/my-courses",
-                ReturnUrl = "http://160.250.132.11:5173/my-courses"
+                CancelUrl = "http://160.250.132.11:5173/teacher-profile",
+                ReturnUrl = "http://160.250.132.11:5173/teacher-profile"
             };
 
             var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY", _configuration);
