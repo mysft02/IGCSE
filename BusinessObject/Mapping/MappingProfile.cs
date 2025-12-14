@@ -94,24 +94,6 @@ namespace BusinessObject.Mapping
                 .ReverseMap()
                 .ForMember(dest => dest.ModuleID, opt => opt.MapFrom(src => src.ModuleId))
                 .ForMember(dest => dest.ModuleName, opt => opt.MapFrom(src => src.ModuleName));
-            
-            // Chapter mappings - removed as per requirements
-            /*
-            CreateMap<Chapter, ChapterResponse>()
-                .ForMember(dest => dest.ChapterID, opt => opt.MapFrom(src => src.ChapterID))
-                .ForMember(dest => dest.ModuleID, opt => opt.MapFrom(src => src.ModuleID))
-                .ForMember(dest => dest.ChapterName, opt => opt.MapFrom(src => src.ChapterName))
-                .ForMember(dest => dest.ChapterDescription, opt => opt.MapFrom(src => src.ChapterDescription))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
-                
-            CreateMap<ChapterRequest, Chapter>()
-                .ForMember(dest => dest.ChapterName, opt => opt.MapFrom(src => src.ChapterName))
-                .ForMember(dest => dest.ChapterDescription, opt => opt.MapFrom(src => src.ChapterDescription))
-                .ForMember(dest => dest.ModuleID, opt => opt.MapFrom(src => src.ModuleID))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
-            */
                 
             CreateMap<ModuleRequest, Module>();
             
@@ -123,17 +105,6 @@ namespace BusinessObject.Mapping
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive ? (sbyte)1 : (sbyte)0))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
-                
-            // Chapter mapping removed
-            /*
-            CreateMap<Chapter, ChapterDetailResponse>()
-                .ForMember(dest => dest.ChapterID, opt => opt.MapFrom(src => src.ChapterID))
-                .ForMember(dest => dest.ModuleID, opt => opt.MapFrom(src => src.ModuleID))
-                .ForMember(dest => dest.ChapterName, opt => opt.MapFrom(src => src.ChapterName))
-                .ForMember(dest => dest.ChapterDescription, opt => opt.MapFrom(src => src.ChapterDescription))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
-            */
                 
             // Course section mappings
             CreateMap<Coursesection, CourseSectionDetailResponse>()
@@ -212,7 +183,8 @@ namespace BusinessObject.Mapping
             CreateMap<Mocktest, MockTestResponse>().ReverseMap();
             CreateMap<Mocktest, MockTestQueryResponse>().ReverseMap();
             CreateMap<Mocktest, MockTestCreateResponse>().ReverseMap();
-
+            CreateMap<Mocktest, MockTestWithAnswerResponse>().ReverseMap();
+            CreateMap<Mocktestquestion, MockTestQuestionWithAnswerResponse>().ReverseMap();
             CreateMap<Mocktestquestion, MockTestQuestionResponse>().ReverseMap();
             CreateMap<Mocktestquestion, MockTestQuestionCreateResponse>().ReverseMap();
             
