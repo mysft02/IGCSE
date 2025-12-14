@@ -43,7 +43,7 @@ namespace Repository.Repositories
                     {
                         MockTestQuestionId = xc.MockTestQuestionId,
                         QuestionContent = xc.QuestionContent,
-                        ImageUrl = xc.ImageUrl == null ? null : CommonUtils.GetMediaUrl(xc.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        ImageUrl = string.IsNullOrEmpty(xc.ImageUrl) ? "" : CommonUtils.GetMediaUrl(xc.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
 
                         CreatedAt = xc.CreatedAt,
                         UpdatedAt = xc.UpdatedAt,

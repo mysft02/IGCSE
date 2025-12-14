@@ -2034,7 +2034,7 @@ namespace Service
                     throw new Exception("Id học sinh không được để trống.");
                 }
 
-                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == userId);
+                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == request.StudentId);
                 items = _mapper.Map<List<CourseCertificateResponse>>(certificates);
             }
 

@@ -8,16 +8,23 @@ using BusinessObject.DTOs.Request.MockTest;
 using Microsoft.EntityFrameworkCore;
 using BusinessObject.DTOs.Response.MockTestQuestion;
 using System.Linq.Expressions;
+using Common.Utils;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 
 namespace Repository.Repositories
 {
     public class MockTestResultRepository : BaseRepository<Mocktestresult>, IMockTestResultRepository
     {
         private readonly IGCSEContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MockTestResultRepository(IGCSEContext context) : base(context)
+        public MockTestResultRepository(IGCSEContext context, IWebHostEnvironment webHostEnvironment, IHttpContextAccessor httpContextAccessor) : base(context)
         {
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<List<MockTestResultQueryResponse>> GetMockTestResultList(MockTestResultQueryRequest request, Expression<Func<Mocktestresult, bool>>? filter = null)
@@ -78,7 +85,7 @@ namespace Repository.Repositories
                             QuestionId = c.MockTestQuestionId,
                             QuestionContent = c.QuestionContent,
                             CorrectAnswer = c.CorrectAnswer,
-                            ImageUrl = c.ImageUrl,
+                            ImageUrl = string.IsNullOrEmpty(c.ImageUrl) ? "" : CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
                             Mark = c.Mark,
                             PartialMark = c.PartialMark,
                             UserAnswer = x.MockTestUserAnswer
