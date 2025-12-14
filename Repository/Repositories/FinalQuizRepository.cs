@@ -35,12 +35,12 @@ namespace Repository.Repositories
                     Description = x.Description,
                     Questions = _context.Questions
                     .Include(c => c.Quiz)
-                    .Where(xc => xc.Quiz.CourseId == x.CourseId)
+                    .Where(xc => xc.Quiz != null && xc.Quiz.CourseId == x.CourseId)
                     .Select(c => new FinalQuizQuestionResponse
                     {
                         QuestionId = c.QuestionId,
                         QuestionContent = c.QuestionContent,
-                        ImageUrl = CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor)
+                        ImageUrl = string.IsNullOrEmpty(c.PictureUrl) ? "" : CommonUtils.GetMediaUrl(c.PictureUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor)
                     })
                     .OrderBy(q => EF.Functions.Random())
                     .Take(10)

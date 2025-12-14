@@ -84,6 +84,12 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Aptitudetestquestion> AptitudeTestQuestions { get; set; }
 
+    public virtual DbSet<ChatConversation> ChatConversations { get; set; }
+
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
+
+    public virtual DbSet<AssistantKnowledge> AssistantKnowledges { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (optionsBuilder.IsConfigured)

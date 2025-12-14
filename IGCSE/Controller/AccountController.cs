@@ -219,15 +219,34 @@ namespace IGCSE.Controller
   ""phone"": ""0123456789"",
   ""password"": ""Password123!@#"",
   ""dateOfBirth"": ""2000-01-01""
+  ""role"": ""1""
 }
 ```
   - `username` (string, required, max 50) - Tên đăng nhập (chỉ chứa chữ và số)
+
   - `fullName` (string, required, max 100) - Họ và tên
+
   - `email` (string, required, max 100) - Email (phải đúng format)
+
   - `address` (string, required, max 200) - Địa chỉ
+
   - `phone` (string, required) - Số điện thoại (bắt đầu bằng 0, 10-11 chữ số)
+
   - `password` (string, required, 8-100 ký tự) - Mật khẩu (phải có chữ hoa, chữ thường, số và ký tự đặc biệt)
+
   - `dateOfBirth` (DateTime, required) - Ngày sinh
+
+  - `role` (int, required) - Role người dùng:
+
+    + `1` là `Admin`
+
+    + `2` là `Teacher`
+
+    + `3` là `Student`
+
+    + `4` là `Parent`
+
+    + `5` là `Manager`
 
 **Response Schema - Trường hợp thành công:**
 ```json
@@ -309,118 +328,118 @@ namespace IGCSE.Controller
             return await _accountService.Register(request);
         }
 
-        [HttpPost("set-role")]
-        [SwaggerOperation(
-            Summary = "Thiết lập role cho user", 
-            Description = @"Api dùng để user tự thiết lập role cho chính mình. User có thể chọn một trong các role: Parent, Student, Teacher, Manager, Admin.
+//        [HttpPost("set-role")]
+//        [SwaggerOperation(
+//            Summary = "Thiết lập role cho user", 
+//            Description = @"Api dùng để user tự thiết lập role cho chính mình. User có thể chọn một trong các role: Parent, Student, Teacher, Manager, Admin.
 
-**Request:**
-- Body:
-```json
-{
-  ""userId"": ""user-id-123"",
-  ""role"": ""Student""
-}
-```
-  - `userId` (string, required) - ID của user cần thiết lập role
-  - `role` (string, required) - Role cần thiết lập: `Parent`, `Student`, `Teacher`, `Manager`, hoặc `Admin`
+//**Request:**
+//- Body:
+//```json
+//{
+//  ""userId"": ""user-id-123"",
+//  ""role"": ""Student""
+//}
+//```
+//  - `userId` (string, required) - ID của user cần thiết lập role
+//  - `role` (string, required) - Role cần thiết lập: `Parent`, `Student`, `Teacher`, `Manager`, hoặc `Admin`
 
-**Response Schema - Trường hợp thành công:**
-```json
-{
-  ""message"": ""Role set successfully"",
-  ""statusCode"": 200,
-  ""data"": {
-    ""userId"": ""user-id-123"",
-    ""role"": ""Student"",
-    ""message"": ""Role đã được thiết lập thành công""
-  }
-}
-```
+//**Response Schema - Trường hợp thành công:**
+//```json
+//{
+//  ""message"": ""Role set successfully"",
+//  ""statusCode"": 200,
+//  ""data"": {
+//    ""userId"": ""user-id-123"",
+//    ""role"": ""Student"",
+//    ""message"": ""Role đã được thiết lập thành công""
+//  }
+//}
+//```
 
-**Response Schema - Trường hợp lỗi:**
+//**Response Schema - Trường hợp lỗi:**
 
-1. **Dữ liệu không hợp lệ:**
-```json
-{
-  ""message"": ""Dữ liệu không hợp lệ"",
-  ""statusCode"": 400,
-  ""data"": ""Role phải là Parent, Student, Teacher, Manager hoặc Admin""
-}
-```
+//1. **Dữ liệu không hợp lệ:**
+//```json
+//{
+//  ""message"": ""Dữ liệu không hợp lệ"",
+//  ""statusCode"": 400,
+//  ""data"": ""Role phải là Parent, Student, Teacher, Manager hoặc Admin""
+//}
+//```
 
-2. **Không xác định được tài khoản:**
-```json
-{
-  ""message"": ""Không tìm thấy thông tin người dùng hiện tại"",
-  ""statusCode"": 401,
-  ""data"": null
-}
-```
+//2. **Không xác định được tài khoản:**
+//```json
+//{
+//  ""message"": ""Không tìm thấy thông tin người dùng hiện tại"",
+//  ""statusCode"": 401,
+//  ""data"": null
+//}
+//```
 
-3. **User không tồn tại:**
-```json
-{
-  ""message"": ""User not found"",
-  ""statusCode"": 400,
-  ""data"": null
-}
-```
+//3. **User không tồn tại:**
+//```json
+//{
+//  ""message"": ""User not found"",
+//  ""statusCode"": 400,
+//  ""data"": null
+//}
+//```
 
-4. **User ID không khớp:**
-```json
-{
-  ""message"": ""You can only set role for yourself"",
-  ""statusCode"": 400,
-  ""data"": null
-}
-```
+//4. **User ID không khớp:**
+//```json
+//{
+//  ""message"": ""You can only set role for yourself"",
+//  ""statusCode"": 400,
+//  ""data"": null
+//}
+//```
 
-**Lưu ý:**
-- User ID được lấy tự động từ JWT token
-- Admin chỉ có thể thiết lập role
-- Role phải là một trong các giá trị hợp lệ: Parent, Student, Teacher, Manager, Admin")]
-        public async Task<ActionResult<BaseResponse<SetRoleResponse>>> SetUserRole([FromBody] SetRoleRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage)
-                                              .ToList();
-                return BadRequest(new BaseResponse<string>(
-                    "Dữ liệu không hợp lệ",
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    string.Join(", ", errors)
-                ));
-            }
+//**Lưu ý:**
+//- User ID được lấy tự động từ JWT token
+//- Admin chỉ có thể thiết lập role
+//- Role phải là một trong các giá trị hợp lệ: Parent, Student, Teacher, Manager, Admin")]
+//        public async Task<ActionResult<BaseResponse<SetRoleResponse>>> SetUserRole([FromBody] SetRoleRequest request)
+//        {
+//            if (!ModelState.IsValid)
+//            {
+//                var errors = ModelState.Values.SelectMany(v => v.Errors)
+//                                              .Select(e => e.ErrorMessage)
+//                                              .ToList();
+//                return BadRequest(new BaseResponse<string>(
+//                    "Dữ liệu không hợp lệ",
+//                    Common.Constants.StatusCodeEnum.BadRequest_400,
+//                    string.Join(", ", errors)
+//                ));
+//            }
 
-            try
-            {
-                // Lấy user hiện tại từ claims trong JWT token
-                var user = HttpContext.User;
-                var currentUserId = user.FindFirst("AccountID")?.Value;
+//            try
+//            {
+//                // Lấy user hiện tại từ claims trong JWT token
+//                var user = HttpContext.User;
+//                var currentUserId = user.FindFirst("AccountID")?.Value;
 
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    return Unauthorized(new BaseResponse<string>(
-                        "Không tìm thấy thông tin người dùng hiện tại",
-                        Common.Constants.StatusCodeEnum.Unauthorized_401,
-                        null
-                    ));
-                }
+//                if (string.IsNullOrEmpty(currentUserId))
+//                {
+//                    return Unauthorized(new BaseResponse<string>(
+//                        "Không tìm thấy thông tin người dùng hiện tại",
+//                        Common.Constants.StatusCodeEnum.Unauthorized_401,
+//                        null
+//                    ));
+//                }
 
-                var result = await _accountService.SetUserRoleAsync(currentUserId, request);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new BaseResponse<string>(
-                    ex.Message,
-                    Common.Constants.StatusCodeEnum.BadRequest_400,
-                    null
-                ));
-            }
-        }
+//                var result = await _accountService.SetUserRoleAsync(currentUserId, request);
+//                return Ok(result);
+//            }
+//            catch (Exception ex)
+//            {
+//                return BadRequest(new BaseResponse<string>(
+//                    ex.Message,
+//                    Common.Constants.StatusCodeEnum.BadRequest_400,
+//                    null
+//                ));
+//            }
+//        }
 
         [HttpPost("change-password")]
         [SwaggerOperation(

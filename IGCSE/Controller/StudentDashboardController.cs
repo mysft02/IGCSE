@@ -1,6 +1,9 @@
 ﻿using BusinessObject.DTOs.Response;
 using BusinessObject.DTOs.Response.Courses;
+using BusinessObject.DTOs.Response.Dashboards;
+using BusinessObject.Payload.Request.Filter;
 using Common.Utils;
+using IGCSE.Controller.Base;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
@@ -9,9 +12,9 @@ using System.Security.Claims;
 
 namespace IGCSE.Controller
 {
-    [Route("api/teacher-dashboard")]
+    [Route("api/student-dashboard")]
     [ApiController]
-    public class StudentDashboardController : ControllerBase
+    public class StudentDashboardController : BaseAnalyticsController
     {
         private readonly CourseService _courseService;
 
@@ -20,6 +23,211 @@ namespace IGCSE.Controller
             _courseService = courseService;
         }
 
+        private const string GetLearningProgressSummary = "Lấy thống kê tiến độ học tập cho học viên";
+        private const string GetLearningProgressDescription = @"Api lấy thống kê tiến độ học tập của học viên theo thời gian. Tự động phân tích khoảng thời gian và group theo Hour/Day/Month.
+
+**Request Parameters (Query):**
+- `studentId` (string, optional) - ID của học sinh. **Bắt buộc nếu là Parent**, không cần nếu là Student (sẽ tự động lấy từ token)
+- `startDate` (DateTime, optional) - Ngày bắt đầu (YYYY-MM-DD). Mặc định: đầu năm hiện tại
+- `endDate` (DateTime, optional) - Ngày kết thúc (YYYY-MM-DD). Mặc định: cuối năm hiện tại
+
+**Time Unit tự động:**
+- Nếu khoảng thời gian <= 24 giờ: Group theo **Giờ**
+- Nếu khoảng thời gian <= 31 ngày: Group theo **Ngày**
+- Nếu khoảng thời gian > 31 ngày: Group theo **Tháng**
+
+**Response Schema (Pattern chung: Metadata + Chart):**
+```json
+{
+  ""message"": ""Lấy thống kê tiến độ học tập thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""metadata"": {
+      ""timeUnit"": ""Month"",
+      ""totalCompletedLessonItems"": 150,
+      ""totalStudyHours"": 45.5,
+      ""activeCourses"": 5
+    },
+    ""chart"": [
+      {
+        ""label"": ""T1"",
+        ""completedLessonItems"": 10,
+        ""studyHours"": 3.5
+      },
+      {
+        ""label"": ""T2"",
+        ""completedLessonItems"": 15,
+        ""studyHours"": 5.2
+      }
+    ]
+  }
+}
+```";
+
+        private const string GetCourseStatisticsSummary = "Lấy thống kê khoá học cho học viên";
+        private const string GetCourseStatisticsDescription = @"Api lấy thống kê tổng quan về các khoá học của học viên.
+
+**Request Parameters (Query):**
+- `studentId` (string, optional) - ID của học sinh. **Bắt buộc nếu là Parent**, không cần nếu là Student (sẽ tự động lấy từ token)
+
+**Response Schema (Pattern chung: Metadata + Chart):**
+```json
+{
+  ""message"": ""Lấy thống kê khoá học thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""metadata"": {
+      ""totalEnrolledCourses"": 10,
+      ""completedCourses"": 3,
+      ""inProgressCourses"": 5,
+      ""notStartedCourses"": 2,
+      ""averageCompletionPercentage"": 65.5
+    },
+    ""chart"": [
+      {
+        ""label"": ""Khóa học ABC"",
+        ""courseId"": 34,
+        ""courseName"": ""Khóa học ABC"",
+        ""completionPercentage"": 100.0,
+        ""completedLessonItems"": 50,
+        ""totalLessonItems"": 50,
+        ""status"": ""Completed""
+      },
+      {
+        ""label"": ""Khóa học XYZ"",
+        ""courseId"": 35,
+        ""courseName"": ""Khóa học XYZ"",
+        ""completionPercentage"": 75.5,
+        ""completedLessonItems"": 30,
+        ""totalLessonItems"": 40,
+        ""status"": ""InProgress""
+      }
+    ]
+  }
+}
+```";
+
+        [HttpGet("get-learning-progress")]
+        [Authorize(Roles = "Student,Parent")]
+        [SwaggerOperation(
+            Summary = GetLearningProgressSummary,
+            Description = GetLearningProgressDescription)]
+        public async Task<ActionResult<BaseResponse<StudentLearningProgressResponse>>> GetLearningProgress(
+            [FromQuery] string? studentId = null,
+            [FromQuery] AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var currentUserId = ValidateUser();
+            var targetStudentId = await ResolveStudentIdAsync(currentUserId, studentId);
+            
+            var result = await _courseService.GetStudentLearningProgressAsync(targetStudentId, dateRange);
+            return Ok(result);
+        }
+
+        [HttpGet("get-course-statistics")]
+        [Authorize(Roles = "Student,Parent")]
+        [SwaggerOperation(
+            Summary = GetCourseStatisticsSummary,
+            Description = GetCourseStatisticsDescription)]
+        public async Task<ActionResult<BaseResponse<StudentCourseStatisticsResponse>>> GetCourseStatistics(
+            [FromQuery] string? studentId = null)
+        {
+            var currentUserId = ValidateUser();
+            var targetStudentId = await ResolveStudentIdAsync(currentUserId, studentId);
+            
+            var result = await _courseService.GetStudentCourseStatisticsAsync(targetStudentId);
+            return Ok(result);
+        }
+
+        [HttpGet("get-course-recommendations")]
+        [Authorize(Roles = "Student,Parent")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách khoá học gợi ý cho học viên",
+            Description = @"Api gợi ý các khoá học phù hợp cho học viên dựa trên:
+- Embedding similarity với các khoá học đã học
+- Số lượng chứng chỉ đã có
+- Số lượng bài học đã hoàn thành
+- Điểm trung bình các quiz/final quiz
+
+**Request Parameters (Query):**
+- `studentId` (string, optional) - ID của học sinh. **Bắt buộc nếu là Parent**, không cần nếu là Student (sẽ tự động lấy từ token)
+- `limit` (int, optional) - Số lượng khoá học gợi ý. Mặc định: 10
+
+**Response Schema:**
+```json
+{
+  ""message"": ""Lấy danh sách khoá học gợi ý thành công."",
+  ""statusCode"": 200,
+  ""data"": {
+    ""totalRecommended"": 10,
+    ""studentAchievement"": {
+      ""completedCourses"": 5,
+      ""totalCertificates"": 3,
+      ""totalCompletedLessonItems"": 150,
+      ""averageScore"": 8.5
+    },
+    ""recommendedCourses"": [
+      {
+        ""courseId"": 34,
+        ""courseName"": ""Khóa học ABC"",
+        ""courseDescription"": ""Mô tả khóa học"",
+        ""imageUrl"": ""https://example.com/image.jpg"",
+        ""price"": 1000000,
+        ""similarityScore"": 0.85,
+        ""recommendationScore"": 0.92,
+        ""recommendationReason"": ""Tương đồng với các khoá học bạn đã học, Phù hợp với trình độ của bạn""
+      }
+    ]
+  }
+}
+```")]
+        public async Task<ActionResult<BaseResponse<BusinessObject.DTOs.Response.Dashboards.CourseRecommendationResponse>>> GetCourseRecommendations(
+            [FromQuery] string? studentId = null,
+            [FromQuery] int limit = 10)
+        {
+            var currentUserId = ValidateUser();
+            var targetStudentId = await ResolveStudentIdAsync(currentUserId, studentId);
+            
+            var result = await _courseService.GetCourseRecommendationsAsync(targetStudentId, limit);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Resolve studentId dựa trên role và parameter
+        /// - Nếu là Student: sử dụng userId từ token (bỏ qua studentId parameter nếu có)
+        /// - Nếu là Parent: bắt buộc phải có studentId và validate quyền truy cập
+        /// </summary>
+        private async Task<string> ResolveStudentIdAsync(string currentUserId, string? studentId)
+        {
+            var isParent = HttpContext.User.IsInRole("Parent");
+            var isStudent = HttpContext.User.IsInRole("Student");
+
+            if (isParent)
+            {
+                // Parent bắt buộc phải có studentId
+                if (string.IsNullOrWhiteSpace(studentId))
+                {
+                    throw new BadHttpRequestException("studentId là bắt buộc khi sử dụng với quyền Parent.");
+                }
+
+                // Validate quyền truy cập
+                var hasAccess = await _courseService.ValidateParentStudentAccessAsync(currentUserId, studentId);
+                if (!hasAccess)
+                {
+                    throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin của học sinh này.");
+                }
+
+                return studentId;
+            }
+            else if (isStudent)
+            {
+                // Student sử dụng userId từ token, bỏ qua studentId parameter nếu có
+                return currentUserId;
+            }
+            else
+            {
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập endpoint này.");
+            }
+        }
         [HttpGet("get-activity-count")]
         [Authorize]
         [SwaggerOperation(

@@ -1,4 +1,6 @@
-﻿namespace BusinessObject.Model;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace BusinessObject.Model;
 
 public class Transactionhistory
 {
@@ -11,4 +13,7 @@ public class Transactionhistory
     public decimal Amount { get; set; }
 
     public DateTime? TransactionDate { get; set; }
+
+    [ForeignKey("ItemId")]
+    public virtual Course Course { get; set; }
 }

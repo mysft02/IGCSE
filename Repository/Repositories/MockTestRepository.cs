@@ -43,7 +43,7 @@ namespace Repository.Repositories
                     {
                         MockTestQuestionId = xc.MockTestQuestionId,
                         QuestionContent = xc.QuestionContent,
-                        ImageUrl = xc.ImageUrl == null ? null : CommonUtils.GetMediaUrl(xc.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        ImageUrl = string.IsNullOrEmpty(xc.ImageUrl) ? "" : CommonUtils.GetMediaUrl(xc.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
 
                         CreatedAt = xc.CreatedAt,
                         UpdatedAt = xc.UpdatedAt,
@@ -56,7 +56,6 @@ namespace Repository.Repositories
         public MockTestStatusEnum CheckMockTestDone(int mockTestId, string userId)
         {
             var package = _context.Userpackages.FirstOrDefault(x => x.UserId == userId && x.IsActive == true);
-
             if(package == null)
             {
                 return MockTestStatusEnum.Locked;
@@ -65,6 +64,27 @@ namespace Repository.Repositories
             var result = _context.Mocktestresults.Any(x => x.MockTestId == mockTestId && x.UserId == userId);
 
             if(result)
+            {
+                return MockTestStatusEnum.Completed;
+            }
+            return MockTestStatusEnum.Open;
+        }
+
+        public MockTestStatusEnum CheckMockTestStatus(int mockTestId, string userId, string userRole)
+        {
+            if(userRole == "Admin" || userRole == "Teacher" || userRole == "Manager")
+            {
+                return MockTestStatusEnum.Open;
+            }
+            var package = _context.Userpackages.FirstOrDefault(x => x.UserId == userId && x.IsActive == true);
+            if (package == null)
+            {
+                return MockTestStatusEnum.Locked;
+            }
+
+            var result = _context.Mocktestresults.Any(x => x.MockTestId == mockTestId && x.UserId == userId);
+
+            if (result)
             {
                 return MockTestStatusEnum.Completed;
             }

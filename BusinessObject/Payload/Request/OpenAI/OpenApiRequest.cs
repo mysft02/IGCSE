@@ -1,9 +1,11 @@
 ﻿using Common.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessObject.Payload.Request.OpenAI
 {
     public class OpenApiRequest
     {
+        private static IConfiguration? _staticConfiguration;
 
         public Dictionary<string, string> Headers { get; set; } = DefaultHeaders();
         public string? CallUrl { get; set; }
@@ -11,11 +13,20 @@ namespace BusinessObject.Payload.Request.OpenAI
 
         public static Dictionary<string, string> DefaultHeaders()
         {
+            var apiKey = _staticConfiguration != null 
+                ? CommonUtils.GetApiKey("OPEN_API_KEY", _staticConfiguration)
+                : CommonUtils.GetApiKey("OPEN_API_KEY");
+            
             return new Dictionary<string, string>
             {
                 { "Content-Type", "application/json" },
-                { "Authorization", $"Bearer {CommonUtils.GetApiKey("OPEN_API_KEY")}" }
+                { "Authorization", $"Bearer {apiKey}" }
             };
+        }
+        
+        public static void SetConfiguration(IConfiguration configuration)
+        {
+            _staticConfiguration = configuration;
         }
 
         public void AddHeader(string key, string value)

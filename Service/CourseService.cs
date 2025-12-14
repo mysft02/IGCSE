@@ -15,6 +15,9 @@ using BusinessObject.DTOs.Response.ParentStudentLink;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Service.Trello;
+using BusinessObject.DTOs.Response.Dashboards;
+using DocumentFormat.OpenXml.Spreadsheet;
+using System.IO;
 
 namespace Service
 {
@@ -276,12 +279,12 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query)
+        public async Task<BaseResponse<PaginatedResponse<CourseResponse>>> GetCoursesPagedAsync(CourseListQuery query, string userRole)
         {
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
 
-            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query);
+            var (items, total) = await _courseRepository.SearchAsync(page, pageSize, query, userRole);
             var courseResponses = items.Select(i => _mapper.Map<CourseResponse>(i)).ToList();
             foreach (var course in courseResponses)
             {
@@ -335,6 +338,71 @@ namespace Service
             );
         }
 
+        public async Task<BaseResponse<CourseSectionResponse>> UpdateCourseSectionAsync(int sectionId, CourseSectionRequest request, string userId)
+        {
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(sectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật section này.");
+            }
+
+            // Chỉ cho phép update khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa section.");
+            }
+
+            section.Name = request.Name;
+            section.Description = request.Description;
+            section.Order = request.Order;
+            section.IsActive = request.IsActive;
+            section.UpdatedAt = DateTime.UtcNow;
+
+            var updatedSection = await _coursesectionRepository.UpdateAsync(section);
+            var response = _mapper.Map<CourseSectionResponse>(updatedSection);
+
+            return new BaseResponse<CourseSectionResponse>(
+                "Course section updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteCourseSectionAsync(int sectionId, string userId)
+        {
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(sectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa section này.");
+            }
+
+            // Chỉ cho phép delete khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể xóa section.");
+            }
+
+            await _coursesectionRepository.DeleteAsync(section);
+
+            return new BaseResponse<string>(
+                "Course section deleted successfully",
+                StatusCodeEnum.OK_200,
+                "Section đã được xóa thành công."
+            );
+        }
+
         public async Task<BaseResponse<LessonResponse>> CreateLessonAsync(int sectionId, LessonRequest request, string userId)
         {
             // Kiểm tra section tồn tại và thuộc về teacher
@@ -368,6 +436,83 @@ namespace Service
                 "Lesson created successfully",
                 StatusCodeEnum.Created_201,
                 response
+            );
+        }
+
+        public async Task<BaseResponse<LessonResponse>> UpdateLessonAsync(int lessonId, LessonRequest request, string userId)
+        {
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật lesson này.");
+            }
+
+            // Chỉ cho phép update khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa lesson.");
+            }
+
+            lesson.Name = request.Name;
+            lesson.Description = request.Description;
+            lesson.Order = request.Order;
+            lesson.IsActive = request.IsActive;
+            lesson.UpdatedAt = DateTime.UtcNow;
+
+            var updatedLesson = await _lessonRepository.UpdateAsync(lesson);
+            var response = _mapper.Map<LessonResponse>(updatedLesson);
+
+            return new BaseResponse<LessonResponse>(
+                "Lesson updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteLessonAsync(int lessonId, string userId)
+        {
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa lesson này.");
+            }
+
+            // Chỉ cho phép delete khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể xóa lesson.");
+            }
+
+            await _lessonRepository.DeleteAsync(lesson);
+
+            return new BaseResponse<string>(
+                "Lesson deleted successfully",
+                StatusCodeEnum.OK_200,
+                "Lesson đã được xóa thành công."
             );
         }
 
@@ -446,6 +591,175 @@ namespace Service
                 "Lesson item created successfully",
                 StatusCodeEnum.Created_201,
                 response
+            );
+        }
+
+        public async Task<BaseResponse<LessonItemResponse>> UpdateLessonItemAsync(int lessonItemId, LessonItemRequest request, string userId)
+        {
+            var lessonItem = await _lessonitemRepository.GetByLessonItemIdAsync(lessonItemId);
+            if (lessonItem == null)
+            {
+                throw new Exception("Lesson item not found");
+            }
+
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền cập nhật lesson item này.");
+            }
+
+            // Chỉ cho phép update khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể chỉnh sửa lesson item.");
+            }
+
+            // Xử lý upload file nếu có
+            string content = lessonItem.Content ?? string.Empty;
+            string itemType = lessonItem.ItemType ?? "text";
+
+            if (request.File != null)
+            {
+                var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                
+                // Xóa file cũ nếu có
+                if (!string.IsNullOrEmpty(lessonItem.Content))
+                {
+                    try
+                    {
+                        var oldFilePath = Path.Combine(webRootPath, lessonItem.Content.TrimStart('/'));
+                        if (File.Exists(oldFilePath))
+                        {
+                            File.Delete(oldFilePath);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore file deletion errors
+                    }
+                }
+                
+                if (FileUploadHelper.IsValidLessonVideo(request.File))
+                {
+                    content = await FileUploadHelper.UploadLessonVideoAsync(request.File, webRootPath);
+                    itemType = "video";
+                }
+                else if (FileUploadHelper.IsValidLessonDocument(request.File))
+                {
+                    content = await FileUploadHelper.UploadLessonDocumentAsync(request.File, webRootPath);
+                    itemType = "pdf";
+                }
+                else if (FileUploadHelper.IsValidImageFile(request.File))
+                {
+                    content = await FileUploadHelper.UploadCourseImageAsync(request.File, webRootPath);
+                    itemType = "image";
+                }
+                else
+                {
+                    throw new Exception("File type not supported. Only video, PDF, and image files are allowed.");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Content))
+            {
+                content = request.Content;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ItemType))
+            {
+                itemType = request.ItemType;
+            }
+
+            lessonItem.Name = request.Name;
+            lessonItem.Description = request.Description;
+            lessonItem.Content = content;
+            lessonItem.ItemType = itemType;
+            lessonItem.Order = request.Order;
+            lessonItem.UpdatedAt = DateTime.UtcNow;
+
+            var updatedLessonItem = await _lessonitemRepository.UpdateAsync(lessonItem);
+            var response = _mapper.Map<LessonItemResponse>(updatedLessonItem);
+            
+            // Convert content to full URL
+            if (!string.IsNullOrEmpty(response.Content))
+            {
+                response.Content = await _mediaService.GetMediaUrlAsync(response.Content);
+            }
+
+            return new BaseResponse<LessonItemResponse>(
+                "Lesson item updated successfully",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<string>> DeleteLessonItemAsync(int lessonItemId, string userId)
+        {
+            var lessonItem = await _lessonitemRepository.GetByLessonItemIdAsync(lessonItemId);
+            if (lessonItem == null)
+            {
+                throw new Exception("Lesson item not found");
+            }
+
+            var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+            if (lesson == null)
+            {
+                throw new Exception("Lesson not found");
+            }
+
+            var section = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+            if (section == null)
+            {
+                throw new Exception("Course section not found");
+            }
+
+            var course = await _courseRepository.GetByCourseIdAsync(section.CourseId);
+            if (course == null || course.CreatedBy != userId)
+            {
+                throw new Exception("Bạn không có quyền xóa lesson item này.");
+            }
+
+            // Chỉ cho phép delete khi course chưa được duyệt
+            if (course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Khóa học đã được duyệt, không thể xóa lesson item.");
+            }
+
+            // Xóa file nếu có
+            if (!string.IsNullOrEmpty(lessonItem.Content))
+            {
+                try
+                {
+                    var webRootPath = _webHostEnvironment.WebRootPath ?? _webHostEnvironment.ContentRootPath;
+                    var filePath = Path.Combine(webRootPath, lessonItem.Content.TrimStart('/'));
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                    }
+                }
+                catch
+                {
+                    // Ignore file deletion errors
+                }
+            }
+
+            await _lessonitemRepository.DeleteAsync(lessonItem);
+
+            return new BaseResponse<string>(
+                "Lesson item deleted successfully",
+                StatusCodeEnum.OK_200,
+                "Lesson item đã được xóa thành công."
             );
         }
 
@@ -649,21 +963,7 @@ namespace Service
                         foreach (var c in section.Lessons)
                         {
                             var lesson = await _lessonRepository.FindOneWithIncludeAsync(x => x.LessonId == c.LessonId, xc => xc.Quiz);
-                            // Kiểm tra Quiz có tồn tại không
-                            if (lesson != null && lesson.Quiz != null)
-                            {
-                                c.Quiz = _mapper.Map<LessonQuizResponse>(lesson.Quiz);
-                            }
-                            else
-                            {
-                                // Tạo Quiz mặc định nếu chưa có
-                                c.Quiz = new LessonQuizResponse
-                                {
-                                    QuizId = 0,
-                                    QuizTitle = string.Empty,
-                                    QuizDescription = string.Empty
-                                };
-                            }
+                            c.Quiz = lesson.Quiz != null ? _mapper.Map<LessonQuizResponse>(lesson.Quiz) : null;
                         }
 
                         foreach (var lesson in section.Lessons)
@@ -762,61 +1062,6 @@ namespace Service
             if (courseDetail == null)
             {
                 throw new Exception("Course not found");
-            }
-
-            // Kiểm tra IsEnrolled: chỉ true khi user là Student và đã enroll khóa học
-            if (string.IsNullOrEmpty(userId) || userRole != "Student")
-            {
-                courseDetail.IsEnrolled = false;
-            }
-            else
-            {
-                // Kiểm tra xem Student có enroll khóa học này không
-                courseDetail.IsEnrolled = await _studentEnrollmentRepository.IsStudentEnrolledAsync(userId, courseId);
-            }
-
-            // Convert ImageUrl to full URL
-            if (!string.IsNullOrEmpty(courseDetail.ImageUrl))
-            {
-                try
-                {
-                    courseDetail.ImageUrl = await _mediaService.GetMediaUrlAsync(courseDetail.ImageUrl);
-                }
-                catch
-                {
-                    courseDetail.ImageUrl = string.Empty;
-                }
-            }
-
-            // Convert Content URL to full URL for all lesson items
-            if (courseDetail.Sections != null)
-            {
-                foreach (var section in courseDetail.Sections)
-                {
-                    if (section.Lessons != null)
-                    {
-                        foreach (var lesson in section.Lessons)
-                        {
-                            if (lesson.LessonItems != null)
-                            {
-                                foreach (var lessonItem in lesson.LessonItems)
-                                {
-                                    if (!string.IsNullOrEmpty(lessonItem.Content))
-                                    {
-                                        try
-                                        {
-                                            lessonItem.Content = await _mediaService.GetMediaUrlAsync(lessonItem.Content);
-                                        }
-                                        catch
-                                        {
-                                            // Keep original content if conversion fails
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             return new BaseResponse<CourseDetailWithoutProgressResponse>(
@@ -1185,7 +1430,10 @@ namespace Service
                     if (!CommonUtils.isEmtyList(attachments))
                     {
                         var imageAttachment = attachments.FirstOrDefault();
-                        imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                        if (imageAttachment != null && !string.IsNullOrEmpty(imageAttachment.Url))
+                        {
+                            imageUrl = await _trelloCardService.DownloadTrelloCardAttachment(imageAttachment.Url, trelloToken);
+                        }
                     }
 
                     course.ImageUrl = imageUrl;
@@ -1204,7 +1452,8 @@ namespace Service
         {
             try
             {
-                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId, c => c.Course);
+                var processes = await _studentEnrollmentRepository.FindWithIncludeAsync(x => x.StudentId == studentId && !x.ParentId.Contains("_"), c => c.Course);
+                if (processes == null) processes = new List<Studentenrollment>();
                 var grouped = processes.GroupBy(p => p.CourseId).ToList();
                 var responses = new List<CourseRegistrationResponse>();
                 
@@ -1914,7 +2163,7 @@ namespace Service
                     throw new Exception("Id học sinh không được để trống.");
                 }
 
-                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == userId);
+                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == request.StudentId);
                 items = _mapper.Map<List<CourseCertificateResponse>>(certificates);
             }
 
@@ -1945,6 +2194,201 @@ namespace Service
                 Message = "Lấy toàn bộ chứng chỉ khoá học thành công",
                 StatusCode = StatusCodeEnum.OK_200
             };
+        }
+
+        public async Task<BaseResponse<TeacherAnalyticsResponse>> GetTeacherAnalytics(
+            string userId, 
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAnalytics(userId, dateRange);
+
+            return new BaseResponse<TeacherAnalyticsResponse>(
+                "Lấy thống kê cho giáo viên thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<AdminAnalyticsResponse>> GetAdminAnalytics()
+        {
+            var result = await _courseRepository.GetAdminAnalytics();
+
+            return new BaseResponse<AdminAnalyticsResponse>(
+                "Lấy thống kê cho admin thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningAbilityResponse>> GetStudentLearningAbilityAsync(
+            BusinessObject.Payload.Request.Filter.StudentLearningAbilityQueryRequest query)
+        {
+            var result = await _courseRepository.GetStudentLearningAbilityAsync(query);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningAbilityResponse>(
+                "Lấy thống kê khả năng học của học viên thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.LessonCompletionResponse>> GetLessonCompletionAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest query,
+            string teacherId)
+        {
+            var result = await _courseRepository.GetLessonCompletionAsync(query, teacherId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.LessonCompletionResponse>(
+                "Lấy thống kê hoàn thành lesson thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.TopAnalyticsResponse>> GetTopAnalyticsAsync(
+            string? teacherId = null, 
+            int limit = 10)
+        {
+            var result = await _courseRepository.GetTopAnalyticsAsync(teacherId, limit);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.TopAnalyticsResponse>(
+                "Lấy danh sách top học viên và khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningProgressResponse>> GetStudentLearningProgressAsync(
+            string studentId,
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetStudentLearningProgressAsync(studentId, dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentLearningProgressResponse>(
+                "Lấy thống kê tiến độ học tập thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentCourseStatisticsResponse>> GetStudentCourseStatisticsAsync(string studentId)
+        {
+            var result = await _courseRepository.GetStudentCourseStatisticsAsync(studentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.StudentCourseStatisticsResponse>(
+                "Lấy thống kê khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.CourseRecommendationResponse>> GetCourseRecommendationsAsync(
+            string studentId,
+            int limit = 10)
+        {
+            var result = await _courseRepository.GetCourseRecommendationsAsync(studentId, limit);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.CourseRecommendationResponse>(
+                "Lấy danh sách khoá học gợi ý thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildLearningProgressResponse>> GetParentChildLearningProgressAsync(
+            string parentId,
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetParentChildLearningProgressAsync(parentId, dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildLearningProgressResponse>(
+                "Lấy tiến độ học tập thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCourseStatisticsResponse>> GetParentChildCourseStatisticsAsync(string parentId)
+        {
+            var result = await _courseRepository.GetParentChildCourseStatisticsAsync(parentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCourseStatisticsResponse>(
+                "Lấy thống kê khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildPerformanceResponse>> GetParentChildPerformanceAsync(string parentId)
+        {
+            var result = await _courseRepository.GetParentChildPerformanceAsync(parentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildPerformanceResponse>(
+                "Lấy thành tích học tập thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCertificateResponse>> GetParentChildCertificatesAsync(string parentId)
+        {
+            var result = await _courseRepository.GetParentChildCertificatesAsync(parentId);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.ParentChildCertificateResponse>(
+                "Lấy danh sách chứng chỉ thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminOverviewResponse>> GetAdminOverviewAsync()
+        {
+            var result = await _courseRepository.GetAdminOverviewAsync();
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminOverviewResponse>(
+                "Lấy tổng quan dashboard thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminUserStatisticsResponse>> GetAdminUserStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminUserStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminUserStatisticsResponse>(
+                "Lấy thống kê tài khoản thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminCourseStatisticsResponse>> GetAdminCourseStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminCourseStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminCourseStatisticsResponse>(
+                "Lấy thống kê khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminRevenueStatisticsResponse>> GetAdminRevenueStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminRevenueStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminRevenueStatisticsResponse>(
+                "Lấy thống kê doanh thu thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        public async Task<BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminEnrollmentStatisticsResponse>> GetAdminEnrollmentStatisticsAsync(
+            BusinessObject.Payload.Request.Filter.AnalyticsDateRangeRequest? dateRange = null)
+        {
+            var result = await _courseRepository.GetAdminEnrollmentStatisticsAsync(dateRange);
+
+            return new BaseResponse<BusinessObject.DTOs.Response.Dashboards.AdminEnrollmentStatisticsResponse>(
+                "Lấy thống kê đăng ký thành công.",
+                StatusCodeEnum.OK_200,
+                result);
+        }
+
+        /// <summary>
+        /// Validate rằng Parent có quyền truy cập thông tin của Student
+        /// </summary>
+        public async Task<bool> ValidateParentStudentAccessAsync(string parentId, string studentId)
+        {
+            return await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(parentId, studentId);
         }
     }
 }

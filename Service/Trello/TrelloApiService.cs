@@ -4,6 +4,7 @@ using BusinessObject.Payload.Request;
 using BusinessObject.Payload.Response;
 using Common.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace Service.Trello;
 
@@ -21,10 +22,12 @@ public class TrelloApiService
     });
 
     private readonly ApiService _apiService;
+    private readonly IConfiguration _configuration;
 
-    public TrelloApiService(ApiService apiService)
+    public TrelloApiService(ApiService apiService, IConfiguration configuration)
     {
         _apiService = apiService;
+        _configuration = configuration;
     }
 
     public async Task<T?> GetAsync<T>(TrelloApiRequest request)
@@ -158,7 +161,7 @@ public class TrelloApiService
             if (fileUrl.Contains("api.trello.com"))
             {
                 // add token and key
-                fileUrl = fileUrl + (fileUrl.Contains("?") ? "&" : "?") + $"token={trelloToken.TrelloApiToken}&key={CommonUtils.GetApiKey("TRELLO_API_KEY")}";
+                fileUrl = fileUrl + (fileUrl.Contains("?") ? "&" : "?") + $"token={trelloToken.TrelloApiToken}&key={CommonUtils.GetApiKey("TRELLO_API_KEY", _configuration)}";
             }
             var response = await httpClient.GetAsync(fileUrl);
             response.EnsureSuccessStatusCode();

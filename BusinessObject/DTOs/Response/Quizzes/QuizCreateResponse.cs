@@ -24,4 +24,6 @@ public class QuestionCreateResponse
     public string QuestionContent { get; set; }
 
     public string CorrectAnswer { get; set; }
+
+    public string PictureUrl { get; set; }
 }

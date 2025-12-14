@@ -1,10 +1,32 @@
 ﻿using Common.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessObject.Payload.Request.PayOS;
 
 public class PayOSApiRequest
 {
-    public static string ApiKey = CommonUtils.GetApiKey("PAYOS_API_KEY");
+    // Lazy initialization - will be set when first used with IConfiguration
+    private static string? _apiKey;
+    private static IConfiguration? _staticConfiguration;
+    
+    public static string ApiKey
+    {
+        get
+        {
+            if (_apiKey == null && _staticConfiguration != null)
+            {
+                _apiKey = CommonUtils.GetApiKey("PAYOS_API_KEY", _staticConfiguration);
+            }
+            return _apiKey ?? CommonUtils.GetApiKey("PAYOS_API_KEY");
+        }
+        set => _apiKey = value;
+    }
+    
+    public static void SetConfiguration(IConfiguration configuration)
+    {
+        _staticConfiguration = configuration;
+        _apiKey = null; // Reset to reload from configuration
+    }
 
     public enum ResponseType
     {

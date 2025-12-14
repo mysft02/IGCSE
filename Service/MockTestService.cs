@@ -15,6 +15,9 @@ using BusinessObject.DTOs.Request.Quizzes;
 using BusinessObject.DTOs.Response.Quizzes;
 using ClosedXML.Excel;
 using Repository.Repositories;
+using DocumentFormat.OpenXml.Vml;
+using Microsoft.AspNetCore.Http;
+using Common.Utils;
 
 namespace Service
 {
@@ -79,7 +82,7 @@ namespace Service
             return createdMockTest;
         }
 
-        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request)
+        public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request, string userRole)
         {
             // Build filter expression
             var filter = request.BuildFilter<Mocktest>();
@@ -106,7 +109,7 @@ namespace Service
                     CreatedAt = token.CreatedAt,
                     UpdatedAt = token.UpdatedAt,
                     CreatedBy = token.CreatedBy,
-                    Status = request.userID == null ? MockTestStatusEnum.Locked : _mockTestRepository.CheckMockTestDone(token.MockTestId, request.userID)
+                    Status = request.userID == null ? MockTestStatusEnum.Locked : _mockTestRepository.CheckMockTestStatus(token.MockTestId, request.userID, userRole)
                 })
                 .ToList();
 
@@ -200,7 +203,7 @@ namespace Service
             );
         }
 
-        public async Task<BaseResponse<object>> GetMockTestByIdOrReviewAsync(int mockTestId, string userId)
+        public async Task<BaseResponse<object>> GetMockTestByIdOrReviewAsync(int mockTestId, string userId, string userRole)
         {
             // Kiểm tra nếu mocktest đã done thì trả về review
             var status = _mockTestRepository.CheckMockTestDone(mockTestId, userId);
@@ -449,15 +452,57 @@ namespace Service
                 var worksheet = workbook.Worksheet(1);
                 var rows = worksheet?.RangeUsed().RowsUsed().Skip(1); // bỏ header
 
+                var pictures = worksheet.Pictures
+                    .Select(p => new
+                    {
+                        Picture = p,
+                        Row = p.TopLeftCell.Address.RowNumber,
+                        Column = p.TopLeftCell.Address.ColumnNumber
+                    })
+                    .ToList();
+
                 foreach (var row in rows)
                 {
+                    string imageUrl = "";
+                    
+                    // Tìm hình ảnh ở cột 4 (mặc định) của row hiện tại
+                    var picture = pictures.FirstOrDefault(p => 
+                        p.Row == row.RowNumber() && 
+                        p.Column == 5);
+                    
+                    if(picture != null)
+                    {
+                        var imageBytes = picture.Picture.ImageStream.ToArray();
+                        
+                        // Tạo MemoryStream từ imageBytes (không dispose để FormFile có thể đọc)
+                        var imageStream = new MemoryStream(imageBytes);
+                        
+                        IFormFile imageFile = new FormFile(
+                            imageStream,
+                            0,
+                            imageBytes.Length,
+                            "file",
+                            $"{Guid.NewGuid()}.png"
+                        )
+                        {
+                            Headers = new HeaderDictionary(),
+                            ContentType = "image/png"
+                        };
+
+                        imageUrl = await FileUploadHelper.UploadQuestionImageAsync(imageFile, _env.WebRootPath);
+                        
+                        // Dispose stream sau khi upload xong
+                        imageStream.Dispose();
+                    }
+
                     var question = new Mocktestquestion
                     {
                         MockTestId = mockTestCreate.MockTestId,
                         QuestionContent = row.Cell(1).GetString(),
                         CorrectAnswer = row.Cell(2).GetString(),
-                        PartialMark = row.Cell(3).GetString(),
-                        Mark = Convert.ToDecimal(row.Cell(4).GetString()),
+                        PartialMark = string.IsNullOrWhiteSpace(row.Cell(3).GetString()) ? null : row.Cell(3).GetString(),
+                        Mark = decimal.TryParse(row.Cell(4).GetString(), out var markValue) ? markValue : 0m,
+                        ImageUrl = imageUrl,
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
                     };
@@ -468,6 +513,12 @@ namespace Service
 
             var result = _mapper.Map<MockTestCreateResponse>(mockTestCreate);
             result.MockTestQuestions = _mapper.Map<List<MockTestQuestionCreateResponse>>(questions);
+
+            // Convert ImageUrl từ relative path sang full URL
+            foreach (var question in result.MockTestQuestions)
+            {
+                question.ImageUrl = string.IsNullOrEmpty(question.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(question.ImageUrl);
+            }
 
             return new BaseResponse<MockTestCreateResponse>(
                 "Tạo bài mock test thành công",

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Security.Claims;
 
 namespace IGCSE.Controller
 {
@@ -23,7 +24,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-all-mocktest")]
-        [AllowAnonymous]
+        [Authorize]
         [SwaggerOperation(
             Summary = "Lấy danh sách mock test",
             Description = @"
@@ -65,13 +66,14 @@ Lấy danh sách mock test với các trạng thái:
     }
 }"
 )]
-        public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResponse>>>> GetAllMockTests([FromQuery] MockTestQueryRequest request)
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestQueryResponse>>>> GetAllMockTests([FromQuery] MockTestQueryRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+            var userRole = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
             request.userID = userId;
 
-            var result = await _mockTestService.GetAllMockTestAsync(request);
+            var result = await _mockTestService.GetAllMockTestAsync(request, userRole);
             return Ok(result);
         }
 
@@ -154,13 +156,14 @@ Lấy danh sách mock test với các trạng thái:
         public async Task<ActionResult<BaseResponse<object>>> GetMockTestForStudent([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
+            var userRole = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
 
             if (CommonUtils.IsEmptyString(userId))
             {
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
 
-            var result = await _mockTestService.GetMockTestByIdOrReviewAsync(id, userId);
+            var result = await _mockTestService.GetMockTestByIdOrReviewAsync(id, userId, userRole);
             return Ok(result);
         }
 
@@ -337,7 +340,7 @@ Lấy danh sách mock test với các trạng thái:
         }
 
         [HttpPost("create-mocktest")]
-        [Authorize(Roles = "Manager")]
+        [Authorize]
         [SwaggerOperation(
             Summary = "Tạo bài mocktest",
             Description = @"Api dùng để tạo bài mocktest cho teacher.
@@ -372,7 +375,7 @@ Lấy danh sách mock test với các trạng thái:
   }
 }
 ```")]
-        public async Task<ActionResult<BaseResponse<MockTestCreateResponse>>> CreateMocktest([FromQuery] MockTestCreateRequest request)
+        public async Task<ActionResult<BaseResponse<MockTestCreateResponse>>> CreateMockTest([FromQuery] MockTestCreateRequest request)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 

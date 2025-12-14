@@ -56,6 +56,7 @@ namespace IGCSE.Controller
     ""description"": ""string"",
     ""avatarUrl"": ""string"",
     ""experience"": ""string"",
+    ""availableTime"": ""number"",
     ""certificates"": [
       {
         ""certificateId"": 0,
