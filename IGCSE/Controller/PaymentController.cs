@@ -87,5 +87,21 @@ namespace IGCSE.Controller
             var result = await _paymentService.GetTransactionHistory(request);
             return Ok(result);
         }
+
+        [HttpGet("get-payout-history")]
+        [Authorize("Teacher")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<PayoutHistoryResponse>>>> GetPayoutHistory([FromQuery]int page, int pageSize)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new BaseResponse<string>("Không xác định được tài khoản.", Common.Constants.StatusCodeEnum.Unauthorized_401, null));
+            }
+
+            var result = await _paymentService.GetPayoutHistoryAsync(userId, page, pageSize);
+            return Ok(result);
+        }
     }
 }
