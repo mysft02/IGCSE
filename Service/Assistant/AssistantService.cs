@@ -2,6 +2,8 @@ using BusinessObject.DTOs.Response.Assistant;
 using BusinessObject.Model;
 using Repository.IRepositories;
 using System.Text.Json;
+using Service.OpenAI;
+using Common.Utils;
 
 namespace Service.Assistant;
 
@@ -13,6 +15,10 @@ public class AssistantService : IAssistantService
     private readonly OpenAIChatService _openAIChatService;
     private readonly IChatMessageRepository _messageRepository;
     private readonly IChatConversationRepository _conversationRepository;
+    private readonly ISystemDataService _systemDataService;
+    private readonly IAssistantKnowledgeRepository _knowledgeRepository;
+    private readonly OpenAIEmbeddingsApiService _embeddingsService;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public AssistantService(
         IContextManager contextManager,
@@ -20,7 +26,10 @@ public class AssistantService : IAssistantService
         IRAGService ragService,
         OpenAIChatService openAIChatService,
         IChatMessageRepository messageRepository,
-        IChatConversationRepository conversationRepository)
+        IChatConversationRepository conversationRepository,
+        ISystemDataService systemDataService,
+        IAssistantKnowledgeRepository knowledgeRepository,
+        OpenAIEmbeddingsApiService embeddingsService)
     {
         _contextManager = contextManager;
         _personaService = personaService;
@@ -28,12 +37,23 @@ public class AssistantService : IAssistantService
         _openAIChatService = openAIChatService;
         _messageRepository = messageRepository;
         _conversationRepository = conversationRepository;
+        _systemDataService = systemDataService;
+        _knowledgeRepository = knowledgeRepository;
+        _embeddingsService = embeddingsService;
+        
+        // Configure JSON options với camelCase
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
     }
 
     public async Task<AssistantResponse> ProcessMessageAsync(
         string userId,
         string message,
-        string? conversationId = null)
+        string? conversationId = null,
+        string? userRole = null)
     {
         // 1. Check relevance
         var isRelevant = await _ragService.IsRelevantAsync(message, userId);
@@ -46,8 +66,8 @@ public class AssistantService : IAssistantService
             };
         }
 
-        // 2. Build context
-        var context = await _contextManager.BuildContextAsync(userId);
+        // 2. Build context (include userQuery for system data)
+        var context = await _contextManager.BuildContextAsync(userId, userRole, message);
 
         // 3. Get persona
         var persona = _personaService.GetPersonaConfig(context.UserRole);
@@ -72,10 +92,13 @@ public class AssistantService : IAssistantService
             history = messages.Select(m => m.Content).ToList();
         }
 
-        // 7. Call OpenAI
+        // 7. Get structured system data (nếu có) - lấy trước để có thể lưu vào metadata
+        var structuredData = await _systemDataService.GetStructuredSystemDataAsync(userId, context.UserRole ?? "Student", message);
+
+        // 8. Call OpenAI
         var response = await _openAIChatService.ChatAsync(systemPrompt, message, history);
 
-        // 8. Save messages
+        // 9. Save messages
         int finalConversationId;
         if (string.IsNullOrEmpty(conversationId) || !int.TryParse(conversationId, out finalConversationId))
         {
@@ -114,31 +137,66 @@ public class AssistantService : IAssistantService
         };
         await _messageRepository.AddAsync(userMessage);
 
-        // Save assistant response
+        // Build JSON response với text và structured data
+        var jsonResponse = new
+        {
+            text = response, // Text response ngắn gọn từ AI
+            systemData = structuredData.Any() ? structuredData : null
+        };
+        
+        var jsonString = JsonSerializer.Serialize(jsonResponse, _jsonOptions);
+        
+        // Save assistant response: Content là JSON string, Metadata chứa RelevantKnowledgeIds
+        var metadata = new
+        {
+            RelevantKnowledgeIds = relevantContexts.Select(c => c.KnowledgeId).ToList()
+        };
+        
         var assistantMessage = new ChatMessage
         {
             ConversationId = finalConversationId,
-            Content = response,
+            Content = jsonString, // Lưu JSON string thay vì text thuần
             Role = "assistant",
             CreatedAt = DateTime.UtcNow,
             IsRelevant = true,
-            Metadata = JsonSerializer.Serialize(new { RelevantKnowledgeIds = relevantContexts.Select(c => c.KnowledgeId).ToList() })
+            Metadata = JsonSerializer.Serialize(metadata, _jsonOptions)
         };
         await _messageRepository.AddAsync(assistantMessage);
 
+        // 10. Lưu Q&A vào knowledge base để học từ các cuộc trò chuyện
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SaveConversationToKnowledgeAsync(message, response, finalConversationId, userId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving conversation to knowledge base: {ex.Message}");
+                // Không throw - không block response
+            }
+        });
+
+        // Return response: Content là JSON string nếu có structured data, text thuần nếu không
+        var responseContent = structuredData.Any() 
+            ? jsonString  // Trả về JSON string để frontend parse
+            : response;   // Trả về text thuần nếu không có structured data
+
         return new AssistantResponse
         {
-            Content = response,
+            Content = responseContent,
             IsRelevant = true,
             ConversationId = finalConversationId.ToString(),
-            RelevantKnowledgeIds = relevantContexts.Select(c => c.KnowledgeId).ToList()
+            RelevantKnowledgeIds = relevantContexts.Select(c => c.KnowledgeId).ToList(),
+            SystemData = structuredData.Any() ? structuredData : null
         };
     }
 
     public async IAsyncEnumerable<string> ProcessMessageStreamAsync(
         string userId,
         string message,
-        string? conversationId = null)
+        string? conversationId = null,
+        string? userRole = null)
     {
         // Similar to ProcessMessageAsync but with streaming
         // Check relevance - but don't block if no knowledge base data yet
@@ -151,7 +209,7 @@ public class AssistantService : IAssistantService
             // Continue anyway - might be first time setup or knowledge base is empty
         }
 
-        var context = await _contextManager.BuildContextAsync(userId);
+        var context = await _contextManager.BuildContextAsync(userId, userRole, message);
         Console.WriteLine($"Context built - UserId: {userId}, Role: {context.UserRole}, CourseId: {context.CurrentCourseId}");
         
         var persona = _personaService.GetPersonaConfig(context.UserRole);
@@ -166,6 +224,9 @@ public class AssistantService : IAssistantService
         Console.WriteLine($"RAG context length: {ragContext.Length}, Relevant contexts count: {relevantContexts.Count}");
         
         var systemPrompt = _personaService.BuildSystemPrompt(persona, context, ragContext);
+
+        // Get structured system data (nếu có) - lấy trước để có thể lưu vào metadata
+        var structuredData = await _systemDataService.GetStructuredSystemDataAsync(userId, context.UserRole ?? "Student", message);
 
         // Get or create conversation
         int finalConversationId;
@@ -214,26 +275,124 @@ public class AssistantService : IAssistantService
         
         Console.WriteLine($"Received full response from OpenAI, length: {fullResponse.Length}");
 
-        // Save assistant response - wrap in try-catch for error handling
+        // Build JSON response với text và structured data - wrap in try-catch for error handling
         try
         {
+            var jsonResponse = new
+            {
+                text = fullResponse, // Text response ngắn gọn từ AI
+                systemData = structuredData.Any() ? structuredData : null
+            };
+            
+            var jsonString = JsonSerializer.Serialize(jsonResponse, _jsonOptions);
+            
+            // Save assistant response: Content là JSON string, Metadata chứa RelevantKnowledgeIds
+            var metadata = new
+            {
+                RelevantKnowledgeIds = relevantContexts.Select(c => c.KnowledgeId).ToList()
+            };
+            
             var assistantMessage = new ChatMessage
             {
                 ConversationId = finalConversationId,
-                Content = fullResponse,
+                Content = jsonString, // Lưu JSON string thay vì text thuần
                 Role = "assistant",
                 CreatedAt = DateTime.UtcNow,
                 IsRelevant = true,
-                Metadata = JsonSerializer.Serialize(new { RelevantKnowledgeIds = relevantContexts.Select(c => c.KnowledgeId).ToList() })
+                Metadata = JsonSerializer.Serialize(metadata, _jsonOptions)
             };
             await _messageRepository.AddAsync(assistantMessage);
             Console.WriteLine($"Saved assistant response to conversation {finalConversationId}");
+            
+            // Lưu Q&A vào knowledge base để học từ các cuộc trò chuyện
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SaveConversationToKnowledgeAsync(message, fullResponse, finalConversationId, userId);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving conversation to knowledge base: {ex.Message}");
+                    // Không throw - không block response
+                }
+            });
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error saving assistant response: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
             // Don't throw - response already sent to client
+        }
+    }
+
+    /// <summary>
+    /// Lưu Q&A từ cuộc trò chuyện vào knowledge base để hệ thống có thể học và tự trả lời các câu hỏi tương tự sau này
+    /// </summary>
+    private async Task SaveConversationToKnowledgeAsync(
+        string userQuestion,
+        string assistantAnswer,
+        int conversationId,
+        string userId)
+    {
+        try
+        {
+            // Chỉ lưu nếu câu trả lời có ý nghĩa (không quá ngắn, không phải lỗi)
+            if (string.IsNullOrWhiteSpace(assistantAnswer) || 
+                assistantAnswer.Length < 20 ||
+                assistantAnswer.Contains("Xin lỗi, tôi chỉ có thể") ||
+                assistantAnswer.Contains("không thể"))
+            {
+                Console.WriteLine($"[SaveConversationToKnowledge] Skipping - answer too short or error message");
+                return;
+            }
+
+            // Tạo nội dung Q&A để lưu vào knowledge base
+            // Format: "Câu hỏi: {question}\n\nTrả lời: {answer}"
+            var qaContent = $"Câu hỏi: {userQuestion}\n\nTrả lời: {assistantAnswer}";
+            
+            // Giới hạn độ dài để tránh quá dài
+            if (qaContent.Length > 4000)
+            {
+                qaContent = qaContent.Substring(0, 4000) + "...";
+            }
+
+            Console.WriteLine($"[SaveConversationToKnowledge] Saving Q&A for conversation {conversationId}");
+
+            // Tạo embedding cho Q&A content
+            var embedding = await _embeddingsService.EmbedData(qaContent);
+            var embeddingJson = CommonUtils.ObjectToString(embedding);
+
+            // Tạo metadata
+            var metadata = new
+            {
+                conversationId = conversationId,
+                userId = userId,
+                question = userQuestion,
+                answer = assistantAnswer.Length > 500 ? assistantAnswer.Substring(0, 500) + "..." : assistantAnswer,
+                createdAt = DateTime.UtcNow
+            };
+            var metadataJson = JsonSerializer.Serialize(metadata, _jsonOptions);
+
+            // Lưu vào AssistantKnowledge
+            var knowledge = new AssistantKnowledge
+            {
+                Content = qaContent,
+                EmbeddingData = embeddingJson,
+                SourceType = "ChatConversation",
+                SourceId = conversationId,
+                Metadata = metadataJson,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _knowledgeRepository.AddAsync(knowledge);
+            Console.WriteLine($"[SaveConversationToKnowledge] Successfully saved knowledge ID: {knowledge.KnowledgeId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SaveConversationToKnowledge] Error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Không throw - không block flow chính
         }
     }
 

@@ -239,6 +239,18 @@ namespace Common.Utils
 
         public static decimal CosineSimilarity(List<float> v1, List<float> v2)
         {
+            // Null check
+            if (v1 == null || v2 == null)
+                return 0m;
+
+            // Empty check
+            if (v1.Count == 0 || v2.Count == 0)
+                return 0m;
+
+            // Length mismatch check
+            if (v1.Count != v2.Count)
+                return 0m;
+
             decimal dot = 0m;
             decimal mag1 = 0m;
             decimal mag2 = 0m;
@@ -258,6 +270,133 @@ namespace Common.Utils
                 return 0m;
 
             return dot / denominator;
+        }
+
+        /// <summary>
+        /// Tính Levenshtein Distance (số lần thao tác tối thiểu để chuyển string này sang string kia)
+        /// Thao tác: Insert, Delete, Substitute
+        /// </summary>
+        /// <param name="s1">String thứ nhất</param>
+        /// <param name="s2">String thứ hai</param>
+        /// <returns>Khoảng cách Levenshtein (0 = giống hệt, càng lớn = càng khác)</returns>
+        public static int LevenshteinDistance(string s1, string s2)
+        {
+            if (string.IsNullOrEmpty(s1))
+                return string.IsNullOrEmpty(s2) ? 0 : s2.Length;
+
+            if (string.IsNullOrEmpty(s2))
+                return s1.Length;
+
+            int n = s1.Length;
+            int m = s2.Length;
+            int[,] d = new int[n + 1, m + 1];
+
+            // Initialize first row and column
+            for (int i = 0; i <= n; i++)
+                d[i, 0] = i;
+            for (int j = 0; j <= m; j++)
+                d[0, j] = j;
+
+            // Fill the matrix
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1,      // deletion
+                                 d[i, j - 1] + 1),     // insertion
+                        d[i - 1, j - 1] + cost);      // substitution
+                }
+            }
+
+            return d[n, m];
+        }
+
+        /// <summary>
+        /// Tính Similarity Ratio dựa trên Levenshtein Distance
+        /// </summary>
+        /// <param name="s1">String thứ nhất</param>
+        /// <param name="s2">String thứ hai</param>
+        /// <returns>Similarity ratio (0.0 = hoàn toàn khác, 1.0 = giống hệt)</returns>
+        public static decimal CalculateStringSimilarity(string s1, string s2)
+        {
+            if (string.IsNullOrEmpty(s1) && string.IsNullOrEmpty(s2))
+                return 1.0m;
+
+            if (string.IsNullOrEmpty(s1) || string.IsNullOrEmpty(s2))
+                return 0.0m;
+
+            // Normalize: lowercase, trim
+            s1 = s1.Trim().ToLowerInvariant();
+            s2 = s2.Trim().ToLowerInvariant();
+
+            // Exact match after normalization
+            if (s1 == s2)
+                return 1.0m;
+
+            int maxLength = Math.Max(s1.Length, s2.Length);
+            if (maxLength == 0)
+                return 1.0m;
+
+            int distance = LevenshteinDistance(s1, s2);
+            decimal similarity = 1.0m - ((decimal)distance / maxLength);
+
+            return Math.Max(0.0m, similarity);
+        }
+
+        /// <summary>
+        /// Kiểm tra xem có thể sử dụng Rule-Based Scoring thay vì AI không
+        /// </summary>
+        /// <param name="userAnswer">Câu trả lời của học viên</param>
+        /// <param name="correctAnswer">Đáp án đúng</param>
+        /// <param name="similarityThreshold">Ngưỡng similarity để coi là đúng (mặc định: 0.9 = 90%)</param>
+        /// <returns>Tuple (CanUseRuleBased, IsCorrect, Similarity)</returns>
+        public static (bool CanUseRuleBased, bool IsCorrect, decimal Similarity) CanUseRuleBasedScoring(
+            string userAnswer, 
+            string correctAnswer, 
+            decimal similarityThreshold = 0.9m)
+        {
+            if (string.IsNullOrWhiteSpace(userAnswer) || string.IsNullOrWhiteSpace(correctAnswer))
+            {
+                return (true, false, 0.0m);
+            }
+
+            // Normalize: trim, lowercase
+            var normalizedUser = userAnswer.Trim();
+            var normalizedCorrect = correctAnswer.Trim();
+
+            // 1. Exact match (case-insensitive)
+            if (normalizedUser.Equals(normalizedCorrect, StringComparison.OrdinalIgnoreCase))
+            {
+                return (true, true, 1.0m);
+            }
+
+            // 2. Contains match: User answer chứa correct answer (cho phép thêm thông tin)
+            if (normalizedUser.Contains(normalizedCorrect, StringComparison.OrdinalIgnoreCase))
+            {
+                return (true, true, 0.95m);
+            }
+
+            // 3. Correct answer chứa user answer (cho phép rút gọn)
+            if (normalizedCorrect.Contains(normalizedUser, StringComparison.OrdinalIgnoreCase))
+            {
+                // Chỉ coi là đúng nếu user answer đủ dài (ít nhất 50% độ dài correct answer)
+                if (normalizedUser.Length >= normalizedCorrect.Length * 0.5m)
+                {
+                    return (true, true, 0.9m);
+                }
+            }
+
+            // 4. Fuzzy match (Levenshtein similarity)
+            decimal similarity = CalculateStringSimilarity(normalizedUser, normalizedCorrect);
+            if (similarity >= similarityThreshold)
+            {
+                return (true, true, similarity);
+            }
+
+            // 5. Không thể dùng rule-based, cần AI
+            return (false, false, similarity);
         }
 
         public static string GeneratePayOSSignature(object body, string checksumKey)

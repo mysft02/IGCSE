@@ -44,12 +44,6 @@ databaseChangeLog:
                   defaultValueBoolean: true
                   constraints:
                     nullable: false
-        - addForeignKeyConstraint:
-            baseTableName: chatconversation
-            baseColumnNames: UserId
-            referencedTableName: AspNetUsers
-            referencedColumnNames: Id
-            constraintName: FK_chatconversation_UserId
         - createTable:
             tableName: chatmessage
             columns:
@@ -91,12 +85,6 @@ databaseChangeLog:
                   defaultValueBoolean: true
                   constraints:
                     nullable: false
-        - addForeignKeyConstraint:
-            baseTableName: chatmessage
-            baseColumnNames: ConversationId
-            referencedTableName: chatconversation
-            referencedColumnNames: ConversationId
-            constraintName: FK_chatmessage_ConversationId
         - createTable:
             tableName: assistantknowledge
             columns:
@@ -137,14 +125,6 @@ databaseChangeLog:
                   type: DATETIME
                   constraints:
                     nullable: false
-        - createIndex:
-            indexName: idx_assistantknowledge_source
-            tableName: assistantknowledge
-            columns:
-              - column:
-                  name: SourceType
-              - column:
-                  name: SourceId
       rollback:
         - dropTable:
             tableName: chatmessage
