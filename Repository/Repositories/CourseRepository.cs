@@ -109,16 +109,33 @@ namespace Repository.Repositories
         public async Task<IEnumerable<Course>> GetAllSimilarCoursesAsync(int courseId, decimal score)
         {
             var targetCourse = await GetByCourseIdAsync(courseId);
+            
+            if (targetCourse == null || string.IsNullOrEmpty(targetCourse.EmbeddingData))
+            {
+                return new List<Course>();
+            }
 
             var targetEmbeddingData = CommonUtils.StringToObject<List<float>>(targetCourse.EmbeddingData);
+            
+            if (targetEmbeddingData == null || targetEmbeddingData.Count == 0)
+            {
+                return new List<Course>();
+            }
 
             var courses = _context.Courses
-                .Where(c => c.CourseId != courseId)
+                .Where(c => c.CourseId != courseId && !string.IsNullOrEmpty(c.EmbeddingData))
                 .AsEnumerable()
                 .Select(c => new
                 {
                     Course = c,
-                    SimilarScore = score * (CommonUtils.CosineSimilarity(targetEmbeddingData, CommonUtils.StringToObject<List<float>>(c.EmbeddingData)))
+                    EmbeddingData = CommonUtils.StringToObject<List<float>>(c.EmbeddingData),
+                    SimilarScore = 0m
+                })
+                .Where(x => x.EmbeddingData != null && x.EmbeddingData.Count > 0 && x.EmbeddingData.Count == targetEmbeddingData.Count)
+                .Select(x => new
+                {
+                    x.Course,
+                    SimilarScore = score * CommonUtils.CosineSimilarity(targetEmbeddingData, x.EmbeddingData)
                 })
                 .OrderByDescending(c => c.SimilarScore)
                 .Take(5)

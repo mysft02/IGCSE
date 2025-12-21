@@ -239,6 +239,18 @@ namespace Common.Utils
 
         public static decimal CosineSimilarity(List<float> v1, List<float> v2)
         {
+            // Null check
+            if (v1 == null || v2 == null)
+                return 0m;
+
+            // Empty check
+            if (v1.Count == 0 || v2.Count == 0)
+                return 0m;
+
+            // Length mismatch check
+            if (v1.Count != v2.Count)
+                return 0m;
+
             decimal dot = 0m;
             decimal mag1 = 0m;
             decimal mag2 = 0m;
