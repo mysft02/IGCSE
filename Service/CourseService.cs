@@ -1665,18 +1665,18 @@ namespace Service
                 }
 
                 // 2. Kiểm tra course status - không cho phép complete nếu course ở Draft
-                var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
-                if (lesson != null)
+                var lessoncheck = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+                if (lessoncheck != null)
                 {
                     int courseId;
-                    if (lesson.CourseSection != null)
+                    if (lessoncheck.CourseSection != null)
                     {
-                        courseId = lesson.CourseSection.CourseId;
+                        courseId = lessoncheck.CourseSection.CourseId;
                     }
                     else
                     {
                         // Nếu CourseSection chưa được load, lấy từ CourseSectionId
-                        var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+                        var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(lessoncheck.CourseSectionId);
                         if (courseSection == null)
                         {
                             throw new Exception("Không tìm thấy thông tin khóa học.");
