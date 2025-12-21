@@ -12,3 +12,4 @@ namespace BusinessObject.DTOs.Request.Accounts
         public string VerificationCode { get; set; }
     }
 }
+

@@ -9,3 +9,4 @@ namespace BusinessObject.DTOs.Request.Accounts
         public string Email { get; set; }
     }
 }
+
