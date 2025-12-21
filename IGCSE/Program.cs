@@ -30,7 +30,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins", policy =>
     {
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://localhost:5174", "http://160.250.132.11:5173" };
+            ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://localhost:7211", "http://160.250.132.11:5173", "http://160.250.132.11:7211" };
         
         policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
