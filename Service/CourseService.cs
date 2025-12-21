@@ -163,6 +163,72 @@ namespace Service
             );
         }
 
+        public async Task<BaseResponse<CourseResponse>> ChangeCourseStatusToDraftAsync(int courseId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.Status != "Open")
+            {
+                throw new Exception($"Không thể chuyển khóa học sang Draft. Trạng thái hiện tại: {course.Status}");
+            }
+
+            // Chuyển trạng thái thành Draft
+            // Không xóa enrollment - học sinh đã enroll vẫn giữ nguyên enrollment
+            course.Status = "Draft";
+            course.UpdatedAt = DateTime.UtcNow;
+
+            // Load module for mapping
+            if (course.ModuleId.HasValue)
+            {
+                course.Module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
+            }
+
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                "Đã chuyển khóa học sang trạng thái Draft. Học sinh đã đăng ký vẫn có thể tiếp tục học.",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
+        public async Task<BaseResponse<CourseResponse>> ChangeCourseStatusToOpenAsync(int courseId)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (course.Status != "Draft")
+            {
+                throw new Exception($"Không thể chuyển khóa học sang Open. Trạng thái hiện tại: {course.Status}");
+            }
+
+            // Chuyển trạng thái thành Open
+            // Học sinh đã enroll từ trước vẫn tiếp tục học được
+            course.Status = "Open";
+            course.UpdatedAt = DateTime.UtcNow;
+
+            // Load module for mapping
+            if (course.ModuleId.HasValue)
+            {
+                course.Module = await _moduleRepository.GetByIdAsync(course.ModuleId.Value);
+            }
+
+            var updated = await _courseRepository.UpdateAsync(course);
+            var response = _mapper.Map<CourseResponse>(updated);
+            return new BaseResponse<CourseResponse>(
+                "Đã chuyển khóa học sang trạng thái Open. Khóa học đã được công khai.",
+                StatusCodeEnum.OK_200,
+                response
+            );
+        }
+
         public async Task<BaseResponse<CourseResponse>> GetCourseByIdAsync(int courseId)
         {
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
@@ -844,6 +910,12 @@ namespace Service
             if (course == null)
                 throw new Exception("Course not found");
 
+            // Kiểm tra nếu course ở trạng thái Draft, không cho phép truy cập (kể cả học sinh đã enroll)
+            if (course.Status == "Draft")
+            {
+                throw new Exception("Khóa học này đang ở trạng thái Draft và không khả dụng.");
+            }
+
             // 2. Map course to DTO
             var courseDetailResponse = _mapper.Map<CourseDetailResponse>(course);
 
@@ -1014,6 +1086,36 @@ namespace Service
             if (lessonItemDetail == null)
             {
                 throw new Exception("Không tìm thấy nội dung bài học.");
+            }
+
+            // Kiểm tra course status nếu user là Student
+            if (userRole == "Student")
+            {
+                var lesson = await _lessonRepository.GetByLessonIdAsync(lessonItemDetail.LessonId);
+                if (lesson != null)
+                {
+                    int courseId;
+                    if (lesson.CourseSection != null)
+                    {
+                        courseId = lesson.CourseSection.CourseId;
+                    }
+                    else
+                    {
+                        // Nếu CourseSection chưa được load, lấy từ CourseSectionId
+                        var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(lesson.CourseSectionId);
+                        if (courseSection == null)
+                        {
+                            throw new Exception("Không tìm thấy thông tin khóa học.");
+                        }
+                        courseId = courseSection.CourseId;
+                    }
+                    
+                    var course = await _courseRepository.GetByCourseIdAsync(courseId);
+                    if (course != null && course.Status == "Draft")
+                    {
+                        throw new Exception("Khóa học này đang ở trạng thái Draft và không khả dụng.");
+                    }
+                }
             }
 
             var result = _mapper.Map<LessonItemDetail>(lessonItemDetail);
@@ -1562,20 +1664,47 @@ namespace Service
                     throw new Exception("Lesson item not found");
                 }
 
-                // 2. Tìm Process của học sinh cho bài học này
+                // 2. Kiểm tra course status - không cho phép complete nếu course ở Draft
+                var lessoncheck = await _lessonRepository.GetByLessonIdAsync(lessonItem.LessonId);
+                if (lessoncheck != null)
+                {
+                    int courseId;
+                    if (lessoncheck.CourseSection != null)
+                    {
+                        courseId = lessoncheck.CourseSection.CourseId;
+                    }
+                    else
+                    {
+                        // Nếu CourseSection chưa được load, lấy từ CourseSectionId
+                        var courseSection = await _coursesectionRepository.GetByCourseSectionIdAsync(lessoncheck.CourseSectionId);
+                        if (courseSection == null)
+                        {
+                            throw new Exception("Không tìm thấy thông tin khóa học.");
+                        }
+                        courseId = courseSection.CourseId;
+                    }
+                    
+                    var course = await _courseRepository.GetByCourseIdAsync(courseId);
+                    if (course != null && course.Status == "Draft")
+                    {
+                        throw new Exception("Khóa học này đang không khả dụng. Vui lòng quay lại sau");
+                    }
+                }
+
+                // 3. Tìm Process của học sinh cho bài học này
                 var process = await _processRepository.GetByStudentAndLessonAsync(studentId, lessonItem.LessonId);
                 if (process == null)
                 {
                     throw new Exception("Student is not enrolled in this course or lesson not found");
                 }
 
-                // 3. Kiểm tra bài học đã được mở khóa chưa
+                // 4. Kiểm tra bài học đã được mở khóa chưa
                 if (!process.IsUnlocked)
                 {
                     throw new Exception("This lesson is locked. Please complete previous lessons first.");
                 }
 
-                // 4. Kiểm tra lesson item đã hoàn thành chưa (tránh duplicate)
+                // 5. Kiểm tra lesson item đã hoàn thành chưa (tránh duplicate)
                 var existingProcessItem = await _processitemRepository.GetByProcessAndLessonItemAsync(process.ProcessId, lessonItemId);
                 if (existingProcessItem != null)
                 {
@@ -1586,7 +1715,7 @@ namespace Service
                     );
                 }
 
-                // 5. Tạo Processitem mới để đánh dấu hoàn thành
+                // 6. Tạo Processitem mới để đánh dấu hoàn thành
                 var processItem = new Processitem
                 {
                     ProcessId = process.ProcessId,
@@ -1596,13 +1725,13 @@ namespace Service
                 };
                 await _processitemRepository.AddAsync(processItem);
 
-                // 6. Kiểm tra xem tất cả lesson items trong bài học đã hoàn thành chưa
+                // 7. Kiểm tra xem tất cả lesson items trong bài học đã hoàn thành chưa
                 var allLessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonItem.LessonId);
                 var completedProcessItems = await _processitemRepository.GetByProcessIdAsync(process.ProcessId);
                 
                 bool isLessonCompleted = allLessonItems.Count() == completedProcessItems.Count();
 
-                // 7. Nếu bài học hoàn thành, mở khóa bài học tiếp theo
+                // 8. Nếu bài học hoàn thành, mở khóa bài học tiếp theo
                 if (isLessonCompleted)
                 {
                     process.UpdatedAt = DateTime.UtcNow;
@@ -2034,7 +2163,7 @@ namespace Service
                     throw new Exception("Id học sinh không được để trống.");
                 }
 
-                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == userId);
+                var certificates = await _courseCertificateRepository.FindAsync(x => x.UserId == request.StudentId);
                 items = _mapper.Map<List<CourseCertificateResponse>>(certificates);
             }
 
@@ -2260,6 +2389,29 @@ namespace Service
         public async Task<bool> ValidateParentStudentAccessAsync(string parentId, string studentId)
         {
             return await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(parentId, studentId);
+        }
+
+        public async Task<BaseResponse<CourseResponse>> DisableCourseAsync(int courseId)
+        {
+            var course = await _courseRepository.FindOneAsync(x => x.CourseId == courseId);
+            if(course == null)
+            {
+                throw new Exception("Không tìm thấy khoá học.");
+            }
+
+            if(course.Status != "Open")
+            {
+                throw new Exception("Khoá học hiện chưa hiển thị trên hệ thống.");
+            }
+
+            course.Status = "Draft";
+            var courseResponse = await _courseRepository.UpdateAsync(course);
+            var courseMapped = _mapper.Map<CourseResponse>(courseResponse);
+
+            return new BaseResponse<CourseResponse>(
+                "Ẩn khoá học thành công.",
+                StatusCodeEnum.OK_200,
+                courseMapped);
         }
     }
 }

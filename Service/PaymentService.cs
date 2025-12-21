@@ -132,31 +132,31 @@ namespace Service
                 {
                     throw new Exception("Không tìm thấy khoá học này");
                 }
-                //var teacherPaymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == course.CreatedBy);
+                var teacherPaymentInfo = await _paymentInformationRepository.FindOneAsync(x => x.UserId == course.CreatedBy);
 
                 var studentEnroll = await _studentEnrollmentRepository.FindOneAsync(x => x.ParentId.Contains("_") && x.ParentId.Substring(x.ParentId.IndexOf("_") + 1) == orderCode);
+                
+                var teacherIncome = (paymentResponse.Data.AmountPaid * 70) / 100;
+                var payoutData = new PayoutRequest
+                {
+                    Amount = teacherIncome,
+                    TeacherID = course.CreatedBy,
+                    BankBin = teacherPaymentInfo.BankBin,
+                    BankAccountNumber = teacherPaymentInfo.BankAccountNumber,
+                };
+                var payoutHistory = new Payouthistory
+                {
+                    TeacherId = course.CreatedBy,
+                    CourseId = course.CourseId,
+                    Amount = teacherIncome,
+                    CreatedAt = DateTime.Now,
+                };
+                await _payoutHistoryRepository.AddAsync(payoutHistory);
+                var payout = await PayOSPayoutAsync(payoutData);
                 studentEnroll.ParentId = studentEnroll.ParentId.Split('_')[0];
 
                 await _studentEnrollmentRepository.UpdateAsync(studentEnroll);
                 await _courseService.InitializeCourseProgressForStudentAsync(studentEnroll.StudentId, courseId.Value);
-                //var teacherIncome = (paymentResponse.Data.AmountPaid * 70) / 100;
-                //var payoutData = new PayoutRequest
-                //{
-                //    Amount = teacherIncome,
-                //    TeacherID = course.CreatedBy,
-                //    BankBin = teacherPaymentInfo.BankBin,
-                //    BankAccountNumber = teacherPaymentInfo.BankAccountNumber,
-                //};
-
-                //var payout = await PayOSPayoutAsync(payoutData);
-                //var payoutHistory = new Payouthistory
-                //{
-                //    TeacherId = course.CreatedBy,
-                //    CourseId = course.CourseId,
-                //    Amount = teacherIncome,
-                //    CreatedAt = DateTime.Now,
-                //};
-                //await _payoutHistoryRepository.AddAsync(payoutHistory);
             }
             else if (packageId.HasValue)
             {
@@ -456,9 +456,9 @@ namespace Service
                 OrderCode = CommonUtils.GenerateUniqueOrderCode(),
                 Amount = 10000,
                 BuyerName = userId,
-                Description = "Liên kết tài khoản.",
-                CancelUrl = "http://160.250.132.11:5173/my-courses",
-                ReturnUrl = "http://160.250.132.11:5173/my-courses"
+                Description = "Lien ket tai khoan.",
+                CancelUrl = "http://160.250.132.11:5173/teacher-profile",
+                ReturnUrl = "http://160.250.132.11:5173/teacher-profile"
             };
 
             var checksumKey = CommonUtils.GetApiKey("PAYOS_CHECKSUMKEY", _configuration);

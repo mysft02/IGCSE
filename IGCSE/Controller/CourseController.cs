@@ -2259,5 +2259,14 @@ namespace IGCSE.Controller
                 ));
             }
         }
+
+        [HttpPost("{courseId}/disable")]
+        [Authorize(Roles = "Manager")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> DisableCourse(int courseId)
+        {
+            var result = await _courseService.DisableCourseAsync(courseId);
+
+            return Ok(result);
+        }
     }
 }
