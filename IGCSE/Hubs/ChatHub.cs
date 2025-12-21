@@ -30,6 +30,9 @@ public class ChatHub : Hub
             return;
         }
 
+        // Get user role from JWT token
+        var userRole = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+
         // Save user message
         if (int.TryParse(conversationId, out var convId))
         {
@@ -49,12 +52,12 @@ public class ChatHub : Hub
 
         try
         {
-            // Process with AI (streaming)
-            await foreach (var chunk in _assistantService.ProcessMessageStreamAsync(
-                userId, message, conversationId))
-            {
-                await Clients.Caller.SendAsync("ReceiveMessageChunk", chunk);
-            }
+            // Process with AI - get full response (không stream nữa, gửi cả JSON string một lần)
+            var response = await _assistantService.ProcessMessageAsync(
+                userId, message, conversationId, userRole);
+            
+            // Gửi JSON string hoàn chỉnh (Content đã là JSON string nếu có structured data)
+            await Clients.Caller.SendAsync("ReceiveMessage", response.Content);
         }
         catch (Exception ex)
         {

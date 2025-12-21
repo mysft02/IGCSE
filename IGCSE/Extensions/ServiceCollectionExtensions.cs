@@ -98,6 +98,8 @@ namespace IGCSE.Extensions
             services.AddScoped<Service.Assistant.IContextManager, Service.Assistant.ContextManager>();
             services.AddScoped<Service.Assistant.IPersonaService, Service.Assistant.PersonaService>();
             services.AddScoped<Service.Assistant.IRAGService, Service.Assistant.RAGService>();
+            services.AddScoped<Service.Assistant.IIntentAnalyzer, Service.Assistant.IntentAnalyzer>();
+            services.AddScoped<Service.Assistant.ISystemDataService, Service.Assistant.SystemDataService>();
             services.AddScoped<Service.Assistant.OpenAIChatService>();
             services.AddScoped<Service.Assistant.IAssistantService, Service.Assistant.AssistantService>();
 

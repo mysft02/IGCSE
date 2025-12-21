@@ -63,10 +63,13 @@ public class AssistantKnowledgeRepository : BaseRepository<AssistantKnowledge>, 
                     )
                 ) AS SimilarityScore
             FROM assistantknowledge k
-            WHERE k.SourceType IN ('Course', 'Section', 'Lesson')
-            AND (@courseId IS NULL OR JSON_EXTRACT(k.Metadata, '$.courseId') = @courseId)
+            WHERE k.SourceType IN ('Course', 'Section', 'Lesson', 'ChatConversation')
+            AND (@courseId IS NULL OR k.SourceType = 'ChatConversation' OR JSON_EXTRACT(k.Metadata, '$.courseId') = @courseId)
             HAVING SimilarityScore > @minSimilarity
-            ORDER BY SimilarityScore DESC
+            ORDER BY 
+                -- Ưu tiên Course/Section/Lesson trước, sau đó mới đến ChatConversation
+                CASE WHEN k.SourceType = 'ChatConversation' THEN 1 ELSE 0 END,
+                SimilarityScore DESC
             LIMIT @limit";
 
         using var command = new MySqlCommand(sql, connection);

@@ -8,10 +8,11 @@ public class ChatContext
     public string? CurrentCourseName { get; set; }
     public decimal? LearningProgress { get; set; }
     public List<string> RecentMessages { get; set; } = new();
+    public string? SystemDataContext { get; set; } // Dữ liệu hệ thống động
 }
 
 public interface IContextManager
 {
-    Task<ChatContext> BuildContextAsync(string userId);
+    Task<ChatContext> BuildContextAsync(string userId, string? userRole = null, string? userQuery = null);
 }
 
