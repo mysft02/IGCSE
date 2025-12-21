@@ -16,8 +16,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Service.Trello;
 using BusinessObject.DTOs.Response.Dashboards;
-using DocumentFormat.OpenXml.Spreadsheet;
-using System.IO;
 
 namespace Service
 {
@@ -43,6 +41,8 @@ namespace Service
         private readonly IFinalQuizRepository _finalQuizRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ICourseCertificateRepository _courseCertificateRepository;
+        private readonly ITeacherProfileRepository _teacherProfileRepository;
+        private readonly IPaymentInformationRepository _paymentInformationRepository;
 
         public CourseService(
             IMapper mapper,
@@ -64,7 +64,9 @@ namespace Service
             IFinalQuizResultRepository finalQuizResultRepository,
             IFinalQuizRepository finalQuizRepository,
             IWebHostEnvironment webHostEnvironment,
-            ICourseCertificateRepository courseCertificateRepository)
+            ICourseCertificateRepository courseCertificateRepository,
+            ITeacherProfileRepository teacherProfileRepository,
+            IPaymentInformationRepository paymentInformationRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -86,6 +88,8 @@ namespace Service
             _finalQuizRepository = finalQuizRepository;
             _webHostEnvironment = webHostEnvironment;
             _courseCertificateRepository = courseCertificateRepository;
+            _teacherProfileRepository = teacherProfileRepository;
+            _paymentInformationRepository = paymentInformationRepository;
         }
 
         public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(int courseId)
@@ -1291,6 +1295,12 @@ namespace Service
 
         public async Task<BaseResponse<CourseResponse>> SubmitCourseForApprovalAsync(int courseId, string userId)
         {
+            var profileCheck = await _paymentInformationRepository.FindOneAsync(x => x.UserId == userId);
+            if(profileCheck == null)
+            {
+                throw new Exception("Bạn chưa thêm thông tin thanh toán của giáo viên.");
+            }
+
             var course = await _courseRepository.GetByCourseIdAsync(courseId);
             if (course == null)
             {

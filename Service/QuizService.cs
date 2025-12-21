@@ -12,8 +12,6 @@ using BusinessObject.Payload.Response.Trello;
 using Common.Utils;
 using Service.Trello;
 using Microsoft.AspNetCore.Hosting;
-using OfficeOpenXml.ConditionalFormatting.Contracts;
-using System.Collections.Generic;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Http;
 

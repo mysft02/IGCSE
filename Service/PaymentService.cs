@@ -203,7 +203,10 @@ namespace Service
                     else
                     {
                         await _userPackageRepository.AddAsync(newUserPackage);
-                        await _userPackageRepository.DeleteAsync(userPackage);
+                        if (userPackage != null)
+                        {
+                            await _userPackageRepository.DeleteAsync(userPackage);
+                        }
                     }
 
                     var currSlot = await _createSlotRepository.FindOneAsync(x => x.TeacherId == userId);
@@ -423,6 +426,7 @@ namespace Service
             var sortedItems = request.ApplySorting(items);
 
             var itemList = sortedItems
+                .OrderByDescending(c => c.TransactionDate)
                 .Select(token => new TransactionHistoryResponse
                 {
                     TransactionId = token.TransactionId,
