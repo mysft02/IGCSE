@@ -522,5 +522,54 @@ Lấy danh sách mock test với các trạng thái:
             var result = await _mockTestService.CreateMockTestAsync(request, userId);
             return Ok(result);
         }
+
+        [HttpDelete("delete-mocktest")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(
+            Summary = "Xóa mock test theo ID",
+            Description = @"Api dùng để xóa mock test. Chỉ người tạo mock test mới có quyền xóa.
+
+**Request:**
+- Query parameter: `id` (int) - ID của mock test cần xóa
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Xóa mock test thành công"",
+  ""statusCode"": 200,
+  ""data"": ""Mock test đã được xóa thành công.""
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Mock test không tồn tại:**
+```json
+{
+  ""message"": ""Mock test không tồn tại"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+2. **Không có quyền xóa:**
+```json
+{
+  ""message"": ""Bạn không có quyền xóa mock test này."",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API yêu cầu đăng nhập và role Teacher hoặc Manager
+- Chỉ người tạo mock test mới có quyền xóa
+- Hành động xóa là vĩnh viễn và không thể hoàn tác
+- Tất cả dữ liệu liên quan (câu hỏi, kết quả thi) sẽ bị xóa theo cascade")]
+        public async Task<ActionResult<BaseResponse<string>>> DeleteMockTest([FromQuery] int id)
+        {
+            var result = await _mockTestService.DeleteMockTestAsync(id);
+            return Ok(result);
+        }
     }
 }

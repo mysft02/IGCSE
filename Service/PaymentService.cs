@@ -13,6 +13,7 @@ using BusinessObject.DTOs.Response.Payment;
 using BusinessObject.DTOs.Response.TeacherProfile;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Service
 {
@@ -442,6 +443,36 @@ namespace Service
                     TotalCount = totalCount,
                     Page = request.Page,
                     Size = request.GetPageSize(),
+                    TotalPages = totalPages
+                },
+                Message = "Lấy lịch sử thanh toán thành công",
+                StatusCode = StatusCodeEnum.OK_200
+            };
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<PayoutHistoryResponse>>> GetPayoutHistoryAsync(string userId, int page, int pageSize)
+        {
+            var payoutList = await _payoutHistoryRepository.FindAsync(x => x.TeacherId == userId);
+            var pageSz = pageSize > 0 ? pageSize : 10;
+            var total = payoutList.Count();
+            var itemList = payoutList
+                .OrderBy(x => x.CreatedAt)
+                .Skip(page * pageSz)
+                .Take(pageSz)
+                .ToList();
+
+            var responseList = _mapper.Map<List<PayoutHistoryResponse>>(itemList);
+            var totalPages = (int)Math.Ceiling((double)total / pageSz);
+
+            // Map to response
+            return new BaseResponse<PaginatedResponse<PayoutHistoryResponse>>
+            {
+                Data = new PaginatedResponse<PayoutHistoryResponse>
+                {
+                    Items = responseList,
+                    TotalCount = total,
+                    Page = page,
+                    Size = pageSz,
                     TotalPages = totalPages
                 },
                 Message = "Lấy lịch sử thanh toán thành công",

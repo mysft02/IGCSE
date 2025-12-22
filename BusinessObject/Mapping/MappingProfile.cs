@@ -20,6 +20,7 @@ using BusinessObject.DTOs.Response.FinalQuizzes;
 using BusinessObject.DTOs.Response.TeacherProfile;
 using BusinessObject.DTOs.Response.LearningPaths;
 using BusinessObject.DTOs.Response.AptitudeTestQuestionResponse;
+using BusinessObject.DTOs.Response.Payment;
 
 namespace BusinessObject.Mapping
 {
@@ -218,6 +219,8 @@ namespace BusinessObject.Mapping
             CreateMap<Module, ModuleWithCourseResponse>().ReverseMap();
 
             CreateMap<Aptitudetestquestion, AptitudeQuestionResponse>().ReverseMap();
+
+            CreateMap<Payouthistory, PayoutHistoryResponse>().ReverseMap();
         }
     }
 }
