@@ -89,7 +89,7 @@ namespace IGCSE.Controller
         }
 
         [HttpGet("get-payout-history")]
-        [Authorize("Teacher")]
+        [Authorize(Roles = "Teacher")]
         public async Task<ActionResult<BaseResponse<PaginatedResponse<PayoutHistoryResponse>>>> GetPayoutHistory([FromQuery]int page, int pageSize)
         {
             var user = HttpContext.User;
