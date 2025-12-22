@@ -264,7 +264,6 @@ namespace Service
         public async Task<BaseResponse<List<MockTestMarkResponse>>> MarkMockTestAsync(MockTestMarkRequest request, string userId)
         {
             List<MockTestMarkResponse> result = new List<MockTestMarkResponse>();
-            List<MockTestQuestionMarkRequest> questions = new List<MockTestQuestionMarkRequest>();
 
             // Validate input
             if (request?.UserAnswers == null || request.UserAnswers.Count == 0)
@@ -285,6 +284,11 @@ namespace Service
 
             var mocktestResult = await _mockTestResultRepository.AddAsync(mockTestResultCreate);
 
+            // Rule-Based Pre-Filtering: Phân loại câu hỏi thành 2 nhóm
+            var ruleBasedResults = new List<(int QuestionId, string QuestionText, string Answer, string RightAnswer, decimal Mark, string? PartialMark, bool IsCorrect, decimal Score, string Comment)>();
+            var questionsNeedingAI = new List<(int QuestionId, MockTestQuestionMarkRequest Question)>();
+            var userAnswerEntities = new Dictionary<int, Mocktestuseranswer>(); // Mapping QuestionId -> UserAnswer entity
+
             foreach (var userAnswer in request.UserAnswers)
             {
                 if (userAnswer == null)
@@ -294,146 +298,253 @@ namespace Service
                 if (questionText == null)
                     continue;
 
-                var questionRequest = new MockTestQuestionMarkRequest
-                {
-                    QuestionText = questionText.QuestionContent,
-                    Answer = userAnswer.Answer ?? string.Empty,
-                    RightAnswer = questionText.CorrectAnswer,
-                    Mark = (decimal)questionText.Mark,
-                    PartialMark = questionText.PartialMark,
-                    QuestionId = questionText.MockTestQuestionId
-                };
+                var userAnswerText = userAnswer.Answer ?? string.Empty;
+                var correctAnswer = questionText.CorrectAnswer;
+                var mark = (decimal)questionText.Mark;
+                var partialMark = questionText.PartialMark;
 
-                questions.Add(questionRequest);
+                // Rule-Based Pre-Filtering: Kiểm tra xem có thể chấm điểm bằng rule không
+                // Với MockTest, nếu có PartialMark thì luôn cần AI để chấm chi tiết
+                // Chỉ dùng rule-based khi không có PartialMark
+                bool needsAI = !string.IsNullOrWhiteSpace(partialMark);
+                
+                if (!needsAI)
+                {
+                    var (canUseRuleBased, isCorrect, similarity) = CommonUtils.CanUseRuleBasedScoring(
+                        userAnswerText, 
+                        correctAnswer, 
+                        similarityThreshold: 0.9m);
+
+                    if (canUseRuleBased)
+                    {
+                        // Sử dụng Rule-Based Scoring (không cần gọi OpenAI)
+                        decimal score = isCorrect ? mark : 0m;
+                        var comment = isCorrect 
+                            ? "Câu trả lời chính xác." 
+                            : $"Câu trả lời chưa chính xác. Đáp án đúng: {correctAnswer}";
+                        
+                        ruleBasedResults.Add((
+                            questionText.MockTestQuestionId, 
+                            questionText.QuestionContent, 
+                            userAnswerText, 
+                            correctAnswer, 
+                            mark,
+                            partialMark,
+                            isCorrect, 
+                            score, 
+                            comment));
+                    }
+                    else
+                    {
+                        // Cần AI để chấm điểm (câu trả lời phức tạp, không rõ ràng)
+                        var questionRequest = new MockTestQuestionMarkRequest
+                        {
+                            QuestionText = questionText.QuestionContent,
+                            Answer = userAnswerText,
+                            RightAnswer = correctAnswer,
+                            Mark = mark,
+                            PartialMark = partialMark,
+                            QuestionId = questionText.MockTestQuestionId
+                        };
+                        questionsNeedingAI.Add((questionText.MockTestQuestionId, questionRequest));
+                    }
+                }
+                else
+                {
+                    // Có PartialMark, luôn cần AI để chấm chi tiết
+                    var questionRequest = new MockTestQuestionMarkRequest
+                    {
+                        QuestionText = questionText.QuestionContent,
+                        Answer = userAnswerText,
+                        RightAnswer = correctAnswer,
+                        Mark = mark,
+                        PartialMark = partialMark,
+                        QuestionId = questionText.MockTestQuestionId
+                    };
+                    questionsNeedingAI.Add((questionText.MockTestQuestionId, questionRequest));
+                }
+
+                // Lưu user answer vào database
+                var userAnswerEntity = new Mocktestuseranswer
+                {
+                    MockTestResultId = mocktestResult.MockTestResultId,
+                    MockTestQuestionId = questionText.MockTestQuestionId,
+                    Answer = userAnswerText,
+                    Score = 0, // Sẽ cập nhật sau khi chấm xong
+                };
+                var savedUserAnswer = await _userAnswerRepository.AddAsync(userAnswerEntity);
+                userAnswerEntities[questionText.MockTestQuestionId] = savedUserAnswer;
             }
 
-            var contentText = string.Join("\n", questions.Select(q =>
-                $"Question: {q.QuestionText}\nAnswer: {q.Answer}\nRight answer: {q.RightAnswer}\nMark: {q.Mark}\nPartial mark: {q.PartialMark}"));
-
-            var input = new[]
+            // Chỉ gọi OpenAI nếu có câu hỏi cần AI scoring
+            List<(int QuestionId, string QuestionText, string Answer, string RightAnswer, decimal Score, bool IsCorrect, string Comment)> aiResults = new List<(int, string, string, string, decimal, bool, string)>();
+            if (questionsNeedingAI.Any())
             {
-                new
+                var contentText = string.Join("\n", questionsNeedingAI.Select(q =>
+                    $"Question: {q.Question.QuestionText}\nAnswer: {q.Question.Answer}\nRight answer: {q.Question.RightAnswer}\nMark: {q.Question.Mark}\nPartial mark: {q.Question.PartialMark}"));
+
+                var input = new[]
                 {
-                    role = "user",
-                    content = new object[]
+                    new
                     {
-                        new
+                        role = "user",
+                        content = new object[]
                         {
-                            type = "input_text",
-                            text = $"Bạn là hệ thống chấm điểm. Với danh sách câu hỏi dưới đây, hãy CHẤM ĐIỂM THEO Partial mark nếu có, còn nếu không thì chỉ cần chấm đúng sai rồi cho điểm theo Mark, xét cả câu trả lời và ảnh (nếu có). Với mỗi câu, hãy trả về đúng một mục theo định dạng máy đọc dễ dàng: score=<điểm>||comment=<nhận xét ngắn <100 chữ>. Không xuống dòng trong comment>.\nCác mục của các câu phải được nối bằng chuỗi phân tách: |||\nSau khi liệt kê xong, in thêm mục cuối: TOTAL=<tổng điểm>.\nKHÔNG trả về thêm bất kỳ chữ nào khác ngoài đúng định dạng đã nêu.\n\nDỮ LIỆU:\n{contentText}"
+                            new
+                            {
+                                type = "input_text",
+                                text = $"Bạn là hệ thống chấm điểm. Với danh sách câu hỏi dưới đây, hãy CHẤM ĐIỂM THEO Partial mark nếu có, còn nếu không thì chỉ cần chấm đúng sai rồi cho điểm theo Mark, xét cả câu trả lời và ảnh (nếu có). Với mỗi câu, hãy trả về đúng một mục theo định dạng máy đọc dễ dàng: score=<điểm>||comment=<nhận xét ngắn <100 chữ>. Không xuống dòng trong comment>.\nCác mục của các câu phải được nối bằng chuỗi phân tách: |||\nSau khi liệt kê xong, in thêm mục cuối: TOTAL=<tổng điểm>.\nKHÔNG trả về thêm bất kỳ chữ nào khác ngoài đúng định dạng đã nêu.\n\nDỮ LIỆU:\n{contentText}"
+                            }
+                        }
+                    }
+                };
+
+                var body = new OpenAIBody
+                {
+                    Model = "gpt-4.1-mini",
+                    Input = input,
+                    Temperature = 0.5,
+                    MaxTokens = 800
+                };
+                var apiRequest = OpenApiRequest.Builder()
+                    .CallUrl("/responses")
+                    .Body(body)
+                    .Build();
+
+                var response = await _openAIApiService.PostAsync<OpenAIBody, OpenAIResponse>(apiRequest, body);
+
+                if (response?.Output != null && response.Output.Count > 0)
+                {
+                    // 🧩 Ghép output text
+                    var outputText = string.Join("\n",
+                        response.Output
+                            .SelectMany(o => o.Content)
+                            .Where(c => c.Type == "output_text")
+                            .Select(c => c.Text));
+
+                    if (!string.IsNullOrWhiteSpace(outputText))
+                    {
+                        var cleaned = outputText.Replace("```", string.Empty).Trim();
+                        var parts = cleaned.Split("|||", StringSplitOptions.RemoveEmptyEntries)
+                                           .Select(p => p.Trim())
+                                           .ToList();
+
+                        // Chuẩn hoá số phần tử bằng số câu hỏi
+                        if (parts.Count < questionsNeedingAI.Count)
+                        {
+                            while (parts.Count < questionsNeedingAI.Count) parts.Add(string.Empty);
+                        }
+                        else if (parts.Count > questionsNeedingAI.Count)
+                        {
+                            parts = parts.Take(questionsNeedingAI.Count).ToList();
+                        }
+
+                        static string Normalize(string? s)
+                        {
+                            return (s ?? string.Empty).Trim().ToLowerInvariant().Replace(" ", string.Empty);
+                        }
+
+                        // Nếu AI có mục TOTAL, tách ra (nhưng không dùng vì tính từng câu)
+                        for (int idx = parts.Count - 1; idx >= 0; idx--)
+                        {
+                            var p = parts[idx];
+                            var mTotal = Regex.Match(p, @"^TOTAL\s*=\s*([0-9]+(\.[0-9]+)?)$", RegexOptions.IgnoreCase);
+                            if (mTotal.Success)
+                            {
+                                parts.RemoveAt(idx);
+                            }
+                        }
+
+                        // Parse từng phần và tạo response
+                        for (int i = 0; i < questionsNeedingAI.Count; i++)
+                        {
+                            var piece = parts[i];
+                            var q = questionsNeedingAI[i];
+
+                            decimal score = 0;
+                            string comment = piece;
+
+                            // Parse score theo dạng score=...||comment=...
+                            var m = Regex.Match(piece, @"score\s*=\s*([0-9]+(\.[0-9]+)?)\s*\|\|\s*comment\s*=\s*(.*)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                            if (m.Success)
+                            {
+                                if (decimal.TryParse(m.Groups[1].Value, out var s))
+                                {
+                                    score = s;
+                                }
+                                comment = m.Groups[3].Value.Trim();
+                            }
+
+                            bool isCorrect = score >= 0.999m || Normalize(q.Question.Answer) == Normalize(q.Question.RightAnswer);
+                            
+                            aiResults.Add((
+                                q.QuestionId, 
+                                q.Question.QuestionText, 
+                                q.Question.Answer, 
+                                q.Question.RightAnswer, 
+                                score, 
+                                isCorrect, 
+                                comment));
                         }
                     }
                 }
-            };
-
-            var body = new OpenAIBody
-            {
-                Model = "gpt-4.1-mini",
-                Input = input,
-                Temperature = 0.5,
-                MaxTokens = 800
-            };
-            var apiRequest = OpenApiRequest.Builder()
-                .CallUrl("/responses")
-                .Body(body)
-                .Build();
-
-            var response = await _openAIApiService.PostAsync<OpenAIBody, OpenAIResponse>(apiRequest, body);
-
-            if (response?.Output == null || response.Output.Count == 0)
-                return new BaseResponse<List<MockTestMarkResponse>>(
-                    "Mock test marked successfully",
-                    StatusCodeEnum.OK_200,
-                    new List<MockTestMarkResponse>());
-
-            // 🧩 Ghép output text
-            var outputText = string.Join("\n",
-                response.Output
-                    .SelectMany(o => o.Content)
-                    .Where(c => c.Type == "output_text")
-                    .Select(c => c.Text));
-
-            if (string.IsNullOrWhiteSpace(outputText))
-                throw new Exception("OpenAI trả về rỗng (outputText empty)");
-
-            var cleaned = outputText.Replace("```", string.Empty).Trim();
-            var parts = cleaned.Split("|||", StringSplitOptions.RemoveEmptyEntries)
-                               .Select(p => p.Trim())
-                               .ToList();
-
-            if (parts.Count < questions.Count)
-                while (parts.Count < questions.Count) parts.Add(string.Empty);
-            else if (parts.Count > questions.Count)
-                parts = parts.Take(questions.Count).ToList();
-
-            static string Normalize(string? s)
-            {
-                return (s ?? string.Empty).Trim().ToLowerInvariant().Replace(" ", string.Empty);
             }
 
+            // Tính điểm tổng
             decimal finalScore = 0;
-            decimal? totalFromAi = null;
 
-            // Nếu AI có mục TOTAL, tách ra
-            for (int idx = parts.Count - 1; idx >= 0; idx--)
+            // Đếm điểm từ rule-based results
+            foreach (var (_, _, _, _, _, _, _, score, _) in ruleBasedResults)
             {
-                var p = parts[idx];
-                var mTotal = Regex.Match(p, @"^TOTAL\s*=\s*([0-9]+(\.[0-9]+)?)$", RegexOptions.IgnoreCase);
-                if (mTotal.Success)
-                {
-                    if (decimal.TryParse(mTotal.Groups[1].Value, out var tot))
-                    {
-                        totalFromAi = tot;
-                    }
-                    parts.RemoveAt(idx);
-                }
+                finalScore += score;
             }
 
-            for (int i = 0; i < questions.Count; i++)
+            // Đếm điểm từ AI results
+            foreach (var (_, _, _, _, score, _, _) in aiResults)
             {
-                var q = questions[i];
-                var piece = parts[i];
+                finalScore += score;
+            }
 
-                decimal score = 0;
-                string comment = piece;
-
-                // Parse score theo dạng score=...||comment=...
-                var m = Regex.Match(piece, @"score\s*=\s*([0-9]+(\.[0-9]+)?)\s*\|\|\s*comment\s*=\s*(.*)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                if (m.Success)
-                {
-                    if (decimal.TryParse(m.Groups[1].Value, out var s))
-                    {
-                        score = s;
-                    }
-                    comment = m.Groups[3].Value.Trim();
-                }
-
-                bool isCorrect = score >= 0.999m || Normalize(q.Answer) == Normalize(q.RightAnswer);
+            // Tạo response từ rule-based results
+            foreach (var (questionId, questionText, answer, rightAnswer, mark, partialMark, isCorrect, score, comment) in ruleBasedResults)
+            {
                 result.Add(new MockTestMarkResponse
                 {
-                    Question = q.QuestionText,
-                    Answer = q.Answer,
-                    RightAnswer = q.RightAnswer,
+                    Question = questionText,
+                    Answer = answer,
+                    RightAnswer = rightAnswer,
                     Score = score,
                     IsCorrect = isCorrect,
                     Comment = comment
                 });
-                finalScore += score;
 
-                var userAnswer = new Mocktestuseranswer
+                // Cập nhật điểm vào user answer đã lưu
+                if (userAnswerEntities.TryGetValue(questionId, out var userAnswer))
                 {
-                    MockTestResultId = mocktestResult.MockTestResultId,
-                    MockTestQuestionId = q.QuestionId,
-                    Answer = q.Answer,
-                    Score = score,
-                };
-
-                await _userAnswerRepository.AddAsync(userAnswer);
+                    userAnswer.Score = score;
+                    await _userAnswerRepository.UpdateAsync(userAnswer);
+                }
             }
 
-            if (totalFromAi.HasValue)
+            // Tạo response từ AI results
+            foreach (var (questionId, questionText, answer, rightAnswer, score, isCorrect, comment) in aiResults)
             {
-                finalScore = totalFromAi.Value;
+                result.Add(new MockTestMarkResponse
+                {
+                    Question = questionText,
+                    Answer = answer,
+                    RightAnswer = rightAnswer,
+                    Score = score,
+                    IsCorrect = isCorrect,
+                    Comment = comment
+                });
+
+                // Cập nhật điểm vào user answer đã lưu
+                if (userAnswerEntities.TryGetValue(questionId, out var userAnswer))
+                {
+                    userAnswer.Score = score;
+                    await _userAnswerRepository.UpdateAsync(userAnswer);
+                }
             }
 
             // Cập nhật điểm tổng vào kết quả
@@ -539,6 +650,22 @@ namespace Service
                 "Tạo bài mock test thành công",
                 StatusCodeEnum.OK_200,
                 result);
+        }
+
+        public async Task<BaseResponse<string>> DeleteMockTestAsync(int mockTestId)
+        {
+            var mockTest = await _mockTestRepository.FindOneAsync(x => x.MockTestId == mockTestId);
+            if (mockTest == null)
+            {
+                throw new Exception("Mock test không tồn tại");
+            }
+
+            await _mockTestRepository.DeleteAsync(mockTest);
+
+            return new BaseResponse<string>(
+                "Xóa mock test thành công",
+                StatusCodeEnum.OK_200,
+                "Mock test đã được xóa thành công.");
         }
     }
 }
