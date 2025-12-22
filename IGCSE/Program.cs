@@ -30,7 +30,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins", policy =>
     {
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://localhost:5174", "http://160.250.132.11:5173" };
+            ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://localhost:7211", "http://160.250.132.11:5173", "http://160.250.132.11:7211" };
         
         policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
@@ -64,7 +64,11 @@ builder.Services
 builder.Services.AddControllers();
 
 // Add SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -164,7 +168,11 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 
 var app = builder.Build();

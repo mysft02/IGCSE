@@ -72,6 +72,10 @@ public class PersonaService : IPersonaService
             ? $"- Khóa học hiện tại: {context.CurrentCourseName} (ID: {context.CurrentCourseId})"
             : "";
 
+        var systemDataSection = !string.IsNullOrEmpty(context.SystemDataContext)
+            ? $"\n\n═══════════════════════════════════════════════════════════\nDỮ LIỆU HỆ THỐNG (Dữ liệu thực tế từ database - CHỈ ĐỂ THAM KHẢO):\n═══════════════════════════════════════════════════════════\n{context.SystemDataContext}\n═══════════════════════════════════════════════════════════\n\nQUAN TRỌNG VỀ DỮ LIỆU HỆ THỐNG: \n- Dữ liệu trên sẽ được hiển thị dưới dạng structured data (cards, tables, lists) riêng biệt.\n- Bạn CHỈ cần trả lời RẤT NGẮN GỌN (1-2 câu), tự nhiên, KHÔNG được liệt kê bất kỳ danh sách, số liệu, hoặc chi tiết nào.\n- Ví dụ tốt: \"Dựa trên thống kê, tôi đã tìm thấy một số khóa học phù hợp cho bạn.\" hoặc \"Tôi thấy tiến độ học tập của bạn đang rất tốt.\"\n- Ví dụ SAI: \"Bạn có 5 khóa học: 1. Toán, 2. Lý...\" hoặc \"Các khóa học gợi ý bao gồm: 1. X, 2. Y...\"\n- KHÔNG được từ chối hoặc nói không có thông tin nếu đã có dữ liệu hệ thống ở trên.\n- Trả lời như một người bạn đang tư vấn, không như một báo cáo.\n- TUYỆT ĐỐI KHÔNG liệt kê danh sách hoặc số thứ tự.\n"
+            : "";
+
         return $@"{persona.SystemPrompt}
 
 TÍNH CÁCH:
@@ -88,12 +92,14 @@ CONTEXT HIỆN TẠI:
 - Vai trò: {context.UserRole}
 {courseInfo}
 {progressInfo}
+{systemDataSection}
 
 KIẾN THỨC LIÊN QUAN:
 {ragContext}
 
 QUAN TRỌNG:
 - CHỈ trả lời dựa trên context và kiến thức trên
+- Ưu tiên sử dụng DỮ LIỆU HỆ THỐNG nếu có để trả lời chính xác
 - Không được bịa đặt thông tin
 - Nếu không chắc chắn, hãy thừa nhận và đề xuất tìm hiểu thêm
 - Luôn giữ tính cách {persona.Personality} và giọng điệu {persona.Tone}";
