@@ -41,6 +41,8 @@ namespace Service
         private readonly ICreateSlotRepository _createSlotRepository;
         private readonly IFinalQuizResultRepository _finalQuizResultRepository;
         private readonly IFinalQuizRepository _finalQuizRepository;
+        private readonly IQuizRepository _quizRepository;
+        private readonly IQuizResultRepository _quizResultRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ICourseCertificateRepository _courseCertificateRepository;
 
@@ -63,6 +65,8 @@ namespace Service
             ICreateSlotRepository createSlotRepository,
             IFinalQuizResultRepository finalQuizResultRepository,
             IFinalQuizRepository finalQuizRepository,
+            IQuizRepository quizRepository,
+            IQuizResultRepository quizResultRepository,
             IWebHostEnvironment webHostEnvironment,
             ICourseCertificateRepository courseCertificateRepository)
         {
@@ -84,6 +88,8 @@ namespace Service
             _createSlotRepository = createSlotRepository;
             _finalQuizResultRepository = finalQuizResultRepository;
             _finalQuizRepository = finalQuizRepository;
+            _quizRepository = quizRepository;
+            _quizResultRepository = quizResultRepository;
             _webHostEnvironment = webHostEnvironment;
             _courseCertificateRepository = courseCertificateRepository;
         }
@@ -1729,10 +1735,41 @@ namespace Service
                 var allLessonItems = await _lessonitemRepository.GetByLessonIdAsync(lessonItem.LessonId);
                 var completedProcessItems = await _processitemRepository.GetByProcessIdAsync(process.ProcessId);
                 
-                bool isLessonCompleted = allLessonItems.Count() == completedProcessItems.Count();
+                bool allLessonItemsCompleted = allLessonItems.Count() == completedProcessItems.Count();
 
-                // 8. Nếu bài học hoàn thành, mở khóa bài học tiếp theo
-                if (isLessonCompleted)
+                // 8. Kiểm tra xem lesson có quiz không và quiz đã pass chưa
+                bool canUnlockNextLesson = false;
+                Quiz? lessonQuiz = null;
+                Quizresult? quizResult = null;
+                
+                if (allLessonItemsCompleted)
+                {
+                    // Kiểm tra xem lesson có quiz không
+                    lessonQuiz = await _quizRepository.FindOneAsync(q => q.LessonId == lessonItem.LessonId);
+                    
+                    if (lessonQuiz == null)
+                    {
+                        // Lesson không có quiz, có thể unlock lesson tiếp theo
+                        canUnlockNextLesson = true;
+                    }
+                    else
+                    {
+                        // Lesson có quiz, cần kiểm tra quiz đã pass chưa
+                        quizResult = await _quizResultRepository.FindOneAsync(
+                            qr => qr.QuizId == lessonQuiz.QuizId && qr.UserId == studentId && qr.IsPassed == true
+                        );
+                        
+                        if (quizResult != null)
+                        {
+                            // Quiz đã pass, có thể unlock lesson tiếp theo
+                            canUnlockNextLesson = true;
+                        }
+                        // Nếu quiz chưa pass, không unlock lesson tiếp theo
+                    }
+                }
+
+                // 9. Nếu đủ điều kiện, mở khóa bài học tiếp theo
+                if (canUnlockNextLesson)
                 {
                     process.UpdatedAt = DateTime.UtcNow;
                     await _processRepository.UpdateAsync(process);
@@ -1796,10 +1833,28 @@ namespace Service
                     }
                 }
 
+                string message = "Lesson item completed successfully";
+                if (allLessonItemsCompleted)
+                {
+                    if (lessonQuiz != null)
+                    {
+                        if (quizResult != null && canUnlockNextLesson)
+                        {
+                            message = "Lesson item completed! Next lesson unlocked.";
+                        }
+                        else
+                        {
+                            message = "All lesson items completed! Please complete the quiz to unlock the next lesson.";
+                        }
+                    }
+                    else if (canUnlockNextLesson)
+                    {
+                        message = "Lesson item completed! Next lesson unlocked.";
+                    }
+                }
+
                 return new BaseResponse<bool>(
-                    isLessonCompleted 
-                        ? "Lesson item completed! Next lesson unlocked." 
-                        : "Lesson item completed successfully",
+                    message,
                     StatusCodeEnum.OK_200,
                     true
                 );

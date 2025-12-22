@@ -6,3 +6,4 @@ namespace BusinessObject.DTOs.Response.Accounts
         public string Message { get; set; }
     }
 }
+
