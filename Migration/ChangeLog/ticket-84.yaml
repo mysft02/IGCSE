@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: 84
+      author: assistant
+      changes:
+        - createTable:
+            tableName: notification
+            columns:
+              - column:
+                  name: NotificationID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: UserID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Message
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IsRead
+                  type: TINYINT(1)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: RelatedEntityType
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: RelatedEntityID
+                  type: INT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+
+      rollback:
+        - dropTable:
+            tableName: notification
+
+      tags:
+        - notification
+        - course

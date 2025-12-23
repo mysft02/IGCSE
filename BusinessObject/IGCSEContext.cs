@@ -82,6 +82,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
 
     public virtual DbSet<Learningpath> LearningPaths { get; set; }
 
+    public virtual DbSet<Coursereport> Coursereports { get; set; }
+
     public virtual DbSet<Aptitudetestquestion> AptitudeTestQuestions { get; set; }
 
     public virtual DbSet<ChatConversation> ChatConversations { get; set; }
@@ -89,6 +91,8 @@ public partial class IGCSEContext : IdentityDbContext<Account>
     public virtual DbSet<ChatMessage> ChatMessages { get; set; }
 
     public virtual DbSet<AssistantKnowledge> AssistantKnowledges { get; set; }
+
+    public virtual DbSet<Notification> Notifications { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -711,6 +715,45 @@ public partial class IGCSEContext : IdentityDbContext<Account>
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.ImageUrl).HasMaxLength(255);
             entity.Property(e => e.UserId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Coursereport>(entity =>
+        {
+            entity.HasKey(e => e.CourseReportId).HasName("PRIMARY");
+
+            entity.ToTable("coursereport");
+
+            entity.Property(e => e.CourseReportId).HasColumnName("CourseReportID");
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
+            entity.Property(e => e.UserId)
+                .HasMaxLength(255)
+                .HasColumnName("UserID");
+            entity.Property(e => e.Title).HasMaxLength(255);
+            entity.Property(e => e.Description).HasColumnType("text");
+            entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.ReportType).HasMaxLength(50);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.NotificationId).HasName("PRIMARY");
+
+            entity.ToTable("notification");
+
+            entity.Property(e => e.NotificationId).HasColumnName("NotificationID");
+            entity.Property(e => e.UserId)
+                .HasMaxLength(255)
+                .HasColumnName("UserID");
+            entity.Property(e => e.Title).HasMaxLength(255);
+            entity.Property(e => e.Message).HasColumnType("text");
+            entity.Property(e => e.Type).HasMaxLength(50);
+            entity.Property(e => e.IsRead).HasColumnType("tinyint(1)");
+            entity.Property(e => e.RelatedEntityType).HasMaxLength(50);
+            entity.Property(e => e.RelatedEntityId).HasColumnName("RelatedEntityID");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<Learningpath>(entity =>

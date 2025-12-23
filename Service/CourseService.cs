@@ -18,6 +18,8 @@ using Service.Trello;
 using BusinessObject.DTOs.Response.Dashboards;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO;
+using BusinessObject.DTOs.Response.Notifications;
+using BusinessObject.DTOs.Request.Notifications;
 
 namespace Service
 {
@@ -45,6 +47,8 @@ namespace Service
         private readonly IQuizResultRepository _quizResultRepository;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ICourseCertificateRepository _courseCertificateRepository;
+        private readonly ICoursereportRepository _coursereportRepository;
+        private readonly INotificationRepository _notificationRepository;
 
         public CourseService(
             IMapper mapper,
@@ -68,7 +72,9 @@ namespace Service
             IQuizRepository quizRepository,
             IQuizResultRepository quizResultRepository,
             IWebHostEnvironment webHostEnvironment,
-            ICourseCertificateRepository courseCertificateRepository)
+            ICourseCertificateRepository courseCertificateRepository,
+            ICoursereportRepository coursereportRepository,
+            INotificationRepository notificationRepository)
         {
             _mapper = mapper;
             _courseRepository = courseRepository;
@@ -92,6 +98,94 @@ namespace Service
             _quizResultRepository = quizResultRepository;
             _webHostEnvironment = webHostEnvironment;
             _courseCertificateRepository = courseCertificateRepository;
+            _coursereportRepository = coursereportRepository;
+            _notificationRepository = notificationRepository;
+        }
+
+        public async Task<BaseResponse<CourseReportResponse>> CreateCourseReportAsync(string studentId, int courseId, CourseReportRequest request)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            if (!course.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new Exception("Chỉ có thể report khóa học khi đang ở trạng thái Open.");
+            }
+
+            var timestamp = DateTime.UtcNow;
+            var report = new Coursereport
+            {
+                CourseId = courseId,
+                UserId = studentId,
+                Title = request.Title.Trim(),
+                Description = request.Description.Trim(),
+                ReportType = request.ReportType?.Trim(),
+                Status = "PROCESSING",
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
+            };
+
+            report = await _coursereportRepository.AddAsync(report);
+            var response = _mapper.Map<CourseReportResponse>(report);
+
+            return new BaseResponse<CourseReportResponse>(
+                "Tạo report khóa học thành công",
+                StatusCodeEnum.OK_200,
+                response);
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<CourseReportResponse>>> GetCourseReportsAsync(int courseId, CourseReportQueryRequest request)
+        {
+            var course = await _courseRepository.GetByCourseIdAsync(courseId);
+            if (course == null)
+            {
+                throw new Exception("Course not found");
+            }
+
+            var (reports, total) = await _coursereportRepository.GetReportsPagedAsync(courseId, request);
+            var reportList = reports.ToList();
+            var responses = _mapper.Map<IEnumerable<CourseReportResponse>>(reportList).ToList();
+
+            var page = request.Page <= 0 ? 1 : request.Page;
+            var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+            var totalPages = (int)Math.Ceiling((double)total / pageSize);
+
+            var paginatedResponse = new PaginatedResponse<CourseReportResponse>
+            {
+                Items = responses,
+                TotalCount = total,
+                Page = page - 1,
+                Size = pageSize,
+                TotalPages = totalPages
+            };
+
+            return new BaseResponse<PaginatedResponse<CourseReportResponse>>(
+                "Lấy danh sách report khóa học thành công",
+                StatusCodeEnum.OK_200,
+                paginatedResponse);
+        }
+
+        public async Task<BaseResponse<CourseReportResponse>> UpdateCourseReportStatusAsync(int reportId)
+        {
+            var report = await _coursereportRepository.GetByIdAsync(reportId);
+            if (report == null)
+            {
+                throw new Exception("Report not found");
+            }
+
+            report.Status = "COMPLETED";
+            report.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _coursereportRepository.UpdateAsync(report);
+            var response = _mapper.Map<CourseReportResponse>(updated);
+
+            return new BaseResponse<CourseReportResponse>(
+                "Cập nhật trạng thái report thành công",
+                StatusCodeEnum.OK_200,
+                response);
         }
 
         public async Task<BaseResponse<CourseResponse>> ApproveCourseAsync(int courseId)
@@ -2446,7 +2540,7 @@ namespace Service
             return await _parentStudentLinkRepository.CheckDuplicateParentStudentLink(parentId, studentId);
         }
 
-        public async Task<BaseResponse<CourseResponse>> DisableCourseAsync(int courseId)
+        public async Task<BaseResponse<CourseResponse>> DisableCourseAsync(int courseId, string reason)
         {
             var course = await _courseRepository.FindOneAsync(x => x.CourseId == courseId);
             if(course == null)
@@ -2459,14 +2553,95 @@ namespace Service
                 throw new Exception("Khoá học hiện chưa hiển thị trên hệ thống.");
             }
 
+            // Đổi status thành Draft
             course.Status = "Draft";
             var courseResponse = await _courseRepository.UpdateAsync(course);
+
+            // Tạo notification cho Teacher (CreatedBy)
+            if (!string.IsNullOrEmpty(course.CreatedBy))
+            {
+                var notification = new Notification
+                {
+                    UserId = course.CreatedBy,
+                    Title = $"Khóa học \"{course.Name}\" đã bị ẩn",
+                    Message = reason,
+                    Type = "COURSE_DISABLED",
+                    IsRead = false,
+                    RelatedEntityType = "COURSE",
+                    RelatedEntityId = courseId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await _notificationRepository.AddAsync(notification);
+            }
+
             var courseMapped = _mapper.Map<CourseResponse>(courseResponse);
 
             return new BaseResponse<CourseResponse>(
                 "Ẩn khoá học thành công.",
                 StatusCodeEnum.OK_200,
                 courseMapped);
+        }
+
+        public async Task<BaseResponse<PaginatedResponse<NotificationResponse>>> GetNotificationsAsync(string userId, NotificationQueryRequest request)
+        {
+            var (notifications, total) = await _notificationRepository.GetNotificationsPagedAsync(userId, request);
+            var notificationList = notifications.ToList();
+            var responses = _mapper.Map<IEnumerable<NotificationResponse>>(notificationList).ToList();
+
+            var page = request.Page <= 0 ? 1 : request.Page;
+            var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+            var totalPages = (int)Math.Ceiling((double)total / pageSize);
+
+            var paginatedResponse = new PaginatedResponse<NotificationResponse>
+            {
+                Items = responses,
+                TotalCount = total,
+                Page = page - 1,
+                Size = pageSize,
+                TotalPages = totalPages
+            };
+
+            return new BaseResponse<PaginatedResponse<NotificationResponse>>(
+                "Lấy danh sách thông báo thành công",
+                StatusCodeEnum.OK_200,
+                paginatedResponse);
+        }
+
+        public async Task<BaseResponse<int>> GetUnreadNotificationCountAsync(string userId)
+        {
+            var count = await _notificationRepository.GetUnreadCountAsync(userId);
+
+            return new BaseResponse<int>(
+                "Lấy số lượng thông báo chưa đọc thành công",
+                StatusCodeEnum.OK_200,
+                count);
+        }
+
+        public async Task<BaseResponse<NotificationResponse>> MarkNotificationAsReadAsync(int notificationId, string userId)
+        {
+            var notification = await _notificationRepository.GetByIdAsync(notificationId);
+            if (notification == null)
+            {
+                throw new Exception("Notification not found");
+            }
+
+            if (notification.UserId != userId)
+            {
+                throw new Exception("Bạn không có quyền đánh dấu thông báo này");
+            }
+
+            notification.IsRead = true;
+            notification.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _notificationRepository.UpdateAsync(notification);
+            var response = _mapper.Map<NotificationResponse>(updated);
+
+            return new BaseResponse<NotificationResponse>(
+                "Đánh dấu thông báo đã đọc thành công",
+                StatusCodeEnum.OK_200,
+                response);
         }
     }
 }

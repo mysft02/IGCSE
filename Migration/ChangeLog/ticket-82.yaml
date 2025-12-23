@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 82
+      author: assistant
+      changes:
+        - createTable:
+            tableName: coursereport
+            columns:
+              - column:
+                  name: CourseReportID
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: CourseID
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UserID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Description
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: Status
+                  type: VARCHAR(50)
+                  defaultValue: 'PROCESSING'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ReportType
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: CreatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: UpdatedAt
+                  type: DATETIME
+                  constraints:
+                    nullable: true
+
+      rollback:
+        - dropTable:
+            tableName: coursereport
+
+      tags:
+        - course
+        - report
+

@@ -58,6 +58,8 @@ namespace IGCSE.Extensions
             services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
             services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
             services.AddScoped<IAssistantKnowledgeRepository, AssistantKnowledgeRepository>();
+            services.AddScoped<ICoursereportRepository, CoursereportRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
 
             return services;
         }

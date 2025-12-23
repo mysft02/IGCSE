@@ -1192,6 +1192,157 @@ namespace IGCSE.Controller
             }
         }
 
+        [HttpPost("{courseId}/report")]
+        [Authorize(Roles = "Student")]
+        [SwaggerOperation(
+            Summary = "Report khóa học (Student)",
+            Description = @"Api dùng để học sinh report một khóa học khi đang ở trạng thái Open.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học
+- Body:
+```json
+{
+  ""title"": ""Tiêu đề report"",
+  ""description"": ""Nội dung report chi tiết"",
+  ""reportType"": ""nội dung không phù hợp""
+}
+```
+
+**Lưu ý:**
+- Chỉ Student role mới được phép gọi API này
+- Chỉ có thể report khi khóa học đang ở trạng thái `Open`")]
+        public async Task<ActionResult<BaseResponse<CourseReportResponse>>> CreateCourseReport(
+            int courseId,
+            [FromBody] CourseReportRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst("AccountID")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new BaseResponse<string>(
+                        "Không xác định được tài khoản.",
+                        StatusCodeEnum.Unauthorized_401,
+                        null));
+                }
+
+                var result = await _courseService.CreateCourseReportAsync(userId, courseId, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi tạo report khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpGet("{courseId}/reports")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(
+            Summary = "Lấy danh sách report của khóa học (Manager)",
+            Description = @"Api dùng để manager xem danh sách report của một khóa học với phân trang và bộ lọc.
+
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học
+- Query parameters:
+  - `Page` (int, mặc định: 1) - Số trang
+  - `PageSize` (int, mặc định: 10) - Số lượng item mỗi trang
+  - `Status` (string, optional) - Lọc theo status: PROCESSING, COMPLETED
+  - `ReportType` (string, optional) - Lọc theo loại report
+  - `SearchByTitle` (string, optional) - Tìm kiếm theo tiêu đề report
+
+**Response Schema - Trường hợp thành công:**
+```json
+{
+  ""message"": ""Lấy danh sách report khóa học thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""items"": [
+      {
+        ""courseReportId"": 1,
+        ""courseId"": 34,
+        ""userId"": ""user-id-123"",
+        ""title"": ""Tiêu đề report"",
+        ""description"": ""Nội dung report"",
+        ""status"": ""PROCESSING"",
+        ""reportType"": ""nội dung không phù hợp"",
+        ""createdAt"": ""2024-01-15T10:30:00Z"",
+        ""updatedAt"": null
+      }
+    ],
+    ""totalCount"": 25,
+    ""page"": 0,
+    ""size"": 10,
+    ""totalPages"": 3
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+```json
+{
+  ""message"": ""Lỗi khi lấy danh sách report khóa học: Course not found"",
+  ""statusCode"": 400,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- Chỉ Manager role mới có quyền sử dụng API này
+- Kết quả được sắp xếp theo thời gian tạo mới nhất (desc)
+- Có thể kết hợp nhiều filter cùng lúc")]
+        public async Task<ActionResult<BaseResponse<PaginatedResponse<CourseReportResponse>>>> GetCourseReports(
+            int courseId,
+            [FromQuery] CourseReportQueryRequest request)
+        {
+            try
+            {
+                var result = await _courseService.GetCourseReportsAsync(courseId, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi lấy danh sách report khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
+        [HttpPut("reports/{reportId}/complete")]
+        [Authorize(Roles = "Manager")]
+        [SwaggerOperation(
+            Summary = "Hoàn thành xử lý report khóa học (Manager)",
+            Description = @"Api dùng để manager đánh dấu đã hoàn thành xử lý một report. Hệ thống sẽ tự động đổi status của report thành COMPLETED.
+
+**Request:**
+- Path parameter: `reportId` (int) - ID của report cần đánh dấu hoàn thành
+
+**Lưu ý:**
+- Không cần gửi body request
+- Status sẽ tự động được đổi thành COMPLETED")]
+        public async Task<ActionResult<BaseResponse<CourseReportResponse>>> CompleteCourseReport(int reportId)
+        {
+            try
+            {
+                var result = await _courseService.UpdateCourseReportStatusAsync(reportId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi hoàn thành xử lý report: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
+        }
+
         [HttpGet("{courseId}/feedbacks")]
         [AllowAnonymous]
         [SwaggerOperation(
@@ -2262,11 +2413,41 @@ namespace IGCSE.Controller
 
         [HttpPost("{courseId}/disable")]
         [Authorize(Roles = "Manager")]
-        public async Task<ActionResult<BaseResponse<CourseResponse>>> DisableCourse(int courseId)
-        {
-            var result = await _courseService.DisableCourseAsync(courseId);
+        [SwaggerOperation(
+            Summary = "Ẩn khóa học (Manager)",
+            Description = @"Api dùng để manager ẩn khóa học. Hệ thống sẽ tự động gửi thông báo cho Teacher với lý do ẩn khóa học.
 
-            return Ok(result);
+**Request:**
+- Path parameter: `courseId` (int) - ID của khóa học cần ẩn
+- Body:
+```json
+{
+  ""reason"": ""Lý do ẩn khóa học (sẽ gửi cho Teacher)""
+}
+```
+
+**Lưu ý:**
+- Chỉ Manager role mới có quyền sử dụng API này
+- Chỉ có thể ẩn khóa học đang ở trạng thái `Open`
+- Sau khi ẩn, khóa học sẽ chuyển sang trạng thái `Draft`
+- Teacher sẽ nhận được notification với lý do ẩn khóa học")]
+        public async Task<ActionResult<BaseResponse<CourseResponse>>> DisableCourse(
+            int courseId,
+            [FromBody] DisableCourseRequest request)
+        {
+            try
+            {
+                var result = await _courseService.DisableCourseAsync(courseId, request.Reason);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new BaseResponse<string>(
+                    $"Lỗi khi ẩn khóa học: {ex.Message}",
+                    StatusCodeEnum.BadRequest_400,
+                    null
+                ));
+            }
         }
     }
 }

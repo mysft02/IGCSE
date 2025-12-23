@@ -218,6 +218,12 @@ namespace BusinessObject.Mapping
             CreateMap<Module, ModuleWithCourseResponse>().ReverseMap();
 
             CreateMap<Aptitudetestquestion, AptitudeQuestionResponse>().ReverseMap();
+
+            // Course report mappings
+            CreateMap<Coursereport, CourseReportResponse>().ReverseMap();
+
+            // Notification mappings
+            CreateMap<Notification, BusinessObject.DTOs.Response.Notifications.NotificationResponse>().ReverseMap();
         }
     }
 }
