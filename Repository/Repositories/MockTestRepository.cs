@@ -90,5 +90,30 @@ namespace Repository.Repositories
             }
             return MockTestStatusEnum.Open;
         }
+
+        public async Task<MockTestWithAnswerResponse> GetMockTestResultWithReviewAsync(int mockTestId)
+        {
+            var result = await _context.Mocktests
+                .Include(x => x.MockTestQuestions)
+                .Select(x => new MockTestWithAnswerResponse
+                {
+                    MockTestId = x.MockTestId,
+                    MockTestDescription = x.MockTestDescription,
+                    MockTestTitle = x.MockTestTitle,
+                    CreatedAt = x.CreatedAt,
+                    Questions = x.MockTestQuestions
+                    .Select(c => new MockTestQuestionWithAnswerResponse
+                    {
+                        QuestionId = c.MockTestQuestionId,
+                        QuestionContent = c.QuestionContent,
+                        ImageUrl = string.IsNullOrEmpty(c.ImageUrl) ? "" : CommonUtils.GetMediaUrl(c.ImageUrl, _webHostEnvironment.WebRootPath, _httpContextAccessor),
+                        CorrectAnswer = c.CorrectAnswer
+                    })
+                    .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            return result;
+        }
     }
 }

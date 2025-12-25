@@ -196,7 +196,6 @@ namespace BusinessObject.Mapping
 
             CreateMap<Mocktest, MockTestResponse>().ReverseMap();
             CreateMap<Mocktest, MockTestQueryResponse>().ReverseMap();
-            CreateMap<Mocktest, MockTestResultResponse>().ReverseMap();
             CreateMap<Mocktest, MockTestForStudentResponse>().ReverseMap();
 
             CreateMap<Mocktestquestion, MockTestQuestionResponse>().ReverseMap();

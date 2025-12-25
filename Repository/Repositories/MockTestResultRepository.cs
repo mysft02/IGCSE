@@ -2,12 +2,9 @@
 using BusinessObject;
 using Repository.BaseRepository;
 using Repository.IRepositories;
-using Microsoft.Extensions.DependencyInjection;
 using BusinessObject.DTOs.Response.MockTest;
-using BusinessObject.DTOs.Request.MockTest;
 using Microsoft.EntityFrameworkCore;
 using BusinessObject.DTOs.Response.MockTestQuestion;
-using System.Linq.Expressions;
 using Common.Utils;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -25,41 +22,6 @@ namespace Repository.Repositories
             _context = context;
             _webHostEnvironment = webHostEnvironment;
             _httpContextAccessor = httpContextAccessor;
-        }
-
-        public async Task<List<MockTestResultQueryResponse>> GetMockTestResultList(MockTestResultQueryRequest request, Expression<Func<Mocktestresult, bool>>? filter = null)
-        {
-            var query = _context.Mocktestresults
-                .Include(x => x.MockTest)
-                    .ThenInclude(mt => mt.MockTestQuestions)
-                .Include(x => x.MockTestUserAnswer)
-                .AsQueryable();
-
-            // Áp dụng filter nếu có
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
-
-            var resultList = await query
-                .Select(x => new MockTestResultQueryResponse
-                {
-                    MockTestResultId = x.MockTestResultId,
-                    MockTest = new MockTestResultResponse
-                    {
-                        MockTestId = x.MockTest.MockTestId,
-                        MockTestTitle = x.MockTest.MockTestTitle,
-                        MockTestDescription = x.MockTest.MockTestDescription,
-                        CreatedAt = x.MockTest.CreatedAt,
-                        UpdatedAt = x.MockTest.UpdatedAt,
-                        CreatedBy = x.MockTest.CreatedBy,
-                    },
-                    Score = x.Score,
-                    DateTaken = x.CreatedAt
-                })
-                .ToListAsync();
-
-            return resultList;
         }
 
         public async Task<MockTestResultReviewResponse> GetMockTestResultWithReview(int id)
