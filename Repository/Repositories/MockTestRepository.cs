@@ -111,7 +111,7 @@ namespace Repository.Repositories
                     })
                     .ToList()
                 })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.MockTestId == mockTestId);
 
             return result;
         }

@@ -63,7 +63,8 @@ namespace Repository.Repositories
                     Score = x.Score,
                     DateTaken = x.CreatedAt
                 })
-                .FirstOrDefaultAsync();
+                .OrderByDescending(x => x.DateTaken)
+                .FirstOrDefaultAsync(x => x.MockTestResultId == id);
 
             return result;
         }
