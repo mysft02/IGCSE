@@ -12,5 +12,7 @@ namespace Repository.IRepositories
         MockTestStatusEnum CheckMockTestDone(int mockTestId, string userId);
 
         MockTestStatusEnum CheckMockTestStatus(int mockTestId, string userId, string userRole);
+
+        Task<MockTestWithAnswerResponse> GetMockTestResultWithReviewAsync(int mockTestId);
     }
 }

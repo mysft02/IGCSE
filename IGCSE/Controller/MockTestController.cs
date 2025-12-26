@@ -77,243 +77,14 @@ Lấy danh sách mock test với các trạng thái:
             return Ok(result);
         }
 
-        [HttpGet("get-mocktest-by-id")]
+        [HttpGet("get-mocktest-result")]
         [Authorize]
         [SwaggerOperation(
-            Summary = "Lấy mock test để học sinh thực hiện bài thi hoặc xem kết quả", 
-            Description = @"Api tự động trả về response khác nhau dựa trên trạng thái của mock test:
-
-**1. Trường hợp: Mock test chưa unlock (Locked - Status = 3)**
-- Trả về lỗi: ""Bạn chưa đăng kí gói thi thử.""
-- StatusCode: BadRequest_400
-
-**2. Trường hợp: Mock test đã unlock nhưng chưa làm (Open - Status = 2)**
-- Response type: `MockTestForStudentResponse`
-- Schema:
-```json
-{
-    ""message"": ""Lấy mock test thành công"",
-            ""statusCode"": 200,
-            ""data"": {: ""2024-01-01T00:00:00Z"",
-                ""updatedAt"": ""2024-01-01T00:00:00Z"",
-                ""createdBy"": ""userId"",
-                ""mockTestQuestions"": [
-                {
-                    ""mockTestQuestionId"": 1,
-                    ""questionContent"": ""Câu hỏi..."",
-                    ""imageUrl"": ""/path/to/image.jpg"",
-                    ""createdAt"": ""2024-01-01T00:00:00Z"",
-                    ""updatedAt"": ""2024-01-01T00:00:00Z""
-                }
-                ]
-            }
-            }
-            ```
-            - **Lưu ý**: Response này KHÔNG bao gồm đáp án (`CorrectAnswer`), điểm (`Mark`), hoặc câu trả lời của user.
-
-            **3. Trường hợp: Mock test đã hoàn thành (Completed - Status = 1)**
-            - Response type: `MockTestResultReviewResponse`
-            - Schema:
-            ```json
-            {
-            ""message"": ""Lấy kết quả mock test thành công"",
-            ""statusCode"": 
-                ""mockTestId"": 1,
-                ""mockTestTitle"": ""Mock Test Title"",
-                ""mockTestDescription"": ""Description"",
-                ""createdAt""200,
-            ""data"": {
-                ""mockTestResultId"": 1,
-                ""score"": 8.5,:
-                ""dateTaken"": ""2024-01-01T00:00:00Z"",
-                ""mockTest"": {
-                ""mockTestId"": 1,
-                ""mockTestTitle"": ""Mock Test Title"",
-                ""mockTestDescription"": ""Description"",
-                ""createdAt"": ""2024-01-01T00:00:00Z"",
-                ""updatedAt"": ""2024-01-01T00:00:00Z"",
-                ""createdBy"": ""userId"",
-                ""questions"" [
-                    {
-                    ""questionId"": 1,
-                    ""questionContent"": ""Câu hỏi..."",
-                    ""correctAnswer"": ""Đáp án đúng"",
-                    ""imageUrl"": ""/path/to/image.jpg"",
-                    ""mark"": 1.0,
-                    ""partialMark"": ""Partial mark description"",
-                    ""userAnswer"": {
-                        ""mockTestUserAnswerId"": 1,
-                        ""userAnswer"": ""Câu trả lời của user"",
-                        ""userMark"": 0.5
-                    }
-                    }
-                ]
-                }
-            }
-            }
-```         
-**3. Trường hợp: User có role manager**
-```json
-{
-  ""message"": ""Lấy mocktest thành công."",
-  ""statusCode"": 200,
-  ""data"": {
-    ""mockTestId"": 25,
-    ""mockTestTitle"": ""Mathematics 0580 Past Papers 2025 March"",
-    ""mockTestDescription"": ""Đề thi tháng 3 môn Toán 0580"",
-    ""createdAt"": ""2025-12-10T05:58:23"",
-    ""questions"": [
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Write the number twenty thousand in figures."",
-        ""correctAnswer"": ""20 000"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Write 0.07 as a percentage"",
-        ""correctAnswer"": ""7"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Write 0.07 as a fraction"",
-        ""correctAnswer"": ""7/100"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Write 0.07 in standard form"",
-        ""correctAnswer"": ""7x10-2"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Write down all the factors of 18."",
-        ""correctAnswer"": ""1, 2, 3, 6, 9, 18 "",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Find the value of 10^3"",
-        ""correctAnswer"": ""1000"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Find the value of squareroot of 9"",
-        ""correctAnswer"": ""3"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Find the value of 70"",
-        ""correctAnswer"": ""1"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Find the value of the reciprocal of 0.25 ."",
-        ""correctAnswer"": ""4"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Work out  -6 x -3 + 7 x 2."",
-        ""correctAnswer"": ""32"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Write these numbers in order, starting with the smallest: 34%, π, 1/3, 3, 3/10"",
-        ""correctAnswer"": ""3/10, 1/3, 34%, 3, π"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""A film starts at 19 35. The film lasts for 70 minutes. Work out the time the film finishes."",
-        ""correctAnswer"": ""20 45"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Work out: 1.95 x 2.04"",
-        ""correctAnswer"": ""3.978"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Work out: 3978 / 204"",
-        ""correctAnswer"": ""19.5"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Kat has a method for finding the difference between two square numbers.\r\nHer method is (the sum of a and b) x (the difference between a and b) .\r\nShe shows her method for 172 - 132 :  \r\n172 - 132 = (17 + 13) x (17 -13) = 30 x 4 = 120\r\nWork out 292 - 212 using Kat’s method."",
-        ""correctAnswer"": ""(29 + 21) x (29 - 21) = 50 x 8"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Convert 8 litres into cm3"",
-        ""correctAnswer"": ""8000"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""n is an odd number. Write down the values of n that satisfy 7 < n ≤ 5 ."",
-        ""correctAnswer"": ""9, 11, 13, 15"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""Pip thinks -1 8 1 1x is the inequality represented on the number line. Complete the statement:\nPip’s inequality is not correct because ______"",
-        ""correctAnswer"": ""Pip needed to use two ⩽ signs oe"",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""The height, h metres, of a building is 635m, correct to the nearest metre.\r\nComplete this statement about the value of h: _____ ≤ h < _____"",
-        ""correctAnswer"": ""634.5 635.5 "",
-        ""imageUrl"": """"
-      },
-      {
-        ""questionId"": 0,
-        ""questionContent"": ""A circle has radius 7cm. A square has side x cm. The circumference of the circle is the same length as the perimeter of the square. Find the value of x.\nGive your answer in terms of r."",
-        ""correctAnswer"": ""7π/2 or 3.5π"",
-        ""imageUrl"": """"
-      }
-    ]
-  }
-}
-```
-            - **Lưu ý**: Response này BAO GỒM đầy đủ: đáp án đúng (`correctAnswer`), điểm (`mark`, `partialMark`), câu trả lời của user (`userAnswer`), và điểm user đạt được (`userMark`).")]
-        public async Task<ActionResult<BaseResponse<object>>> GetMockTestDetail([FromQuery] int id)
-        {
-            var userId = HttpContext.User.FindFirst("AccountID")?.Value;
-            var userRole = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
-
-            if (CommonUtils.IsEmptyString(userId))
-            {
-                throw new Exception("Không tìm thấy thông tin người dùng");
-            }
-
-            var result = await _mockTestService.GetMockTestByIdOrReviewAsync(id, userId, userRole);
-            return Ok(result);
-        }
-
-        [HttpGet("get-mocktest-results")]
-        [Authorize]
-        [SwaggerOperation(
-            Summary = "Lấy danh sách kết quả các bài thi mock test đã làm", 
-            Description = @"Api dùng để lấy danh sách toàn bộ kết quả bài mock test đã làm của người dùng với phân trang và bộ lọc.
+            Summary = "Lấy kết quả bài mock test đã làm",
+            Description = @"Api dùng để lấy kết quả chi tiết của bài mock test đã hoàn thành. Chỉ trả về khi user đã hoàn thành bài thi.
 
 **Request:**
-- Query parameters:
-  - `Page` (int, mặc định: 0) - Số trang (0-based)
-  - `Size` (int, mặc định: 10) - Số lượng item mỗi trang
-  - `MockTestId` (int, optional) - Lọc theo ID bài mock test
-  - Các query parameters khác tùy theo `MockTestResultQueryRequest`
+- Query parameter: `id` (int) - ID của mock test
 
 **Response Schema - Trường hợp thành công:**
 ```json
@@ -321,27 +92,57 @@ Lấy danh sách mock test với các trạng thái:
   ""message"": ""Lấy kết quả mock test thành công"",
   ""statusCode"": 200,
   ""data"": {
-    ""items"": [
-      {
-        ""mockTestResultId"": 1,
-        ""mockTestId"": 1,
-        ""mockTestTitle"": ""Mock Test Title"",
-        ""score"": 8.5,
-        ""dateTaken"": ""2024-01-15T10:30:00Z"",
-        ""isPassed"": true
-      }
-    ],
-    ""totalCount"": 20,
-    ""page"": 0,
-    ""size"": 10,
-    ""totalPages"": 2
+    ""mockTestResultId"": 1,
+    ""score"": 8.5,
+    ""dateTaken"": ""2024-01-01T00:00:00Z"",
+    ""mockTest"": {
+      ""mockTestId"": 1,
+      ""mockTestTitle"": ""Mock Test Title"",
+      ""mockTestDescription"": ""Description"",
+      ""createdAt"": ""2024-01-01T00:00:00Z"",
+      ""updatedAt"": ""2024-01-01T00:00:00Z"",
+      ""createdBy"": ""userId"",
+      ""questions"": [
+        {
+          ""questionId"": 1,
+          ""questionContent"": ""Câu hỏi..."",
+          ""correctAnswer"": ""Đáp án đúng"",
+          ""imageUrl"": ""/path/to/image.jpg"",
+          ""mark"": 1.0,
+          ""partialMark"": ""Partial mark description"",
+          ""userAnswer"": {
+            ""mockTestUserAnswerId"": 1,
+            ""userAnswer"": ""Câu trả lời của user"",
+            ""userMark"": 0.5
+          }
+        }
+      ]
+    }
   }
 }
 ```
 
 **Response Schema - Trường hợp lỗi:**
 
-1. **Không tìm thấy thông tin người dùng:**
+1. **Chưa hoàn thành bài thi:**
+```json
+{
+  ""message"": ""Bạn chưa hoàn thành bài thi này."",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+2. **Không tìm thấy kết quả:**
+```json
+{
+  ""message"": ""Không tìm thấy kết quả bài thi."",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+3. **Không tìm thấy thông tin người dùng:**
 ```json
 {
   ""message"": ""Không tìm thấy thông tin người dùng"",
@@ -352,10 +153,10 @@ Lấy danh sách mock test với các trạng thái:
 
 **Lưu ý:**
 - API yêu cầu đăng nhập (Authorize)
-- User ID được lấy tự động từ JWT token
-- Chỉ trả về kết quả của chính user đó
-- Có thể lọc theo `MockTestId` để xem kết quả của một bài mock test cụ thể")]
-        public async Task<ActionResult<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>>> GetAllMockTestResult([FromQuery] MockTestResultQueryRequest request)
+- Chỉ trả về kết quả nếu đã hoàn thành bài thi (status = Completed)
+- Response bao gồm đầy đủ: đáp án đúng, điểm, câu trả lời của user, và điểm user đạt được
+- User ID được lấy tự động từ JWT token")]
+        public async Task<ActionResult<BaseResponse<MockTestResultReviewResponse>>> GetMockTestResult([FromQuery] int id)
         {
             var userId = HttpContext.User.FindFirst("AccountID")?.Value;
 
@@ -364,9 +165,137 @@ Lấy danh sách mock test với các trạng thái:
                 throw new Exception("Không tìm thấy thông tin người dùng");
             }
 
-            request.userID = userId;
+            var result = await _mockTestService.GetMockTestResultAsync(id, userId);
+            return Ok(result);
+        }
 
-            var result = await _mockTestService.GetAllMockTestResultAsync(request);
+        [HttpGet("get-mocktest-by-id")]
+        [Authorize]
+        [SwaggerOperation(
+            Summary = "Lấy mock test để làm bài hoặc xem với đáp án",
+            Description = @"Api dùng để lấy bài mock test. Response khác nhau tùy theo role của user:
+
+**1. Student role:**
+- Lấy bài thi để làm (chưa hoàn thành)
+- Response KHÔNG bao gồm đáp án, điểm
+- Yêu cầu đã đăng ký gói thi thử
+
+**2. Manager role:**
+- Lấy bài thi với đáp án đầy đủ
+- Response BAO GỒM đáp án, điểm, partial mark
+
+**Request:**
+- Query parameter: `id` (int) - ID của mock test
+
+**Response Schema - Student (chưa hoàn thành):**
+```json
+{
+  ""message"": ""Lấy mock test thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""mockTestId"": 1,
+    ""mockTestTitle"": ""Mock Test Title"",
+    ""mockTestDescription"": ""Description"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""updatedAt"": ""2024-01-01T00:00:00Z"",
+    ""createdBy"": ""userId"",
+    ""mockTestQuestions"": [
+      {
+        ""mockTestQuestionId"": 1,
+        ""questionContent"": ""Câu hỏi..."",
+        ""imageUrl"": ""/path/to/image.jpg"",
+        ""createdAt"": ""2024-01-01T00:00:00Z"",
+        ""updatedAt"": ""2024-01-01T00:00:00Z""
+      }
+    ]
+  }
+}
+```
+
+**Response Schema - Manager (có đáp án):**
+```json
+{
+  ""message"": ""Lấy mock test thành công"",
+  ""statusCode"": 200,
+  ""data"": {
+    ""mockTestId"": 1,
+    ""mockTestTitle"": ""Mock Test Title"",
+    ""mockTestDescription"": ""Description"",
+    ""createdAt"": ""2024-01-01T00:00:00Z"",
+    ""questions"": [
+      {
+        ""questionId"": 1,
+        ""questionContent"": ""Câu hỏi..."",
+        ""correctAnswer"": ""Đáp án đúng"",
+        ""imageUrl"": ""/path/to/image.jpg"",
+        ""mark"": 1.0,
+        ""partialMark"": ""Partial mark description""
+      }
+    ]
+  }
+}
+```
+
+**Response Schema - Trường hợp lỗi:**
+
+1. **Không có quyền (Parent/Teacher):**
+```json
+{
+  ""message"": ""Bạn không có quyền coi bài thi thử này."",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+2. **Chưa đăng ký gói thi thử (Student):**
+```json
+{
+  ""message"": ""Bạn chưa đăng kí gói thi thử."",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+3. **Không tìm thấy bài thi:**
+```json
+{
+  ""message"": ""Bài thi thử không tìm thấy"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+4. **Không tìm thấy thông tin người dùng:**
+```json
+{
+  ""message"": ""Không tìm thấy thông tin người dùng"",
+  ""statusCode"": 500,
+  ""data"": null
+}
+```
+
+**Lưu ý:**
+- API yêu cầu đăng nhập (Authorize)
+- Parent và Teacher không có quyền sử dụng API này
+- Student: Response KHÔNG bao gồm đáp án (`CorrectAnswer`), điểm (`Mark`)
+- Manager: Response BAO GỒM đầy đủ đáp án, điểm, partial mark
+- User ID và Role được lấy tự động từ JWT token")]
+        public async Task<ActionResult<BaseResponse<object>>> GetMockTestById([FromQuery] int id)
+        {
+            var user = HttpContext.User;
+            var userId = user.FindFirst("AccountID")?.Value;
+            var userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (CommonUtils.IsEmptyString(userId))
+            {
+                throw new Exception("Không tìm thấy thông tin người dùng");
+            }
+            if(userRole == "Parent" || userRole == "Teacher")
+            {
+                throw new Exception("Bạn không có quyền coi bài thi thử này.");
+            }
+
+            var result = await _mockTestService.GetMockTestByIdAsync(id, userId, userRole);
             return Ok(result);
         }
 

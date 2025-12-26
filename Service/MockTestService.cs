@@ -10,14 +10,10 @@ using BusinessObject.DTOs.Response;
 using Microsoft.AspNetCore.Hosting;
 using BusinessObject.DTOs.Request.MockTest;
 using System.Text.RegularExpressions;
-using BusinessObject.Payload.Response.Trello;
-using BusinessObject.DTOs.Request.Quizzes;
-using BusinessObject.DTOs.Response.Quizzes;
 using ClosedXML.Excel;
-using Repository.Repositories;
-using DocumentFormat.OpenXml.Vml;
 using Microsoft.AspNetCore.Http;
 using Common.Utils;
+using DocumentFormat.OpenXml.Vml.Spreadsheet;
 
 namespace Service
 {
@@ -55,32 +51,6 @@ namespace Service
             _packageRepository = packageRepository;
         }
 
-        public async Task<Mocktest> CreateMockTestForTrelloAsync(string mockTestName, List<TrelloCardResponse> trelloCardResponses, string userId)
-        {
-            mockTestName = mockTestName.Trim();
-            string description = "This is a mock test imported from Trello.";
-
-            foreach (var trelloCardResponse in trelloCardResponses)
-            {
-                if (trelloCardResponse.Name.Contains("Description"))
-                {
-                    var parts = trelloCardResponse.Name.Split(':', 2);
-                    description = parts.Length > 1 ? parts[1].Trim() : trelloCardResponse.Name.Trim();
-                }
-            }
-
-            var mockTest = new Mocktest
-            {
-                MockTestTitle = mockTestName,
-                MockTestDescription = description,
-                CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            var createdMockTest = await _mockTestRepository.AddAsync(mockTest);
-            return createdMockTest;
-        }
 
         public async Task<BaseResponse<PaginatedResponse<MockTestQueryResponse>>> GetAllMockTestAsync(MockTestQueryRequest request, string userRole)
         {
@@ -131,42 +101,6 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>> GetAllMockTestResultAsync(MockTestResultQueryRequest request)
-        {
-            var filter = request.BuildFilter<Mocktestresult>();
-
-            // Get total count first (for pagination info)
-            var totalCount = await _mockTestResultRepository.CountAsync(filter);
-
-            // Get filtered items
-            var items = await _mockTestResultRepository.GetMockTestResultList(request, filter);
-
-            // Apply sorting to the paged results
-            var sortedItems = request.ApplySorting(items);
-
-            // Apply pagination after sorting
-            var pagedItems = sortedItems
-                .Skip(request.Page * request.GetPageSize())
-                .Take(request.GetPageSize())
-                .ToList();
-
-            var totalPages = (int)Math.Ceiling((double)totalCount / request.GetPageSize());
-
-            // Map to response
-            return new BaseResponse<PaginatedResponse<MockTestResultQueryResponse>>
-            {
-                Data = new PaginatedResponse<MockTestResultQueryResponse>
-                {
-                    Items = pagedItems,
-                    TotalCount = totalCount,
-                    Page = request.Page,
-                    Size = request.GetPageSize(),
-                    TotalPages = totalPages
-                },
-                Message = "Lấy toàn bộ kết quả mock test thành công",
-                StatusCode = StatusCodeEnum.OK_200
-            };
-        }
 
         public async Task<BaseResponse<MockTestResultReviewResponse>> GetMockTestResultReviewByIdAsync(int id)
         {
@@ -181,85 +115,61 @@ namespace Service
             };
         }
 
-        public async Task<BaseResponse<MockTestForStudentResponse>> GetMockTestByIdAsync(int mockTestId, string userId)
+        public async Task<BaseResponse<object>> GetMockTestByIdAsync(int mockTestId, string userId, string userRole)
         {
-            var package = await _packageRepository.GetByUserId(userId);
-
-            if(package == null || package.IsMockTest == false)
+            if(userRole == "Student")
             {
-                throw new Exception("Bạn chưa đăng kí gói thi thử.");
-            }
+                var package = await _packageRepository.GetByUserId(userId);
 
-            var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
-            if (mockTest == null)
-            {
-                throw new Exception("Bài thi thử không tìm thấy");
-            }
-
-            return new BaseResponse<MockTestForStudentResponse>(
-                "Lấy mock test thành công",
-                StatusCodeEnum.OK_200,
-                mockTest
-            );
-        }
-
-        public async Task<BaseResponse<object>> GetMockTestByIdOrReviewAsync(int mockTestId, string userId, string userRole)
-        {
-            if(userRole == "Manager")
-            {
-                var mocktest = await _mockTestRepository.FindOneWithIncludeAsync(x => x.MockTestId == mockTestId, c => c.MockTestQuestions);
-                var response = _mapper.Map<MockTestWithAnswerResponse>(mocktest);
-                response.Questions = _mapper.Map<List<MockTestQuestionWithAnswerResponse>>(mocktest.MockTestQuestions);
-                foreach(var question in response.Questions)
+                if (package == null || package.IsMockTest == false)
                 {
-                    question.ImageUrl = string.IsNullOrEmpty(question.ImageUrl) ? "" : await _mediaService.GetMediaUrlAsync(question.ImageUrl);
+                    throw new Exception("Bạn chưa đăng kí gói thi thử.");
                 }
+
+                var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
+                if (mockTest == null)
+                {
+                    throw new Exception("Bài thi thử không tìm thấy");
+                }
+
                 return new BaseResponse<object>(
-                    "Lấy mocktest thành công.",
+                    "Lấy mock test thành công",
                     StatusCodeEnum.OK_200,
-                    response);
+                    mockTest
+                    );
+            }
+            var mocktestWithResult = await _mockTestRepository.GetMockTestResultWithReviewAsync(mockTestId);
+            if(mocktestWithResult == null)
+            {
+                throw new Exception("Không tìm thấy bài thi thử cần tìm");
             }
 
-            // Kiểm tra nếu mocktest đã done thì trả về review
-            var status = _mockTestRepository.CheckMockTestDone(mockTestId, userId);
-            if (status == MockTestStatusEnum.Completed)
-            {
-                // Lấy MockTestResultId mới nhất
-                var latestResultId = await _mockTestResultRepository.GetLatestMockTestResultIdAsync(mockTestId, userId);
-                if (latestResultId.HasValue)
-                {
-                    // Trả về review
-                    var reviewResult = await GetMockTestResultReviewByIdAsync(latestResultId.Value);
-                    return new BaseResponse<object>
-                    {
-                        Message = reviewResult.Message,
-                        StatusCode = reviewResult.StatusCode,
-                        Data = reviewResult.Data
-                    };
-                }
-            }
-
-            // Nếu chưa done, trả về test để làm
-            var package = await _packageRepository.GetByUserId(userId);
-
-            if(package == null || package.IsMockTest == false)
-            {
-                throw new Exception("Bạn chưa đăng kí gói thi thử.");
-            }
-
-            var mockTest = await _mockTestRepository.GetByMockTestIdAsync(mockTestId);
-            if (mockTest == null)
-            {
-                throw new Exception("Bài thi thử không tìm thấy");
-            }
-
-            return new BaseResponse<object>
-            {
-                Message = "Lấy mock test thành công",
-                StatusCode = StatusCodeEnum.OK_200,
-                Data = mockTest
-            };
+            return new BaseResponse<object>(
+                    "Lấy mock test thành công",
+                    StatusCodeEnum.OK_200,
+                    mocktestWithResult
+                    );
         }
+
+
+        public async Task<BaseResponse<MockTestResultReviewResponse>> GetMockTestResultAsync(int mockTestId, string userId)
+        {
+            var status = _mockTestRepository.CheckMockTestDone(mockTestId, userId);
+            if (status != MockTestStatusEnum.Completed)
+            {
+                throw new Exception("Bạn chưa hoàn thành bài thi này.");
+            }
+
+            var latestResultId = await _mockTestResultRepository.GetLatestMockTestResultIdAsync(mockTestId, userId);
+            if (!latestResultId.HasValue)
+            {
+                throw new Exception("Không tìm thấy kết quả bài thi.");
+            }
+
+            // Trả về review
+            return await GetMockTestResultReviewByIdAsync(latestResultId.Value);
+        }
+
 
         public async Task<BaseResponse<List<MockTestMarkResponse>>> MarkMockTestAsync(MockTestMarkRequest request, string userId)
         {
