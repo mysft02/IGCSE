@@ -18,7 +18,7 @@ public class ChatConversationRepository : BaseRepository<ChatConversation>, ICha
     public async Task<List<ChatConversation>> GetByUserIdAsync(string userId)
     {
         return await _context.Set<ChatConversation>()
-            .Where(c => c.UserId == userId)
+            .Where(c => c.UserId == userId && c.IsActive == true)
             .OrderByDescending(c => c.UpdatedAt)
             .ToListAsync();
     }
