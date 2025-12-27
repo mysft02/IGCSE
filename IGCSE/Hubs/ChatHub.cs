@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Service.Assistant;
-using Repository.IRepositories;
-using BusinessObject.Model;
 using System.Security.Claims;
 
 namespace IGCSE.Hubs;
@@ -11,14 +9,10 @@ namespace IGCSE.Hubs;
 public class ChatHub : Hub
 {
     private readonly IAssistantService _assistantService;
-    private readonly IChatMessageRepository _messageRepository;
 
-    public ChatHub(
-        IAssistantService assistantService,
-        IChatMessageRepository messageRepository)
+    public ChatHub(IAssistantService assistantService)
     {
         _assistantService = assistantService;
-        _messageRepository = messageRepository;
     }
 
     public async Task SendMessage(string conversationId, string message)
@@ -33,20 +27,6 @@ public class ChatHub : Hub
         // Get user role from JWT token
         var userRole = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
 
-        // Save user message
-        if (int.TryParse(conversationId, out var convId))
-        {
-            var userMessage = new ChatMessage
-            {
-                ConversationId = convId,
-                Content = message,
-                Role = "user",
-                CreatedAt = DateTime.UtcNow,
-                IsRelevant = true
-            };
-            await _messageRepository.AddAsync(userMessage);
-        }
-
         // Notify typing
         await Clients.Group(conversationId).SendAsync("Typing", true);
 
@@ -57,6 +37,7 @@ public class ChatHub : Hub
                 userId, message, conversationId, userRole);
             
             // Gửi JSON string hoàn chỉnh (Content đã là JSON string nếu có structured data)
+            // Sử dụng PascalCase để khớp với client listener
             await Clients.Caller.SendAsync("ReceiveMessage", response.Content);
         }
         catch (Exception ex)
