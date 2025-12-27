@@ -37,6 +37,7 @@ namespace Repository.Repositories
                     Description = x.FinalQuiz.Description,
                     IsPassed = x.IsPassed,
                     DateTaken = x.CreatedAt,
+                    Score = x.Score,
                     Questions = _context.Finalquizuseranswers
                     .Include(cx => cx.Question)
                     .Where(c => c.FinalQuizResultId == x.FinalQuizResultId)

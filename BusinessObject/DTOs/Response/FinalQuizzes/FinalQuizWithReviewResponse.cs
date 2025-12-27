@@ -12,6 +12,8 @@ namespace BusinessObject.DTOs.Response.FinalQuizzes
 
         public bool IsPassed { get; set; }
 
+        public decimal Score { get; set; }
+
         public DateTime DateTaken { get; set; }
 
         public List<QuizResultQuestionResponse> Questions { get; set; }

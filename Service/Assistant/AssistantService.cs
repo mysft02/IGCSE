@@ -4,6 +4,7 @@ using Repository.IRepositories;
 using System.Text.Json;
 using Service.OpenAI;
 using Common.Utils;
+using Org.BouncyCastle.Asn1.Cmp;
 
 namespace Service.Assistant;
 
@@ -418,9 +419,43 @@ public class AssistantService : IAssistantService
     {
         if (int.TryParse(conversationId, out var convId))
         {
-            return await _messageRepository.GetByConversationIdAsync(convId, limit);
+            var messageList = await _messageRepository.GetByConversationIdAsync(convId, limit);
+            foreach(var chatMessage in messageList)
+            {
+                var content = chatMessage.Content;
+                if (string.IsNullOrWhiteSpace(content))
+                    continue;
+
+                content = content.Trim();
+
+                try
+                {
+                    if (content.StartsWith("{"))
+                    {
+                        var obj = JsonSerializer.Deserialize<ChatResponse>(content, _jsonOptions);
+                        if (obj != null && obj.Text != null)
+                        {
+                            // Lấy text từ JSON object (Unicode đã được decode tự động)
+                            content = obj.Text;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Parse lỗi → giữ nguyên content gốc
+                }
+                chatMessage.Content = content;
+            }
+            return messageList;
         }
         return new List<ChatMessage>();
     }
+
+    public class ChatResponse
+    {
+        public string Text { get; set; }
+        public string SystemData { get; set; }
+    }
+
 }
 
